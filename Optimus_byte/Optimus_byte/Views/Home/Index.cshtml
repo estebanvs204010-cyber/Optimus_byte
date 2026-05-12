@@ -1,8 +1,166 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    Layout = null;
+    ViewData["Title"] = "Inicio";
+    var nombre = ViewBag.UsuarioNombre as string;
+    var rol = ViewBag.UsuarioRol as string;
+    bool logueado = !string.IsNullOrEmpty(nombre);
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - VistaPrincipal</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+
+<body>
+
+    <header class="barra-superior">
+        <button class="boton-menu" onclick="mostrarMenu()">☰</button>
+
+        <a class="logo-proyecto" asp-controller="Home" asp-action="Index">
+            <img src="~/img/logo-optimus-byte.png" alt="Optimus-Byte" class="logo-img" />
+        </a>
+
+        <div class="nav-acciones">
+            @if (!logueado)
+            {
+                <a class="boton-ingresar" asp-controller="Login" asp-action="Index">
+                    Ingresar
+                </a>
+
+                <a class="boton-registro" asp-controller="Registro" asp-action="Index">
+                    Registrarse
+                </a>
+            }
+            else
+            {
+                <div class="dropdown">
+                    <button class="boton-usuario dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        @nombre
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end menu-usuario">
+                        <li>
+                            <a class="dropdown-item" asp-controller="Perfil" asp-action="Index">
+                                Editar perfil
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item" asp-controller="Facturas" asp-action="Index">
+                                Facturas
+                            </a>
+                        </li>
+
+                        <li><hr class="dropdown-divider" /></li>
+
+                        <li>
+                            <form asp-controller="Home" asp-action="Logout" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="dropdown-item">
+                                    Cerrar sesión
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            }
+        </div>
+    </header>
+
+
+    <aside class="barra-lateral" id="barraLateral">
+        <h2>Optimus-Byte</h2>
+
+        <a asp-controller="Home" asp-action="Index">Inicio</a>
+        <a asp-controller="Inventario" asp-action="Index">Inventario</a>
+        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
+        <a asp-controller="Citas" asp-action="Index">Citas</a>
+        <a asp-controller="Home" asp-action="Sobre">Acerca de</a>
+    </aside>
+
+    <main class="container contenido-principal" id="contenidoPrincipal">
+        <section>
+            <div>
+                @if (logueado)
+                {
+                    <h1>Bienvenido, @nombre</h1>
+                    <p>Gestiona tu taller mecánico desde aquí.</p>
+                }
+                else
+                {
+                    <h1>Bienvenido a Optimus-Byte</h1>
+                    <p>Tu taller mecánico de confianza para el cuidado de tu vehículo.</p>
+                }
+            </div>
+        </section>
+
+        <section class="seccion-repuestos">
+            <h2>Repuestos destacados</h2>
+
+            <div class="contenedor-repuestos">
+
+                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="1">
+                    <h3>Aceite de motor</h3>
+                    <p>Lubricante para mantenimiento preventivo.</p>
+                    <span>Ver detalles</span>
+                </a>
+
+                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="2">
+                    <h3>Filtro de aire</h3>
+                    <p>Mantiene limpio el ingreso de aire al motor.</p>
+                    <span>Ver detalles</span>
+                </a>
+
+                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="3">
+                    <h3>Pastillas de freno</h3>
+                    <p>Repuesto esencial para la seguridad.</p>
+                    <span>Ver detalles</span>
+                </a>
+
+                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="4">
+                    <h3>Batería</h3>
+                    <p>Batería automotriz para autos particulares.</p>
+                    <span>Ver detalles</span>
+                </a>
+
+
+            </div>
+            <a class="boton-catalogo" asp-controller="Inventario" asp-action="Index">Catalogo</a>
+        </section>
+        <section>
+            <div>
+                <h3>Servicios</h3>
+                <p>Gestionar los servicios que ofrece el taller mecánico.</p>
+                <a asp-controller="Servicios" asp-action="Index">Entrar a Servicios</a>
+            </div>
+        </section>
+
+        <section>
+            <div>
+                <h3>Citas</h3>
+                <p>Agendar citas de clientes para revisión o reparación.</p>
+                <a asp-controller="Citas" asp-action="Index">Entrar a Citas</a>
+            </div>
+        </section>
+
+        <section>
+            <div>
+                <h3>Sobre el Taller</h3>
+                <p>Información sobre el taller mecánico, su historia y misión.</p>
+                <a asp-controller="Home" asp-action="Sobre">Entrar a Sobre el Taller</a>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+</body>
+</html>

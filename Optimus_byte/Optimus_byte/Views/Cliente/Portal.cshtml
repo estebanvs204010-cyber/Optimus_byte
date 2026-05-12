@@ -1,0 +1,133 @@
+﻿@{
+    ViewData["Title"] = "Mi Portal";
+    Layout = null;
+    var nombre = ViewBag.Nombre as string ?? "Cliente";
+    var inicial = nombre.Length > 0 ? nombre[0].ToString().ToUpper() : "C";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Mi Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/Portal.css" rel="stylesheet" />
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-rol">Cliente</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="user-name">
+                <i class="bi bi-person-circle me-1"></i>@nombre
+            </span>
+            <a href="/Login/Logout" class="btn-salir">
+                <i class="bi bi-box-arrow-right me-1"></i>Salir
+            </a>
+        </div>
+    </div>
+
+    <div class="page">
+
+        <!-- Bienvenida -->
+        <div class="welcome-bar">
+            <div class="avatar">@inicial</div>
+            <div class="welcome-txt">
+                <h2>Bienvenido, @nombre</h2>
+                <p>Este es tu portal de consulta. Aquí puedes ver el estado de tu vehículo y tus servicios.</p>
+            </div>
+        </div>
+
+        <!-- Tarjetas -->
+        <div class="cards-grid">
+
+            <a href="/Cliente/MisVehiculos" class="portal-card">
+                <div class="card-icon icon-dorado">
+                    <i class="bi bi-car-front-fill"></i>
+                </div>
+                <p class="card-title">Mis Vehículos</p>
+                <p class="card-desc">Consulta los vehículos registrados a tu nombre en el taller.</p>
+                <div class="card-arrow">
+                    Ver vehículos <i class="bi bi-arrow-right"></i>
+                </div>
+            </a>
+
+            <a href="/Cliente/MisOrdenes" class="portal-card">
+                <div class="card-icon icon-azul">
+                    <i class="bi bi-clipboard2-check-fill"></i>
+                </div>
+                <p class="card-title">Mis Órdenes</p>
+                <p class="card-desc">Revisa el estado actual de tus órdenes de trabajo y diagnósticos.</p>
+                <div class="card-arrow">
+                    Ver órdenes <i class="bi bi-arrow-right"></i>
+                </div>
+            </a>
+
+            <a href="/Cliente/MisFacturas" class="portal-card">
+                <div class="card-icon icon-verde">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </div>
+                <p class="card-title">Mis Facturas <span class="soon-badge">Pronto</span></p>
+                <p class="card-desc">Descarga y consulta el historial de pagos y facturas emitidas.</p>
+                <div class="card-arrow">
+                    Ver facturas <i class="bi bi-arrow-right"></i>
+                </div>
+            </a>
+
+            <a href="/Cliente/Mantenimiento" class="portal-card">
+                <div class="card-icon icon-morado">
+                    <i class="bi bi-tools"></i>
+                </div>
+                <p class="card-title">Mantenimiento <span class="soon-badge">Pronto</span></p>
+                <p class="card-desc">Consulta los próximos mantenimientos recomendados para tu vehículo.</p>
+                <div class="card-arrow">
+                    Ver plan <i class="bi bi-arrow-right"></i>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Info del taller -->
+        <div class="info-section">
+            <p class="info-title">Información del Taller</p>
+            <p class="info-sub">Contáctanos si necesitas agendar o tienes alguna duda</p>
+            <div class="info-grid">
+                <div class="info-item">
+                    <i class="bi bi-telephone-fill"></i>
+                    <div class="info-item-txt">
+                        <strong>Teléfono</strong>
+                        <span>+57 318 509 4530</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-envelope-fill"></i>
+                    <div class="info-item-txt">
+                        <strong>Correo</strong>
+                        <span>louisfonsea070&#64;gmail.com</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-clock-fill"></i>
+                    <div class="info-item-txt">
+                        <strong>Horario</strong>
+                        <span>Lun – Sáb · 8:00 am – 6:00 pm</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <div class="info-item-txt">
+                        <strong>Ubicación</strong>
+                        <span>Colombia</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

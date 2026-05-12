@@ -1,0 +1,124 @@
+@model VistaPrincipal.Models.ViewModels.PerfilViewModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Editar perfil";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Optimus Byte</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="barra-superior">
+        <button class="boton-menu" onclick="mostrarMenu()">☰</button>
+
+        <a class="logo-proyecto" asp-controller="Home" asp-action="Index">
+            <img src="~/img/logo-optimus-byte.png" alt="Optimus-Byte" class="logo-img" />
+        </a>
+
+        <div class="nav-acciones">
+            <a class="boton-usuario" asp-controller="Home" asp-action="Index">Inicio</a>
+        </div>
+    </header>
+
+    <aside class="barra-lateral" id="barraLateral">
+        <h2>Optimus-Byte</h2>
+        <a asp-controller="Home" asp-action="Index">Inicio</a>
+        <a asp-controller="Inventario" asp-action="Index">Inventario</a>
+        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
+        <a asp-controller="Citas" asp-action="Index">Citas</a>
+    </aside>
+
+    <main class="container contenido-principal" id="contenidoPrincipal">
+        <section class="perfil-panel">
+            <div class="perfil-encabezado">
+                <span class="badge-dorado">Cuenta</span>
+                <h1>Editar perfil</h1>
+                <p>Actualiza tus datos personales y de contacto del portal del cliente.</p>
+            </div>
+
+            @if (TempData["PerfilActualizado"] != null)
+            {
+                <div class="alert alert-success">
+                    @TempData["PerfilActualizado"]
+                </div>
+            }
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    @Html.ValidationSummary(false)
+                </div>
+            }
+
+            <form asp-controller="Perfil" asp-action="Index" method="post" class="perfil-formulario">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" asp-for="IdUsuario" />
+                <input type="hidden" asp-for="IdCliente" />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="NombreCompleto" class="form-label"></label>
+                        <input asp-for="NombreCompleto" class="form-control" />
+                        <span asp-validation-for="NombreCompleto" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Correo" class="form-label"></label>
+                        <input asp-for="Correo" class="form-control" />
+                        <span asp-validation-for="Correo" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="TipoDocumento" class="form-label"></label>
+                        <select asp-for="TipoDocumento" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="CC">Cedula de ciudadania</option>
+                            <option value="TI">Tarjeta de identidad</option>
+                            <option value="CE">Cedula de extranjeria</option>
+                            <option value="NIT">NIT</option>
+                            <option value="PP">Pasaporte</option>
+                        </select>
+                        <span asp-validation-for="TipoDocumento" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="NumeroDocumento" class="form-label"></label>
+                        <input asp-for="NumeroDocumento" class="form-control" />
+                        <span asp-validation-for="NumeroDocumento" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Telefono" class="form-label"></label>
+                        <input asp-for="Telefono" class="form-control" />
+                        <span asp-validation-for="Telefono" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Direccion" class="form-label"></label>
+                        <input asp-for="Direccion" class="form-control" />
+                        <span asp-validation-for="Direccion" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="perfil-acciones">
+                    <button type="submit" class="boton-primario">Guardar cambios</button>
+                    <a class="btn-elegante" asp-controller="Home" asp-action="Index">Cancelar</a>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+</body>
+</html>

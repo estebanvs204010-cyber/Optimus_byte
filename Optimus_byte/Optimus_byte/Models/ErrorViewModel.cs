@@ -1,4 +1,4 @@
-namespace Optimus_byte.Models
+namespace VistaPrincipal.Models
 {
     public class ErrorViewModel
     {

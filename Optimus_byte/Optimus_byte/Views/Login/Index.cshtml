@@ -1,0 +1,93 @@
+﻿@model VistaPrincipal.Models.ViewModels.LoginViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Iniciar sesión</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/Login.css" rel="stylesheet" />
+
+</head>
+
+<body>
+
+    <div class="container-fluid">
+        <div class="row">
+
+            <!-- IZQUIERDA -->
+            <div class="col-md-6 left-side">
+                <div class="form-box">
+
+                    <div class="mb-4">
+                        <div class="brand">OPTIMUS-BYTE</div>
+                        <div class="subtitle">Sistema Integral de Gestión vehiculos.</div>
+                    </div>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger py-2">
+                            @Html.ValidationSummary(false, "", new { @class = "mb-0" })
+                        </div>
+                    }
+
+                    <form asp-controller="Login" asp-action="Index" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <h4 class="mb-4 text-light">Iniciar sesión</h4>
+
+                        <!-- CORREO -->
+                        <div class="mb-3">
+                            <label asp-for="Correo">Correo electrónico</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input asp-for="Correo" class="form-control" placeholder="Correo electrónico" />
+                            </div>
+                            <span asp-validation-for="Correo" class="text-danger small"></span>
+                        </div>
+
+                        <!-- PASSWORD -->
+                        <div class="mb-4">
+                            <label asp-for="Contrasena">Contraseña</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input asp-for="Contrasena" type="password" class="form-control" placeholder="••••••••" />
+                            </div>
+                            <span asp-validation-for="Contrasena" class="text-danger small"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Ingresar
+                        </button>
+                        <button type="button" class="btn btn-link w-100 mt-2" onclick="window.location.href='/Home/Index'">
+                            Volver al inicio
+                        </button>
+                        <button type="button" class="btn btn-link w-100 mt-2" onclick="window.location.href='/Registro/Index'">
+                            ¿No tienes cuenta? Regístrate</button>
+
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- DERECHA -->
+            <div class="col-md-6 px-0 d-none d-md-block image-side">
+                <img src="https://i.pinimg.com/736x/ee/f2/13/eef2131abb38643166c6a946d21c3973.jpg">
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://i.pinimg.com/736x/ee/f2/13/eef2131abb38643166c6a946d21c3973.jpg"></script>
+
+</body>
+</html>

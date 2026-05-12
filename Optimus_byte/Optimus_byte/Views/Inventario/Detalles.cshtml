@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "Detalles del Repuesto";
+    int id = ViewBag.Id ?? 0;
+}
+
+<h1>Detalles del Repuesto</h1>
+
+@if (id == 1)
+{
+    <h2>Aceite de motor</h2>
+    <p><strong>Descripción:</strong> Lubricante para proteger el motor.</p>
+    <p><strong>Marca:</strong> Mobil</p>
+    <p><strong>Cantidad disponible:</strong> 10 unidades</p>
+    <p><strong>Precio:</strong> $85.000</p>
+}
+else if (id == 2)
+{
+    <h2>Filtro de aire</h2>
+    <p><strong>Descripción:</strong> Filtro para limpiar el aire que entra al motor.</p>
+    <p><strong>Marca:</strong> Bosch</p>
+    <p><strong>Cantidad disponible:</strong> 15 unidades</p>
+    <p><strong>Precio:</strong> $35.000</p>
+}
+else if (id == 3)
+{
+    <h2>Pastillas de freno</h2>
+    <p><strong>Descripción:</strong> Pastillas para sistema de frenos.</p>
+    <p><strong>Marca:</strong> Brembo</p>
+    <p><strong>Cantidad disponible:</strong> 8 unidades</p>
+    <p><strong>Precio:</strong> $120.000</p>
+}
+else if (id == 4)
+{
+    <h2>Batería</h2>
+    <p><strong>Descripción:</strong> Batería automotriz de 12V.</p>
+    <p><strong>Marca:</strong> Willard</p>
+    <p><strong>Cantidad disponible:</strong> 5 unidades</p>
+    <p><strong>Precio:</strong> $280.000</p>
+}
+else
+{
+    <p>No se encontró información de este repuesto.</p>
+}
+
+<a asp-controller="Home" asp-action="Index">Volver al inicio</a>

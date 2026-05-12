@@ -1,0 +1,172 @@
+﻿@model VistaPrincipal.Models.ViewModels.RegistroViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Registro</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/Registro.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+
+            <div class="col-md-6 left-side">
+                <div class="form-box">
+
+                    <div class="mb-3">
+                        <div class="brand">⚙ OPTIMUS-BYTE</div>
+                        <div class="subtitle">Crea tu cuenta para acceder al portal del cliente</div>
+                    </div>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger py-2 small">
+                            @Html.ValidationSummary(false, "", new { @class = "mb-0" })
+                        </div>
+                    }
+
+                    <form asp-controller="Registro" asp-action="Index" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <h5 class="mb-3 fw-semibold text-dark">Crear cuenta</h5>
+
+                        <div class="mb-3">
+                            <label asp-for="NombreCompleto">Nombre completo</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input asp-for="NombreCompleto" class="form-control" placeholder="Tu nombre completo" />
+                            </div>
+                            <span asp-validation-for="NombreCompleto" class="text-danger" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Correo">Correo electrónico</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input asp-for="Correo" class="form-control" placeholder="ejemplo@correo.com" />
+                            </div>
+                            <span asp-validation-for="Correo" class="text-danger" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TipoDocumento">Tipo de documento</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-card-text"></i>
+                                </span>
+                                <select asp-for="TipoDocumento" class="form-control">
+                                    <option value="">Seleccione...</option>
+                                    <option value="CC">Cédula de ciudadanía</option>
+                                    <option value="TI">Tarjeta de identidad</option>
+                                    <option value="CE">Cédula de extranjería</option>
+                                    <option value="NIT">NIT</option>
+                                    <option value="PP">Pasaporte</option>
+                                </select>
+                            </div>
+                            <span asp-validation-for="TipoDocumento" class="text-danger" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="NumeroDocumento">Número de documento</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-123"></i>
+                                </span>
+                                <input asp-for="NumeroDocumento" class="form-control" placeholder="Número de documento" />
+                            </div>
+                            <span asp-validation-for="NumeroDocumento" class="text-danger" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Telefono">Teléfono</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-telephone"></i>
+                                </span>
+                                <input asp-for="Telefono" class="form-control" placeholder="300 123 4567" />
+                            </div>
+                            <span asp-validation-for="Telefono" class="text-danger" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Direccion">Dirección</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-geo-alt"></i>
+                                </span>
+                                <input asp-for="Direccion" class="form-control" placeholder="Dirección de residencia" />
+                            </div>
+                            <span asp-validation-for="Direccion" class="text-danger" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Contrasena">Contraseña</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input asp-for="Contrasena" type="password" class="form-control" placeholder="Mínimo 6 caracteres" />
+                            </div>
+                            <span asp-validation-for="Contrasena" class="text-danger d-block" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="ConfirmarContrasena">Confirmar contraseña</label>
+                            <div class="input-group mt-1">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock-fill"></i>
+                                </span>
+                                <input asp-for="ConfirmarContrasena" type="password" class="form-control" placeholder="Repite la contraseña" />
+                            </div>
+                            <span asp-validation-for="ConfirmarContrasena" class="text-danger" style="font-size:.8rem"></span>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="submit" class="btn btn-registro flex-fill">
+                                <i class="bi bi-person-check me-2"></i>
+                                Crear cuenta
+                            </button>
+
+                            <button type="reset" class="btn btn-limpiar px-3" title="Limpiar formulario">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                        </div>
+
+                        <div class="text-center">
+                            <span class="text-secondary" style="font-size:.85rem">¿Ya tienes cuenta?</span>
+                            <a asp-controller="Login" asp-action="Index" class="link-login ms-1">
+                                Inicia sesión
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-6 px-0 d-none d-md-block image-side">
+                <img src="https://i.pinimg.com/736x/ee/f2/13/eef2131abb38643166c6a946d21c3973.jpg"
+                     alt="OPTIMUS-BYTE">
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+</body>
+</html>
+

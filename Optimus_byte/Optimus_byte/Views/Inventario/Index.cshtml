@@ -1,0 +1,136 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Catálogo de Repuestos";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Optimus-Byte</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/catalogo.css" asp-append-version="true" />
+</head>
+
+<body>
+
+    <!-- ══ NAVBAR ══════════════════════════════════════════ -->
+    <header class="barra-superior">
+        <button class="boton-menu" onclick="mostrarMenu()">☰</button>
+
+        <a class="logo-proyecto" asp-controller="Home" asp-action="Index">
+            <img src="~/img/logo-optimus-byte.png" alt="Optimus-Byte" class="logo-img" />
+        </a>
+
+        <!-- Botón de cotización con badge dinámico -->
+        <button class="nb-cotizacion" id="toggleCarrito">
+            🛒 Mi cotización
+            <span class="carrito-badge" id="badgeCount">0</span>
+        </button>
+
+        <a class="boton-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
+        <a class="boton-registro" asp-controller="Registro" asp-action="Index">Registrar</a>
+    </header>
+
+    <!-- ══ BARRA LATERAL ═══════════════════════════════════ -->
+    <aside class="barra-lateral" id="barraLateral">
+        <h2>Optimus-Byte</h2>
+        <a asp-controller="Home" asp-action="Index">Inicio</a>
+        <a asp-controller="Inventario" asp-action="Index" class="activo-sidebar">Catálogo</a>
+        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
+        <a asp-controller="Citas" asp-action="Index">Citas</a>
+        <a asp-controller="Home" asp-action="Sobre">Acerca de</a>
+    </aside>
+
+    <!-- ══ LAYOUT: SIDEBAR CATEGORÍAS + MAIN ══════════════ -->
+    <div class="cat-layout" id="contenidoPrincipal">
+
+        <!-- Sidebar izquierdo: categorías + resumen cotización -->
+        <aside class="cat-sb">
+            <div class="cat-sb-header">
+                <div class="cat-sb-header-txt">Cotizador de Repuestos</div>
+                <button class="cat-sb-carrito-btn" onclick="toggleCarrito()">
+                    🛒 Productos agregados
+                    <span id="sbCount"
+                          style="background:rgba(0,0,0,0.25);border-radius:10px;padding:1px 7px;font-size:.65rem;">
+                        0
+                    </span>
+                </button>
+            </div>
+
+            <div class="cat-sb-cat-title">Categorías</div>
+            <div class="cat-sb-cat on" onclick="filtrar('todos', this)">
+                Todos los productos <span class="arr">→</span>
+            </div>
+            <div class="cat-sb-cat" onclick="filtrar('Motor', this)">
+                Motor <span class="arr">→</span>
+            </div>
+            <div class="cat-sb-cat" onclick="filtrar('Frenos', this)">
+                Frenos <span class="arr">→</span>
+            </div>
+            <div class="cat-sb-cat" onclick="filtrar('Filtros', this)">
+                Filtros <span class="arr">→</span>
+            </div>
+            <div class="cat-sb-cat" onclick="filtrar('Eléctrico', this)">
+                Eléctrico <span class="arr">→</span>
+            </div>
+            <div class="cat-sb-cat" onclick="filtrar('Suspensión', this)">
+                Suspensión <span class="arr">→</span>
+            </div>
+            <div class="cat-sb-cat" onclick="filtrar('Lubricantes', this)">
+                Lubricantes <span class="arr">→</span>
+            </div>
+        </aside>
+
+        <!-- Área principal del catálogo -->
+        <main class="cat-main">
+
+            <!-- Cabecera: título + buscador + orden -->
+            <div class="cat-main-top">
+                <div class="cat-main-title">Todos los <em>productos</em></div>
+                <div class="cat-search-row">
+                    <input class="cat-search-inp"
+                           placeholder="Buscar repuesto..."
+                           id="searchInp"
+                           oninput="buscar()" />
+                    <button class="cat-search-btn">🔍</button>
+                    <select class="cat-sort-sel" onchange="ordenar(this.value)">
+                        <option value="nombre">Nombre A–Z</option>
+                        <option value="precio-asc">Precio ↑</option>
+                        <option value="precio-desc">Precio ↓</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Panel de cotización (se abre/cierra con el botón) -->
+            <div class="cat-carrito-panel" id="carritoPanel" style="display:none;">
+                <div class="cat-carrito-panel-hdr">
+                    <span>Mi cotización</span>
+                    <span style="cursor:pointer;" onclick="toggleCarrito()">✕ cerrar</span>
+                </div>
+                <div id="carritoItems"></div>
+                <div class="cat-carrito-total">
+                    <span class="cat-carrito-total-lbl">Total estimado</span>
+                    <span class="cat-carrito-total-val" id="totalVal">$0</span>
+                </div>
+                <button class="cat-btn-cotizar">Enviar cotización →</button>
+            </div>
+
+            <!-- Grid de tarjetas de productos (generado por JS) -->
+            <div class="cat-grid" id="productosGrid"></div>
+
+        </main>
+    </div>
+
+    <!-- ══ JS DEL CATÁLOGO ═════════════════════════════════ -->
+    <script src="~/js/catalogo.js" asp-append-version="true"></script>
+    <script>
+        function mostrarMenu() {
+            document.getElementById('barraLateral').classList.toggle('activa');
+        }
+    </script>
+
+</body>
+</html>
