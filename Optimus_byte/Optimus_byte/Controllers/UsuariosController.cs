@@ -1,210 +1,330 @@
-﻿using BC = BCrypt.Net.BCrypt;
+using BC = BCrypt.Net.BCrypt;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VistaPrincipal.Data;
-using VistaPrincipal.Models;
-using VistaPrincipal.Models.ViewModels;
+using Microsoft.Data.SqlClient;
+using Optimus_byte.DATA;
+using Optimus_byte.Models;
+using Optimus_byte.Models.ViewModels;
 
-namespace VistaPrincipal.Controllers
+namespace Optimus_byte.Controllers
 {
     public class UsuariosController : Controller
     {
-        private readonly optimusDBContext _db;
+        private readonly DbHelper _db;
 
-        public UsuariosController(optimusDBContext db) => _db = db;
+        public UsuariosController(DbHelper db) => _db = db;
 
-        // ── Solo el Administrador puede entrar ────────────────
         private bool EsAdmin() =>
             HttpContext.Session.GetString("UsuarioRol") == "Admin";
-        // ══════════════════════════════════════════════════════
-        // GET: /Usuarios  →  Lista completa
-        // ══════════════════════════════════════════════════════
+
+        // ── GET: /Usuarios ────────────────────────────────────────
         public IActionResult Index()
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            var usuarios = _db.Usuarios
-                .Include(u => u.Rol)
-                .OrderBy(u => u.IdRol)
-                .ThenBy(u => u.NombreCompleto)
-                .Select(u => new UsuarioEditarViewModel
-                {
-                    IdUsuario = u.IdUsuario,
-                    NombreCompleto = u.NombreCompleto,
-                    Correo = u.Correo,
-                    Telefono = u.Telefono ?? "",
-                    IdRol = u.IdRol,
-                    Activo = u.Activo,
-                    Rol = u.Rol
-                })
-                .ToList();
+            var usuarios = new List<UsuarioEditarViewModel>();
+            var roles    = new List<Rol>();
 
-            ViewBag.Roles = _db.Roles.OrderBy(r => r.RolId).ToList();
+            using var conn = _db.GetConnection();
+
+            // Cargar usuarios
+            using (var cmd = new SqlCommand(@"
+                SELECT u.id_usuario, u.nombre_completo, u.correo,
+                       u.telefono, u.id_rol, u.activo,
+                       r.id_rol AS rol_id, r.nombre AS rol_nombre
+                FROM Usuarios u
+                INNER JOIN Roles r ON u.id_rol = r.id_rol
+                ORDER BY u.id_rol, u.nombre_completo", conn))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    usuarios.Add(new UsuarioEditarViewModel
+                    {
+                        IdUsuario      = Convert.ToInt32(reader["id_usuario"]),
+                        NombreCompleto = reader["nombre_completo"].ToString()!,
+                        Correo         = reader["correo"].ToString()!,
+                        Telefono       = reader["telefono"]?.ToString() ?? "",
+                        IdRol          = Convert.ToInt32(reader["id_rol"]),
+                        Activo         = Convert.ToBoolean(reader["activo"]),
+                        Rol = new Rol
+                        {
+                            RolId     = Convert.ToInt32(reader["rol_id"]),
+                            NombreRol = reader["rol_nombre"].ToString()!
+                        }
+                    });
+                }
+            }
+
+            // Cargar roles para el ViewBag
+            using (var cmd2 = new SqlCommand(
+                "SELECT id_rol, nombre FROM Roles ORDER BY id_rol", conn))
+            using (var r2 = cmd2.ExecuteReader())
+            {
+                while (r2.Read())
+                    roles.Add(new Rol
+                    {
+                        RolId     = Convert.ToInt32(r2["id_rol"]),
+                        NombreRol = r2["nombre"].ToString()!
+                    });
+            }
+
+            ViewBag.Roles = roles;
             return View("~/Views/Usuarios/Usuarios_Index.cshtml", usuarios);
         }
 
-        // ══════════════════════════════════════════════════════
-        // GET: /Usuarios/Crear
-        // ══════════════════════════════════════════════════════
+        // ── GET: /Usuarios/Crear ──────────────────────────────────
         public IActionResult Crear()
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
-            ViewBag.Roles = _db.Roles.OrderBy(r => r.RolId).ToList();
+            ViewBag.Roles = ObtenerRoles();
             return View("~/Views/Usuarios/Crear.cshtml", new Usuario());
         }
 
-        // POST: /Usuarios/Crear
+        // ── POST: /Usuarios/Crear ─────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Crear(Usuario model)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            if (_db.Usuarios.Any(u => u.Correo == model.Correo))
+            using var conn = _db.GetConnection();
+
+            // Verificar correo duplicado
+            using (var check = new SqlCommand(
+                "SELECT COUNT(1) FROM Usuarios WHERE correo = @correo", conn))
             {
-                ModelState.AddModelError("Correo", "Este correo ya está registrado.");
-                ViewBag.Roles = _db.Roles.ToList();
-                return View("~/Views/Usuarios/Crear.cshtml", model);
+                check.Parameters.AddWithValue("@correo", model.Correo);
+                if ((int)check.ExecuteScalar() > 0)
+                {
+                    ModelState.AddModelError("Correo", "Este correo ya está registrado.");
+                    ViewBag.Roles = ObtenerRoles();
+                    return View("~/Views/Usuarios/Crear.cshtml", model);
+                }
             }
 
             if (string.IsNullOrWhiteSpace(model.Contrasena))
             {
                 ModelState.AddModelError("Contrasena", "La contraseña es obligatoria.");
-                ViewBag.Roles = _db.Roles.ToList();
+                ViewBag.Roles = ObtenerRoles();
                 return View("~/Views/Usuarios/Crear.cshtml", model);
             }
 
-            model.ContrasenaHash = BC.HashPassword(model.Contrasena);
-            model.Activo = true;
+            using (var cmd = new SqlCommand(@"
+                INSERT INTO Usuarios
+                    (nombre_completo, correo, telefono, contrasena_hash, activo, id_rol)
+                VALUES (@nombre, @correo, @tel, @hash, 1, @rol)", conn))
+            {
+                cmd.Parameters.AddWithValue("@nombre", model.NombreCompleto);
+                cmd.Parameters.AddWithValue("@correo", model.Correo);
+                cmd.Parameters.AddWithValue("@tel",    model.Telefono ?? "");
+                cmd.Parameters.AddWithValue("@hash",   BC.HashPassword(model.Contrasena));
+                cmd.Parameters.AddWithValue("@rol",    model.IdRol);
+                cmd.ExecuteNonQuery();
+            }
 
-            _db.Usuarios.Add(model);
-            _db.SaveChanges();
-
-            RegistrarAuditoria($"Creó usuario: {model.NombreCompleto} — Rol ID: {model.IdRol}");
+            RegistrarAuditoria($"Creó usuario: {model.NombreCompleto} – Rol ID: {model.IdRol}");
 
             TempData["Exito"] = $"Usuario {model.NombreCompleto} creado correctamente.";
             return RedirectToAction("Index");
         }
 
-        // ══════════════════════════════════════════════════════
-        // GET: /Usuarios/Editar/5
-        // ══════════════════════════════════════════════════════
+        // ── GET: /Usuarios/Editar/5 ───────────────────────────────
         public IActionResult Editar(int id)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            var usuario = _db.Usuarios.Include(u => u.Rol)
-                                      .FirstOrDefault(u => u.IdUsuario == id);
-            if (usuario == null) return NotFound();
+            UsuarioEditarViewModel? vm = null;
 
-            var vm = new UsuarioEditarViewModel
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT u.id_usuario, u.nombre_completo, u.correo,
+                       u.telefono, u.id_rol, u.activo,
+                       r.id_rol AS rol_id, r.nombre AS rol_nombre
+                FROM Usuarios u
+                INNER JOIN Roles r ON u.id_rol = r.id_rol
+                WHERE u.id_usuario = @id", conn))
             {
-                IdUsuario = usuario.IdUsuario,
-                NombreCompleto = usuario.NombreCompleto,
-                Correo = usuario.Correo,
-                Telefono = usuario.Telefono ?? "",
-                IdRol = usuario.IdRol,
-                Activo = usuario.Activo,
-                Rol = usuario.Rol
-            };
-            ViewBag.Roles = _db.Roles.OrderBy(r => r.RolId).ToList();
+                cmd.Parameters.AddWithValue("@id", id);
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    vm = new UsuarioEditarViewModel
+                    {
+                        IdUsuario      = Convert.ToInt32(reader["id_usuario"]),
+                        NombreCompleto = reader["nombre_completo"].ToString()!,
+                        Correo         = reader["correo"].ToString()!,
+                        Telefono       = reader["telefono"]?.ToString() ?? "",
+                        IdRol          = Convert.ToInt32(reader["id_rol"]),
+                        Activo         = Convert.ToBoolean(reader["activo"]),
+                        Rol = new Rol
+                        {
+                            RolId     = Convert.ToInt32(reader["rol_id"]),
+                            NombreRol = reader["rol_nombre"].ToString()!
+                        }
+                    };
+                }
+            }
+
+            if (vm == null) return NotFound();
+
+            ViewBag.Roles = ObtenerRoles();
             return View("~/Views/Usuarios/Usuarios_Editar.cshtml", vm);
         }
 
-        // POST: /Usuarios/Editar/5
+        // ── POST: /Usuarios/Editar/5 ──────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Editar(int id, Usuario model)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            var usuario = _db.Usuarios.Find(id);
-            if (usuario == null) return NotFound();
+            using var conn = _db.GetConnection();
 
-            if (_db.Usuarios.Any(u => u.Correo == model.Correo && u.IdUsuario != id))
+            // Verificar que el correo no lo use otro usuario
+            using (var check = new SqlCommand(@"
+                SELECT COUNT(1) FROM Usuarios
+                WHERE correo = @correo AND id_usuario <> @id", conn))
             {
-                ModelState.AddModelError("Correo", "Este correo ya lo usa otro usuario.");
-                ViewBag.Roles = _db.Roles.ToList();
-                return View("~/Views/Usuarios/Usuarios_Editar.cshtml", model);
+                check.Parameters.AddWithValue("@correo", model.Correo);
+                check.Parameters.AddWithValue("@id",     id);
+                if ((int)check.ExecuteScalar() > 0)
+                {
+                    ModelState.AddModelError("Correo", "Este correo ya lo usa otro usuario.");
+                    ViewBag.Roles = ObtenerRoles();
+                    return View("~/Views/Usuarios/Usuarios_Editar.cshtml", model);
+                }
             }
 
-            usuario.NombreCompleto = model.NombreCompleto;
-            usuario.Correo = model.Correo;
-            usuario.Telefono = model.Telefono;
-            usuario.IdRol = model.IdRol;
-            usuario.Activo = model.Activo;
+            string sql = @"
+                UPDATE Usuarios
+                SET nombre_completo = @nombre,
+                    correo          = @correo,
+                    telefono        = @tel,
+                    id_rol          = @rol,
+                    activo          = @activo";
 
-            // Solo cambiar contraseña si escribió una nueva
             if (!string.IsNullOrWhiteSpace(model.Contrasena))
-                usuario.ContrasenaHash = BC.HashPassword(model.Contrasena);
+                sql += ", contrasena_hash = @hash";
 
-            _db.SaveChanges();
-            RegistrarAuditoria($"Editó usuario ID {id}: {usuario.NombreCompleto}");
+            sql += " WHERE id_usuario = @id";
 
-            TempData["Exito"] = $"Usuario {usuario.NombreCompleto} actualizado.";
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@nombre", model.NombreCompleto);
+                cmd.Parameters.AddWithValue("@correo", model.Correo);
+                cmd.Parameters.AddWithValue("@tel",    model.Telefono ?? "");
+                cmd.Parameters.AddWithValue("@rol",    model.IdRol);
+                cmd.Parameters.AddWithValue("@activo", model.Activo);
+                cmd.Parameters.AddWithValue("@id",     id);
+
+                if (!string.IsNullOrWhiteSpace(model.Contrasena))
+                    cmd.Parameters.AddWithValue("@hash", BC.HashPassword(model.Contrasena));
+
+                cmd.ExecuteNonQuery();
+            }
+
+            RegistrarAuditoria($"Editó usuario ID {id}: {model.NombreCompleto}");
+
+            TempData["Exito"] = $"Usuario {model.NombreCompleto} actualizado.";
             return RedirectToAction("Index");
         }
 
-        // ══════════════════════════════════════════════════════
-        // POST: /Usuarios/Desactivar/5
-        // ══════════════════════════════════════════════════════
+        // ── POST: /Usuarios/Desactivar/5 ─────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Desactivar(int id)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            var usuario = _db.Usuarios.Find(id);
-            if (usuario == null) return NotFound();
-
-            // No puede desactivarse a sí mismo
             var idActual = int.Parse(HttpContext.Session.GetString("UsuarioId") ?? "0");
-            if (usuario.IdUsuario == idActual)
+            if (id == idActual)
             {
                 TempData["Error"] = "No puedes desactivar tu propia cuenta.";
                 return RedirectToAction("Index");
             }
 
-            usuario.Activo = false;
-            _db.SaveChanges();
-            RegistrarAuditoria($"Desactivó usuario ID {id}: {usuario.NombreCompleto}");
+            string nombre = "";
+            using (var conn = _db.GetConnection())
+            {
+                using (var get = new SqlCommand(
+                    "SELECT nombre_completo FROM Usuarios WHERE id_usuario = @id", conn))
+                {
+                    get.Parameters.AddWithValue("@id", id);
+                    nombre = get.ExecuteScalar()?.ToString() ?? "";
+                }
 
-            TempData["Exito"] = $"Usuario {usuario.NombreCompleto} desactivado.";
+                using (var cmd = new SqlCommand(
+                    "UPDATE Usuarios SET activo = 0 WHERE id_usuario = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            RegistrarAuditoria($"Desactivó usuario ID {id}: {nombre}");
+            TempData["Exito"] = $"Usuario {nombre} desactivado.";
             return RedirectToAction("Index");
         }
 
-        // ══════════════════════════════════════════════════════
-        // POST: /Usuarios/Reactivar/5
-        // ══════════════════════════════════════════════════════
+        // ── POST: /Usuarios/Reactivar/5 ──────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Reactivar(int id)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            var usuario = _db.Usuarios.Find(id);
-            if (usuario == null) return NotFound();
+            string nombre = "";
+            using (var conn = _db.GetConnection())
+            {
+                using (var get = new SqlCommand(
+                    "SELECT nombre_completo FROM Usuarios WHERE id_usuario = @id", conn))
+                {
+                    get.Parameters.AddWithValue("@id", id);
+                    nombre = get.ExecuteScalar()?.ToString() ?? "";
+                }
 
-            usuario.Activo = true;
-            _db.SaveChanges();
-            RegistrarAuditoria($"Reactivó usuario ID {id}: {usuario.NombreCompleto}");
+                using (var cmd = new SqlCommand(
+                    "UPDATE Usuarios SET activo = 1 WHERE id_usuario = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
 
-            TempData["Exito"] = $"Usuario {usuario.NombreCompleto} reactivado.";
+            RegistrarAuditoria($"Reactivó usuario ID {id}: {nombre}");
+            TempData["Exito"] = $"Usuario {nombre} reactivado.";
             return RedirectToAction("Index");
         }
 
-        // ── Helper auditoría ──────────────────────────────────
+        // ── Helpers privados ──────────────────────────────────────
+        private List<Rol> ObtenerRoles()
+        {
+            var roles = new List<Rol>();
+            using var conn = _db.GetConnection();
+            using var cmd  = new SqlCommand(
+                "SELECT id_rol, nombre FROM Roles ORDER BY id_rol", conn);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                roles.Add(new Rol
+                {
+                    RolId     = Convert.ToInt32(reader["id_rol"]),
+                    NombreRol = reader["nombre"].ToString()!
+                });
+            return roles;
+        }
+
         private void RegistrarAuditoria(string accion)
         {
             if (int.TryParse(HttpContext.Session.GetString("UsuarioId"), out int idAdmin))
             {
-                _db.LogAuditoria.Add(new LogAuditoria
-                {
-                    IdUsuario = idAdmin,
-                    Accion = accion,
-                    Modulo = "Gestión de Usuarios"
-                });
-                _db.SaveChanges();
+                using var conn = _db.GetConnection();
+                using var cmd  = new SqlCommand(@"
+                    INSERT INTO LogAuditoria (id_usuario, accion, modulo)
+                    VALUES (@id, @accion, @modulo)", conn);
+                cmd.Parameters.AddWithValue("@id",     idAdmin);
+                cmd.Parameters.AddWithValue("@accion", accion);
+                cmd.Parameters.AddWithValue("@modulo", "Gestión de Usuarios");
+                cmd.ExecuteNonQuery();
             }
         }
     }

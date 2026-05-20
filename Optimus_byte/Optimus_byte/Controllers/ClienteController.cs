@@ -1,14 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using VistaPrincipal.Data;
-using VistaPrincipal.Models;
+using Microsoft.AspNetCore.Mvc;
+using Optimus_byte.DATA;
 
-namespace VistaPrincipal.Controllers
+namespace Optimus_byte.Controllers
 {
     public class ClienteController : Controller
     {
-        private readonly optimusDBContext _db;
+        private readonly DbHelper _db;
 
-        public ClienteController(optimusDBContext db) => _db = db;
+        public ClienteController(DbHelper db) => _db = db;
 
         private bool EsCliente() =>
             HttpContext.Session.GetString("UsuarioRol") == "Cliente";
@@ -19,7 +18,6 @@ namespace VistaPrincipal.Controllers
             if (!EsCliente()) return RedirectToAction("Index", "Login");
 
             var nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
-
             ViewBag.Nombre = nombre;
             return View("~/Views/Cliente/Portal.cshtml");
         }

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace VistaPrincipal.Models.ViewModels
+namespace Optimus_byte.Models.ViewModels
 {
     public class RegistroViewModel
     {

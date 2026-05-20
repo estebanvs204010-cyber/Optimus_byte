@@ -1,28 +1,41 @@
-using Microsoft.EntityFrameworkCore;
-using VistaPrincipal.Data;
+// Program.cs  ? versión ADO.NET (sin Entity Framework)
+using Optimus_byte.DATA;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Base de datos
-builder.Services.AddDbContext<optimusDBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Sesiones
-builder.Services.AddSession(options => {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-});
-
+// ?? Servicios ??????????????????????????????????????????????????????
 builder.Services.AddControllersWithViews();
 
+// Registrar DbHelper como servicio (reemplaza el DbContext de EF Core)
+builder.Services.AddScoped<DbHelper>();
+
+// Sesiones
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddHttpContextAccessor();
+
+// ?? Pipeline ???????????????????????????????????????????????????????
 var app = builder.Build();
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession();   // ? importante, va antes de MapControllerRoute
+app.UseSession();        // ? debe ir antes de MapControllerRoute
+app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");  // ? arranca en Login
+    pattern: "{controller=Login}/{action=Index}/{id?}");
 
 app.Run();

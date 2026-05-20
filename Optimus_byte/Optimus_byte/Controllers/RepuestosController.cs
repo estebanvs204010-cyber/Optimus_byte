@@ -1,12 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+// RepuestosController.cs ─────────────────────────────────────────
+using Microsoft.AspNetCore.Mvc;
 
-namespace VistaPrincipal.Controllers
+namespace Optimus_byte.Controllers
 {
     public class RepuestosController : Controller
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
     }
 }

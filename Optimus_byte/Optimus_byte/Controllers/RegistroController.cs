@@ -1,20 +1,19 @@
-﻿using BC = BCrypt.Net.BCrypt;
+using BC = BCrypt.Net.BCrypt;
 using Microsoft.AspNetCore.Mvc;
-using VistaPrincipal.Models;
-using VistaPrincipal.Data;
-using Microsoft.EntityFrameworkCore;
-using VistaPrincipal.Models.ViewModels;
+using Microsoft.Data.SqlClient;
+using Optimus_byte.Models;
+using Optimus_byte.Models.ViewModels;
+using Optimus_byte.DATA;
 
-namespace VistaPrincipal.Controllers
+namespace Optimus_byte.Controllers
 {
     public class RegistroController : Controller
     {
+        private readonly DbHelper _db;
 
+        public RegistroController(DbHelper db) => _db = db;
 
-        private readonly optimusDBContext _db;
-
-        public RegistroController(optimusDBContext db) => _db = db;
-
+        // GET: /Registro
         [HttpGet]
         public IActionResult Index()
         {
@@ -24,25 +23,45 @@ namespace VistaPrincipal.Controllers
             return View(new RegistroViewModel());
         }
 
+        // POST: /Registro
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Index(RegistroViewModel model)
         {
-            bool correoExiste = _db.Usuarios.Any(u => u.Correo == model.Correo);
-            if (correoExiste)
-                ModelState.AddModelError(nameof(model.Correo), "Este correo ya está registrado en el sistema.");
+            using var conn = _db.GetConnection();
 
-            bool documentoExiste = _db.Clientes.Any(c => c.NumeroDocumento == model.NumeroDocumento);
-            if (documentoExiste)
-                ModelState.AddModelError(nameof(model.NumeroDocumento), "Este número de documento ya está registrado.");
+            // Verificar correo duplicado
+            using (var cmd = new SqlCommand(
+                "SELECT COUNT(1) FROM Usuarios WHERE correo = @correo", conn))
+            {
+                cmd.Parameters.AddWithValue("@correo", model.Correo);
+                if ((int)cmd.ExecuteScalar() > 0)
+                    ModelState.AddModelError(nameof(model.Correo),
+                        "Este correo ya está registrado en el sistema.");
+            }
+
+            // Verificar documento duplicado
+            using (var cmd2 = new SqlCommand(
+                "SELECT COUNT(1) FROM Clientes WHERE num_documento = @doc", conn))
+            {
+                cmd2.Parameters.AddWithValue("@doc", model.NumeroDocumento);
+                if ((int)cmd2.ExecuteScalar() > 0)
+                    ModelState.AddModelError(nameof(model.NumeroDocumento),
+                        "Este número de documento ya está registrado.");
+            }
 
             if (!ModelState.IsValid)
                 return View(model);
 
-            int idRolCliente = _db.Roles
-                .Where(r => r.NombreRol == "Cliente")
-                .Select(r => r.RolId)
-                .FirstOrDefault();
+            // Obtener id del rol Cliente
+            int idRolCliente = 0;
+            using (var cmd3 = new SqlCommand(
+                "SELECT id_rol FROM Roles WHERE nombre = 'Cliente'", conn))
+            {
+                var result = cmd3.ExecuteScalar();
+                if (result != null)
+                    idRolCliente = Convert.ToInt32(result);
+            }
 
             if (idRolCliente == 0)
             {
@@ -50,36 +69,41 @@ namespace VistaPrincipal.Controllers
                 return View(model);
             }
 
-            var nuevoUsuario = new Usuario
+            // Insertar usuario y obtener el id generado
+            int nuevoId = 0;
+            using (var cmd4 = new SqlCommand(@"
+                INSERT INTO Usuarios
+                    (nombre_completo, correo, telefono, contrasena_hash, activo, id_rol)
+                OUTPUT INSERTED.id_usuario
+                VALUES (@nombre, @correo, @tel, @hash, 1, @rol)", conn))
             {
-                NombreCompleto = model.NombreCompleto,
-                Correo = model.Correo,
-                Telefono = model.Telefono,
-                ContrasenaHash = BC.HashPassword(model.Contrasena),
-                Activo = true,
-                IdRol = idRolCliente
-            };
+                cmd4.Parameters.AddWithValue("@nombre", model.NombreCompleto);
+                cmd4.Parameters.AddWithValue("@correo", model.Correo);
+                cmd4.Parameters.AddWithValue("@tel",    model.Telefono);
+                cmd4.Parameters.AddWithValue("@hash",   BC.HashPassword(model.Contrasena));
+                cmd4.Parameters.AddWithValue("@rol",    idRolCliente);
+                nuevoId = (int)cmd4.ExecuteScalar();
+            }
 
-            _db.Usuarios.Add(nuevoUsuario);
-            _db.SaveChanges();
-
-            var nuevoCliente = new Cliente
+            // Insertar cliente
+            using (var cmd5 = new SqlCommand(@"
+                INSERT INTO Clientes
+                    (id_usuario, nombre_completo, tipo_documento, num_documento,
+                     telefono, correo, direccion, activo, fecha_registro)
+                VALUES (@idu, @nombre, @tipo, @doc, @tel, @correo, @dir, 1, GETDATE())", conn))
             {
-                IdUsuario = nuevoUsuario.IdUsuario,
-                NombreCompleto = model.NombreCompleto,
-                TipoDocumento = model.TipoDocumento,
-                NumeroDocumento = model.NumeroDocumento,
-                Telefono = model.Telefono,
-                Correo = model.Correo,
-                Direccion = model.Direccion,
-                Activo = true,
-                FechaRegistro = DateTime.Now
-            };
+                cmd5.Parameters.AddWithValue("@idu",    nuevoId);
+                cmd5.Parameters.AddWithValue("@nombre", model.NombreCompleto);
+                cmd5.Parameters.AddWithValue("@tipo",   model.TipoDocumento);
+                cmd5.Parameters.AddWithValue("@doc",    model.NumeroDocumento);
+                cmd5.Parameters.AddWithValue("@tel",    model.Telefono);
+                cmd5.Parameters.AddWithValue("@correo", model.Correo);
+                cmd5.Parameters.AddWithValue("@dir",    model.Direccion);
+                cmd5.ExecuteNonQuery();
+            }
 
-            _db.Clientes.Add(nuevoCliente);
-            _db.SaveChanges();
-
-            TempData["RegistroExitoso"] = $"Cuenta creada. Bienvenido {model.NombreCompleto}, ya puedes iniciar sesion.";
+            TempData["RegistroExitoso"] =
+                $"Cuenta creada. Bienvenido {model.NombreCompleto}, ya puedes iniciar sesión.";
             return RedirectToAction("Index", "Login");
         }
     }

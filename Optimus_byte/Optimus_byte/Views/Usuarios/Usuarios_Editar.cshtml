@@ -1,4 +1,4 @@
-﻿@model VistaPrincipal.Models.ViewModels.UsuarioEditarViewModel
+﻿@model Optimus_byte.Models.ViewModels.UsuarioEditarViewModel
 @{
     ViewData["Title"] = "Editar Usuario";
     Layout = null;
@@ -58,7 +58,7 @@
                 <p class="section-sub">
                     Modificando a <strong style="color:#e2e8f0">@Model.NombreCompleto</strong>
                     @{
-                        var rolActual = (List<VistaPrincipal.Models.Rol>)ViewBag.Roles;
+                        var rolActual = (List<Optimus_byte.Models.Rol>)ViewBag.Roles;
                         var nombreRol = rolActual.FirstOrDefault(r => r.RolId == Model.IdRol)?.NombreRol ?? "";
                         var (bc, ic) = nombreRol switch
                         {
@@ -132,7 +132,7 @@
                         <div class="input-wrap">
                             <i class="bi bi-shield-check"></i>
                             <select asp-for="IdRol" class="input-custom select-custom">
-                                @foreach (var rol in (List<VistaPrincipal.Models.Rol>)ViewBag.Roles)
+                                @foreach (var rol in (List<Optimus_byte.Models.Rol>)ViewBag.Roles)
                                 {
                                     <option value="@rol.RolId"
                                             selected="@(rol.RolId == Model.IdRol ? "selected" : null)">

@@ -1,12 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+// ServiciosController.cs ─────────────────────────────────────────
+using Microsoft.AspNetCore.Mvc;
 
-namespace VistaPrincipal.Controllers
+namespace Optimus_byte.Controllers
 {
     public class ServiciosController : Controller
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
     }
 }
