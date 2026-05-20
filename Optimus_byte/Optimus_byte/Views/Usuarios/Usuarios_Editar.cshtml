@@ -62,7 +62,7 @@
                         var nombreRol = rolActual.FirstOrDefault(r => r.RolId == Model.IdRol)?.NombreRol ?? "";
                         var (bc, ic) = nombreRol switch
                         {
-                            "Administrador" => ("badge-admin-rol", "bi-shield-fill"),
+                            "Admin" => ("badge-admin-rol", "bi-shield-fill"),
                             "Mecanico" => ("badge-mec", "bi-wrench-adjustable"),
                             "Cliente" => ("badge-cli", "bi-person-fill"),
                             _ => ("badge-default", "bi-question-circle")
