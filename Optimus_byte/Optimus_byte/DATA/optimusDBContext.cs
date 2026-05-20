@@ -15,5 +15,7 @@ namespace VistaPrincipal.Data
         public DbSet<LogAuditoria> LogAuditoria { get; set; }
         public DbSet<IntentoFallido> IntentosFallidos { get; set; }
         public DbSet<Cliente> Clientes { get; set; }
+        public DbSet<Factura> Facturas { get; set; }
+        public DbSet<Pago> Pagos { get; set; }
     }
 }
