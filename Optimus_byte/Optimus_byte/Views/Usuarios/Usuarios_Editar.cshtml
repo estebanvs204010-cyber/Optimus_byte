@@ -137,7 +137,7 @@
                                     <option value="@rol.RolId"
                                             selected="@(rol.RolId == Model.IdRol ? "selected" : null)">
                                         @* Mostrar ícono según rol *@
-                                        @(rol.NombreRol == "Administrador" ? "🛡️ Administrador" :
+                                        @(rol.NombreRol == "Admin" ? "🛡️ Admin" :
                                                                             rol.NombreRol == "Mecanico" ? "🔧 Mecánico" :
                                                                             "👤 Cliente")
                                 </option>

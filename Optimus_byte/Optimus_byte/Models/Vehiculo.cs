@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Optimus_byte.Models;
 
 namespace Optimus_byte.Models
 {
@@ -43,5 +44,9 @@ namespace Optimus_byte.Models
 
         [Column("fecha_registro")]
         public DateTime FechaRegistro { get; set; }
+
+        [ForeignKey("IdCliente")]
+        public Cliente? Cliente { get; set; }
     }
 }
+
