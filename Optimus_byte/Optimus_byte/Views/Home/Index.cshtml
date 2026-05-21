@@ -84,77 +84,260 @@
     </aside>
 
     <main class="container contenido-principal" id="contenidoPrincipal">
-        <section>
-            <div>
+
+        <!-- HERO PRINCIPAL -->
+
+        <section class="hero-principal">
+
+            <div class="hero-texto animate-fade-up">
+
+                <span class="hero-etiqueta">
+                    Taller Inteligente
+                </span>
+
                 @if (logueado)
                 {
-                    <h1>Bienvenido, @nombre</h1>
-                    <p>Gestiona tu taller mecánico desde aquí.</p>
+                    <h1>
+                        Bienvenido,
+                        <em>@nombre</em>
+                    </h1>
+
+                    <p>
+                        Gestiona tu taller mecánico, controla servicios,
+                        citas y repuestos desde una sola plataforma.
+                    </p>
                 }
                 else
                 {
-                    <h1>Bienvenido a Optimus-Byte</h1>
-                    <p>Tu taller mecánico de confianza para el cuidado de tu vehículo.</p>
+                    <h1>
+                        Cuidamos tu vehículo con
+                        <em>tecnología y confianza</em>
+                    </h1>
+
+                    <p>
+                        Diagnóstico, mantenimiento y reparación
+                        para vehículos modernos con atención profesional.
+                    </p>
                 }
+
+                <div class="hero-botones">
+
+                    <a asp-controller="Citas"
+                       asp-action="Index"
+                       class="boton-primario">
+                        Agendar cita
+                    </a>
+
+                    <a asp-controller="Servicios"
+                       asp-action="Index"
+                       class="btn-elegante">
+                        Ver servicios
+                    </a>
+
+                </div>
+
             </div>
+
+            <div class="hero-imagen animate-fade-in">
+
+                <img src="~/img/imagehome.jpg"
+                     alt="Vehículo">
+
+            </div>
+
         </section>
 
+
+        <!-- SERVICIOS -->
+
+        <section class="servicios-home">
+
+            <div class="seccion-modulo">
+                <h3>Mantenimiento</h3>
+
+                <p>
+                    Cambio de aceite, filtros,
+                    alineación y revisión general.
+                </p>
+
+                <a asp-controller="Servicios"
+                   asp-action="Index">
+                    Ver más
+                </a>
+            </div>
+
+            <div class="seccion-modulo">
+                <h3>Diagnóstico</h3>
+
+                <p>
+                    Escaneo electrónico y detección
+                    de fallas automotrices.
+                </p>
+
+                <a asp-controller="Servicios"
+                   asp-action="Index">
+                    Ver más
+                </a>
+            </div>
+
+            <div class="seccion-modulo">
+                <h3>Reparaciones</h3>
+
+                <p>
+                    Frenos, suspensión, motor
+                    y reparación especializada.
+                </p>
+
+                <a asp-controller="Servicios"
+                   asp-action="Index">
+                    Ver más
+                </a>
+            </div>
+
+        </section>
+
+
+        <!-- ESTADÍSTICAS -->
+
+        <section class="estadisticas">
+
+            <div>
+                <h2>+500</h2>
+                <p>Vehículos atendidos</p>
+            </div>
+
+            <div>
+                <h2>98%</h2>
+                <p>Clientes satisfechos</p>
+            </div>
+
+            <div>
+                <h2>24/7</h2>
+                <p>Soporte y gestión</p>
+            </div>
+
+        </section>
+
+
+        <!-- REPUESTOS -->
+
         <section class="seccion-repuestos">
+
             <h2>Repuestos destacados</h2>
+
+            <p>
+                Productos y componentes de alta calidad
+                para tu vehículo.
+            </p>
 
             <div class="contenedor-repuestos">
 
-                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="1">
+                <a class="caja-repuesto"
+                   asp-controller="Inventario"
+                   asp-action="Detalles"
+                   asp-route-id="1">
+
                     <h3>Aceite de motor</h3>
-                    <p>Lubricante para mantenimiento preventivo.</p>
+
+                    <p>
+                        Lubricante premium para
+                        mantenimiento preventivo.
+                    </p>
+
                     <span>Ver detalles</span>
+
                 </a>
 
-                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="2">
+                <a class="caja-repuesto"
+                   asp-controller="Inventario"
+                   asp-action="Detalles"
+                   asp-route-id="2">
+
                     <h3>Filtro de aire</h3>
-                    <p>Mantiene limpio el ingreso de aire al motor.</p>
+
+                    <p>
+                        Mantiene limpio el sistema
+                        de admisión del motor.
+                    </p>
+
                     <span>Ver detalles</span>
+
                 </a>
 
-                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="3">
+                <a class="caja-repuesto"
+                   asp-controller="Inventario"
+                   asp-action="Detalles"
+                   asp-route-id="3">
+
                     <h3>Pastillas de freno</h3>
-                    <p>Repuesto esencial para la seguridad.</p>
+
+                    <p>
+                        Seguridad y rendimiento
+                        para frenado preciso.
+                    </p>
+
                     <span>Ver detalles</span>
+
                 </a>
 
-                <a class="caja-repuesto" asp-controller="Inventario" asp-action="Detalles" asp-route-id="4">
+                <a class="caja-repuesto"
+                   asp-controller="Inventario"
+                   asp-action="Detalles"
+                   asp-route-id="4">
+
                     <h3>Batería</h3>
-                    <p>Batería automotriz para autos particulares.</p>
+
+                    <p>
+                        Energía confiable para
+                        vehículos modernos.
+                    </p>
+
                     <span>Ver detalles</span>
+
                 </a>
 
+            </div>
 
-            </div>
-            <a class="boton-catalogo" asp-controller="Inventario" asp-action="Index">Catalogo</a>
-        </section>
-        <section>
-            <div>
-                <h3>Servicios</h3>
-                <p>Gestionar los servicios que ofrece el taller mecánico.</p>
-                <a asp-controller="Servicios" asp-action="Index">Entrar a Servicios</a>
-            </div>
-        </section>
+            <a class="boton-catalogo"
+               asp-controller="Inventario"
+               asp-action="Index">
 
-        <section>
-            <div>
-                <h3>Citas</h3>
-                <p>Agendar citas de clientes para revisión o reparación.</p>
-                <a asp-controller="Citas" asp-action="Index">Entrar a Citas</a>
-            </div>
+                Ver catálogo
+
+            </a>
+
         </section>
 
-        <section>
-            <div>
-                <h3>Sobre el Taller</h3>
-                <p>Información sobre el taller mecánico, su historia y misión.</p>
-                <a asp-controller="Home" asp-action="Sobre">Entrar a Sobre el Taller</a>
+
+        <!-- CTA FINAL -->
+
+        <section class="cta-final">
+
+            <div class="cta-contenido">
+
+                <h2>
+                    Agenda tu cita hoy mismo
+                </h2>
+
+                <p>
+                    Nuestro equipo está listo para
+                    ayudarte con el mantenimiento
+                    de tu vehículo.
+                </p>
+
+                <a asp-controller="Citas"
+                   asp-action="Index"
+                   class="boton-primario">
+
+                    Solicitar cita
+
+                </a>
+
             </div>
+
         </section>
+
+    </main>
 
     </main>
 
