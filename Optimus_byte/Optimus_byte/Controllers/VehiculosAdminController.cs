@@ -56,6 +56,53 @@ namespace Optimus_byte.Controllers
             return View("~/Views/VehiculosAdmin/Index.cshtml");
         }
 
+        // ── Editar vehículo ───────────────────────────────────
+        [HttpPost, ValidateAntiForgeryToken]
+        public IActionResult Editar(int IdVehiculo, string Placa, string Marca,
+            string Modelo, int Anio, string? Color, string? Vin, int KmActuales)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+
+            // Verificar placa duplicada excluyendo este vehículo
+            bool placaExiste = false;
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand(
+                "SELECT COUNT(1) FROM Vehiculos WHERE placa = @placa AND id_vehiculo != @id", conn))
+            {
+                cmd.Parameters.AddWithValue("@placa", Placa.ToUpper().Trim());
+                cmd.Parameters.AddWithValue("@id", IdVehiculo);
+                placaExiste = (int)cmd.ExecuteScalar()! > 0;
+            }
+
+            if (placaExiste)
+            {
+                TempData["Error"] = $"Ya existe un vehículo con la placa {Placa.ToUpper()}.";
+                return RedirectToAction("Index");
+            }
+
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand(@"
+                UPDATE Vehiculos
+                SET placa = @placa, marca = @marca, modelo = @modelo,
+                    anio = @anio, color = @color, vin = @vin, km_actuales = @km
+                WHERE id_vehiculo = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("@placa", Placa.ToUpper().Trim());
+                cmd.Parameters.AddWithValue("@marca", Marca.Trim());
+                cmd.Parameters.AddWithValue("@modelo", Modelo.Trim());
+                cmd.Parameters.AddWithValue("@anio", Anio);
+                cmd.Parameters.AddWithValue("@color", (object?)Color ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@vin", (object?)Vin ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@km", KmActuales);
+                cmd.Parameters.AddWithValue("@id", IdVehiculo);
+                cmd.ExecuteNonQuery();
+            }
+
+            RegistrarAuditoria($"Editó vehículo placa {Placa.ToUpper()}");
+            TempData["Exito"] = $"Vehículo {Placa.ToUpper()} actualizado correctamente.";
+            return RedirectToAction("Index");
+        }
+
         // ── Desactivar ────────────────────────────────────────
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult Desactivar(int id)

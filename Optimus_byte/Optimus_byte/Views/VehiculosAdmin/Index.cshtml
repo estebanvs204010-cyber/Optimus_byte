@@ -15,6 +15,115 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
     <link href="~/css/usuarios.css" rel="stylesheet" />
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .modal-overlay.show {
+                display: flex;
+            }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 8px;
+            padding: 32px;
+            max-width: 520px;
+            width: 95%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+        }
+
+            .modal-box h5 {
+                font-size: 1rem;
+                font-weight: 700;
+                margin-bottom: 20px;
+                color: #1e293b;
+            }
+
+        .modal-label {
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 0.88rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            outline: none;
+            box-sizing: border-box;
+            margin-bottom: 14px;
+        }
+
+            .modal-input:focus {
+                border-color: #2563eb;
+            }
+
+            .modal-input[readonly] {
+                background: #f1f5f9;
+                color: #94a3b8;
+                cursor: not-allowed;
+            }
+
+        .modal-footer-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        .btn-modal-cancel {
+            font-size: 0.82rem;
+            padding: 8px 20px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .btn-modal-save {
+            font-size: 0.82rem;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            background: #2563eb;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+            .btn-modal-save:hover {
+                opacity: 0.88;
+            }
+
+        .btn-editar {
+            background: rgba(37,99,235,0.08);
+            color: #2563eb;
+            border: 1px solid rgba(37,99,235,0.2);
+            border-radius: 4px;
+            padding: 5px 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background .15s;
+        }
+
+            .btn-editar:hover {
+                background: rgba(37,99,235,0.16);
+            }
+    </style>
 </head>
 <body>
     <div class="admin-topbar">
@@ -78,7 +187,9 @@
         <div class="filtro-bar">
             <div class="input-buscar">
                 <i class="bi bi-search"></i>
-                <input type="text" id="buscarInput" placeholder="Buscar placa, marca, cliente..." onkeyup="filtrarTabla()" />
+                <input type="text" id="buscarInput" placeholder="Buscar placa, marca, cliente..."
+                       onkeyup="filtrarTabla()" autocomplete="off" readonly
+                       onfocus="this.removeAttribute('readonly')" />
             </div>
             <select id="filtroEstado" class="filtro-select" onchange="filtrarTabla()">
                 <option value="">Todos los estados</option>
@@ -135,6 +246,12 @@
                             </td>
                             <td style="font-size:.78rem;color:#64748b">@(((DateTime)v.FechaRegistro).ToString("dd/MM/yyyy"))</td>
                             <td class="td-acciones">
+                                @* Botón editar *@
+                                <button type="button" class="btn-editar" title="Editar"
+                                        onclick="abrirEditar(@v.IdVehiculo, '@v.Placa', '@v.Marca', '@v.Modelo', @v.Anio, '@v.Color', '@v.Vin', @v.KmActuales)">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+
                                 @if (activo)
                                 {
                                     <form action="/VehiculosAdmin/Desactivar/@v.IdVehiculo" method="post" class="d-inline"
@@ -179,6 +296,62 @@
         </div>
     </div>
 
+    @* Form oculto para enviar edición *@
+    <form id="formEditarAdmin" action="/VehiculosAdmin/Editar" method="post" style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="eId" name="IdVehiculo" />
+        <input type="hidden" id="ePlaca" name="Placa" />
+        <input type="hidden" id="eMarca" name="Marca" />
+        <input type="hidden" id="eModelo" name="Modelo" />
+        <input type="hidden" id="eAnio" name="Anio" />
+        <input type="hidden" id="eColor" name="Color" />
+        <input type="hidden" id="eVin" name="Vin" />
+        <input type="hidden" id="eKm" name="KmActuales" />
+    </form>
+
+    @* Modal editar *@
+    <div class="modal-overlay" id="modalEditar">
+        <div class="modal-box">
+            <h5><i class="bi bi-pencil-fill me-2"></i>Editar vehículo</h5>
+            <div class="row g-2">
+                <div class="col-6">
+                    <label class="modal-label">Placa</label>
+                    <input type="text" id="mPlaca" class="modal-input" maxlength="10" style="text-transform:uppercase" autocomplete="off" />
+                </div>
+                <div class="col-6">
+                    <label class="modal-label">Marca</label>
+                    <input type="text" id="mMarca" class="modal-input" autocomplete="off" />
+                </div>
+                <div class="col-6">
+                    <label class="modal-label">Modelo</label>
+                    <input type="text" id="mModelo" class="modal-input" autocomplete="off" />
+                </div>
+                <div class="col-3">
+                    <label class="modal-label">Año</label>
+                    <input type="number" id="mAnio" class="modal-input" min="1900" max="2100" autocomplete="off" />
+                </div>
+                <div class="col-3">
+                    <label class="modal-label">Color</label>
+                    <input type="text" id="mColor" class="modal-input" autocomplete="off" />
+                </div>
+                <div class="col-6">
+                    <label class="modal-label">VIN</label>
+                    <input type="text" id="mVin" class="modal-input" autocomplete="off" />
+                </div>
+                <div class="col-6">
+                    <label class="modal-label">Km actuales</label>
+                    <input type="number" id="mKm" class="modal-input" min="0" autocomplete="off" />
+                </div>
+            </div>
+            <div class="modal-footer-btns">
+                <button class="btn-modal-cancel" onclick="cerrarEditar()">Cancelar</button>
+                <button class="btn-modal-save" onclick="guardarEditar()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function filtrarTabla() {
@@ -190,6 +363,39 @@
                 const okE = !estado || f.dataset.estado === estado;
                 f.style.display = (okB && okE) ? '' : 'none';
             });
+        }
+
+        let idActual = null;
+
+        function abrirEditar(id, placa, marca, modelo, anio, color, vin, km) {
+            idActual = id;
+            document.getElementById('mPlaca').value  = placa;
+            document.getElementById('mMarca').value  = marca;
+            document.getElementById('mModelo').value = modelo;
+            document.getElementById('mAnio').value   = anio;
+            document.getElementById('mColor').value  = color === '—' ? '' : color;
+            document.getElementById('mVin').value    = vin  === '—' ? '' : vin;
+            document.getElementById('mKm').value     = km;
+            document.getElementById('modalEditar').classList.add('show');
+            setTimeout(() => document.getElementById('mPlaca').focus(), 100);
+        }
+
+        function cerrarEditar() {
+            document.getElementById('modalEditar').classList.remove('show');
+            idActual = null;
+        }
+
+        function guardarEditar() {
+            if (!idActual) return;
+            document.getElementById('eId').value     = idActual;
+            document.getElementById('ePlaca').value  = document.getElementById('mPlaca').value.toUpperCase();
+            document.getElementById('eMarca').value  = document.getElementById('mMarca').value;
+            document.getElementById('eModelo').value = document.getElementById('mModelo').value;
+            document.getElementById('eAnio').value   = document.getElementById('mAnio').value;
+            document.getElementById('eColor').value  = document.getElementById('mColor').value;
+            document.getElementById('eVin').value    = document.getElementById('mVin').value;
+            document.getElementById('eKm').value     = document.getElementById('mKm').value;
+            document.getElementById('formEditarAdmin').submit();
         }
     </script>
 </body>
