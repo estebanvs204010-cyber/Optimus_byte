@@ -150,41 +150,62 @@
                 <div class="alerta-err"><i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]</div>
             }
 
-            <form action="/Cliente/AgregarVehiculo" method="post">
+            <form action="/Cliente/AgregarVehiculo" method="post" autocomplete="off">
                 @Html.AntiForgeryToken()
                 <div class="row g-3">
                     <div class="col-md-6 field-group">
                         <label class="form-label-custom">Placa *</label>
-                        <input name="Placa" class="input-custom" placeholder="Ej: ABC123" style="text-transform:uppercase" required />
+                        <input name="Placa" class="input-custom" placeholder="Ej: ABC123"
+                               style="text-transform:uppercase" maxlength="10"
+                               autocomplete="off" required />
                     </div>
                     <div class="col-md-6 field-group">
                         <label class="form-label-custom">Marca *</label>
-                        <input name="Marca" class="input-custom" placeholder="Ej: Toyota" required />
+                        <input name="Marca" class="input-custom" placeholder="Ej: Toyota"
+                               autocomplete="off" required />
                     </div>
                     <div class="col-md-6 field-group">
                         <label class="form-label-custom">Modelo *</label>
-                        <input name="Modelo" class="input-custom" placeholder="Ej: Corolla" required />
+                        <input name="Modelo" class="input-custom" placeholder="Ej: Corolla"
+                               autocomplete="off" required />
                     </div>
                     <div class="col-md-3 field-group">
                         <label class="form-label-custom">Año *</label>
-                        <input name="Anio" type="number" class="input-custom" placeholder="Ej: 2020" min="1900" max="2100" required />
+                        <input name="Anio" type="number" class="input-custom"
+                               placeholder="Ej: 2020" min="1900" max="2100"
+                               autocomplete="off" required />
                     </div>
                     <div class="col-md-3 field-group">
-                        <label class="form-label-custom">Color</label>
-                        <input name="Color" class="input-custom" placeholder="Ej: Blanco" />
+                        <label class="form-label-custom">Color *</label>
+                        <input name="Color" class="input-custom" placeholder="Ej: Blanco"
+                               autocomplete="off" required />
                     </div>
                     <div class="col-md-6 field-group">
-                        <label class="form-label-custom">VIN</label>
-                        <input name="Vin" class="input-custom" placeholder="Número de chasis (opcional)" />
+                        <label class="form-label-custom">VIN * <span style="font-size:0.65rem;color:var(--texto-suave);text-transform:none;letter-spacing:0">(17 caracteres alfanuméricos)</span></label>
+                        <input name="Vin" class="input-custom" placeholder="Ej: 1HGBH41JXMN109186"
+                               maxlength="17" minlength="17"
+                               pattern="[A-HJ-NPR-Z0-9]{17}"
+                               title="El VIN debe tener exactamente 17 caracteres alfanuméricos (sin I, O, Q)"
+                               style="text-transform:uppercase"
+                               autocomplete="off" required />
+                        <small style="font-size:0.68rem;color:var(--texto-suave);margin-top:4px;display:block">
+                            No incluye las letras I, O ni Q
+                        </small>
                     </div>
                     <div class="col-md-6 field-group">
                         <label class="form-label-custom">Km actuales *</label>
-                        <input name="KmActuales" type="number" class="input-custom" placeholder="Ej: 45000" min="0" required />
+                        <input name="KmActuales" type="number" class="input-custom"
+                               placeholder="Ej: 45000" min="0"
+                               autocomplete="off" required />
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-3 mt-4">
-                    <button type="submit" class="btn-guardar"><i class="bi bi-check-lg me-2"></i>Guardar vehículo</button>
-                    <a href="/Cliente/MisVehiculos" class="btn-volver"><i class="bi bi-arrow-left"></i>Cancelar</a>
+                    <button type="submit" class="btn-guardar">
+                        <i class="bi bi-check-lg me-2"></i>Guardar vehículo
+                    </button>
+                    <a href="/Cliente/MisVehiculos" class="btn-volver">
+                        <i class="bi bi-arrow-left"></i>Cancelar
+                    </a>
                 </div>
             </form>
         </div>

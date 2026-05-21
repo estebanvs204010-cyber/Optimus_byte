@@ -1,9 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Optimus_byte.DATA;
 using Optimus_byte.Models;
+using BC = BCrypt.Net.BCrypt;
 
 namespace Optimus_byte.Controllers
+
 {
     public class ClienteController : Controller
     {
@@ -24,7 +26,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/Portal.cshtml");
         }
 
-        // ?? Mis Vehículos ?????????????????????????????????????
+        // ?? Mis VehÃ­culos ?????????????????????????????????????
         public IActionResult MisVehiculos()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -77,7 +79,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Vehiculo/MisVehiculos.cshtml");
         }
 
-        // ?? Agregar Vehículo GET ???????????????????????????????
+        // ?? Agregar VehÃ­culo GET ???????????????????????????????
         public IActionResult AgregarVehiculo()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -85,7 +87,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Vehiculo/AgregarVehiculo.cshtml");
         }
 
-        // ?? Agregar Vehículo POST ??????????????????????????????
+        // ?? Agregar VehÃ­culo POST ??????????????????????????????
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult AgregarVehiculo(string Placa, string Marca, string Modelo,
             int Anio, string? Color, string? Vin, int KmActuales)
@@ -106,7 +108,7 @@ namespace Optimus_byte.Controllers
 
             if (idCliente == 0)
             {
-                TempData["Error"] = "No se encontró tu perfil de cliente.";
+                TempData["Error"] = "No se encontrÃ³ tu perfil de cliente.";
                 return RedirectToAction("MisVehiculos");
             }
 
@@ -122,7 +124,7 @@ namespace Optimus_byte.Controllers
 
             if (placaExiste)
             {
-                TempData["Error"] = "Ya existe un vehículo con esa placa.";
+                TempData["Error"] = "Ya existe un vehÃ­culo con esa placa.";
                 ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
                 return View("~/Views/Vehiculo/AgregarVehiculo.cshtml");
             }
@@ -145,12 +147,12 @@ namespace Optimus_byte.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-            RegistrarAuditoria($"Registró vehículo placa {Placa.ToUpper()}");
-            TempData["Exito"] = $"Vehículo {Placa.ToUpper()} registrado correctamente.";
+            RegistrarAuditoria($"RegistrÃ³ vehÃ­culo placa {Placa.ToUpper()}");
+            TempData["Exito"] = $"VehÃ­culo {Placa.ToUpper()} registrado correctamente.";
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Editar Vehículo GET ???????????????????????????????
+        // ?? Editar VehÃ­culo GET ???????????????????????????????
         public IActionResult EditarVehiculo(int id)
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -191,7 +193,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Vehiculo/EditarVehiculo.cshtml");
         }
 
-        // ?? Editar Vehículo POST ??????????????????????????????
+        // ?? Editar VehÃ­culo POST ??????????????????????????????
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult EditarVehiculo(int IdVehiculo, string Placa, string Marca,
             string Modelo, int Anio, string? Color, string? Vin, int KmActuales)
@@ -200,7 +202,7 @@ namespace Optimus_byte.Controllers
 
             var idUsuario = GetIdUsuario();
 
-            // Verificar placa duplicada excluyendo este vehículo
+            // Verificar placa duplicada excluyendo este vehÃ­culo
             bool placaExiste = false;
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(
@@ -213,7 +215,7 @@ namespace Optimus_byte.Controllers
 
             if (placaExiste)
             {
-                TempData["Error"] = "Ya existe un vehículo con esa placa.";
+                TempData["Error"] = "Ya existe un vehÃ­culo con esa placa.";
                 return RedirectToAction("EditarVehiculo", new { id = IdVehiculo });
             }
 
@@ -237,12 +239,12 @@ namespace Optimus_byte.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-            RegistrarAuditoria($"Editó vehículo placa {Placa.ToUpper()}");
-            TempData["Exito"] = $"Vehículo {Placa.ToUpper()} actualizado.";
+            RegistrarAuditoria($"EditÃ³ vehÃ­culo placa {Placa.ToUpper()}");
+            TempData["Exito"] = $"VehÃ­culo {Placa.ToUpper()} actualizado.";
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Desactivar Vehículo ???????????????????????????????
+        // ?? Desactivar VehÃ­culo ???????????????????????????????
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult DesactivarVehiculo(int id)
         {
@@ -263,12 +265,12 @@ namespace Optimus_byte.Controllers
                 placa = cmd.ExecuteScalar()?.ToString() ?? "";
             }
 
-            RegistrarAuditoria($"Desactivó vehículo placa {placa}");
-            TempData["Exito"] = $"Vehículo {placa} desactivado.";
+            RegistrarAuditoria($"DesactivÃ³ vehÃ­culo placa {placa}");
+            TempData["Exito"] = $"VehÃ­culo {placa} desactivado.";
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Eliminar Vehículo ?????????????????????????????????
+        // ?? Eliminar VehÃ­culo ?????????????????????????????????
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult EliminarVehiculo(int id)
         {
@@ -289,12 +291,12 @@ namespace Optimus_byte.Controllers
                 placa = cmd.ExecuteScalar()?.ToString() ?? "";
             }
 
-            RegistrarAuditoria($"Eliminó vehículo placa {placa}");
-            TempData["Exito"] = $"Vehículo {placa} eliminado.";
+            RegistrarAuditoria($"EliminÃ³ vehÃ­culo placa {placa}");
+            TempData["Exito"] = $"VehÃ­culo {placa} eliminado.";
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Mis Órdenes ???????????????????????????????????????
+        // ?? Mis Ã“rdenes ???????????????????????????????????????
         public IActionResult MisOrdenes()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -339,7 +341,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/MisOrdenes.cshtml");
         }
 
-        // ?? Helper auditoría ??????????????????????????????????
+        // ?? Helper auditorÃ­a ??????????????????????????????????
         private void RegistrarAuditoria(string accion)
         {
             using var conn = _db.GetConnection();
@@ -348,8 +350,32 @@ namespace Optimus_byte.Controllers
                 VALUES (@id, @accion, @modulo)", conn);
             cmd.Parameters.AddWithValue("@id", GetIdUsuario());
             cmd.Parameters.AddWithValue("@accion", accion);
-            cmd.Parameters.AddWithValue("@modulo", "Vehículos");
+            cmd.Parameters.AddWithValue("@modulo", "VehÃ­culos");
             cmd.ExecuteNonQuery();
         }
+        // â”€â”€ Verificar contraseÃ±a via AJAX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        [HttpPost]
+        public IActionResult VerificarContrasena([FromBody] VerificarContrasenaRequest request)
+        {
+            if (!EsCliente()) return Json(new { ok = false });
+
+            var idUsuario = GetIdUsuario();
+            string hash = "";
+
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand(
+                "SELECT contrasena_hash FROM Usuarios WHERE id_usuario = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", idUsuario);
+                hash = cmd.ExecuteScalar()?.ToString() ?? "";
+            }
+
+            bool ok = !string.IsNullOrEmpty(hash) && BC.Verify(request.Contrasena, hash);
+            return Json(new { ok });
+        }
     }
+}
+public class VerificarContrasenaRequest
+{
+    public string Contrasena { get; set; } = "";
 }

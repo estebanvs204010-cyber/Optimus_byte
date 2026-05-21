@@ -52,6 +52,12 @@
                 box-shadow: 0 0 0 3px rgba(37,99,235,0.07);
             }
 
+        .input-readonly {
+            background: #f1f5f9 !important;
+            color: #94a3b8 !important;
+            cursor: not-allowed;
+        }
+
         .btn-guardar {
             font-size: 0.72rem;
             letter-spacing: 0.1em;
@@ -91,6 +97,15 @@
 
         .field-group {
             margin-bottom: 20px;
+        }
+
+        .field-locked {
+            font-size: 0.65rem;
+            color: var(--texto-suave);
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .danger-zone {
@@ -148,7 +163,6 @@
             padding: 8px 16px;
             border-radius: 2px;
             cursor: pointer;
-            white-space: nowrap;
         }
 
         .btn-eliminar {
@@ -161,7 +175,6 @@
             padding: 8px 16px;
             border-radius: 2px;
             cursor: pointer;
-            white-space: nowrap;
         }
 
         .modal-overlay {
@@ -188,7 +201,7 @@
         }
 
         .modal-icon {
-            font-size: 2.2rem;
+            font-size: 2rem;
             margin-bottom: 12px;
         }
 
@@ -196,19 +209,20 @@
             font-size: 1rem;
             font-weight: 700;
             color: var(--marfil);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .modal-desc {
             font-size: 0.83rem;
             color: var(--texto-suave);
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .modal-actions {
             display: flex;
             gap: 12px;
             justify-content: flex-end;
+            margin-top: 16px;
         }
 
         .btn-modal-cancel {
@@ -239,6 +253,27 @@
             background: #b91c1c;
             color: #fff;
         }
+
+        .input-password {
+            width: 100%;
+            padding: 9px 14px;
+            font-size: 0.88rem;
+            border: 1px solid var(--borde-input);
+            border-radius: 2px;
+            outline: none;
+            margin-top: 12px;
+        }
+
+            .input-password:focus {
+                border-color: var(--dorado);
+            }
+
+        .error-pass {
+            font-size: 0.75rem;
+            color: #b91c1c;
+            margin-top: 6px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -262,48 +297,73 @@
             </div>
         </div>
 
+        @if (TempData["Error"] != null)
+        {
+            <div style="background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.2);border-left:3px solid #dc2626;color:#b91c1c;padding:13px 18px;border-radius:2px;font-size:0.83rem;margin-bottom:20px;display:flex;align-items:center">
+                <i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]
+            </div>
+        }
+
+        @* Formulario que se envía directo — sin verificación de contraseña aquí *@
+        <form id="formEditar" action="/Cliente/EditarVehiculo" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="IdVehiculo" value="@v.IdVehiculo" />
+            <input type="hidden" id="hPlaca" name="Placa" />
+            <input type="hidden" id="hMarca" name="Marca" />
+            <input type="hidden" id="hModelo" name="Modelo" />
+            <input type="hidden" id="hAnio" name="Anio" />
+            <input type="hidden" id="hColor" name="Color" />
+            <input type="hidden" id="hVin" name="Vin" value="@v.Vin" />
+            <input type="hidden" id="hKm" name="KmActuales" value="@v.KmActuales" />
+        </form>
+
         <div class="form-wrap">
             <p style="font-family:var(--fuente-titulo);font-size:1.4rem;color:var(--marfil);margin-bottom:6px">Datos del vehículo</p>
-            <p style="font-size:0.78rem;color:var(--texto-suave);margin-bottom:28px">Modifica los campos que necesites</p>
+            <p style="font-size:0.78rem;color:var(--texto-suave);margin-bottom:28px">Solo puedes editar: Placa, Marca, Modelo, Año y Color</p>
 
-            <form action="/Cliente/EditarVehiculo" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="IdVehiculo" value="@v.IdVehiculo" />
-                <div class="row g-3">
-                    <div class="col-md-6 field-group">
-                        <label class="form-label-custom">Placa *</label>
-                        <input name="Placa" class="input-custom" value="@v.Placa" style="text-transform:uppercase" required />
-                    </div>
-                    <div class="col-md-6 field-group">
-                        <label class="form-label-custom">Marca *</label>
-                        <input name="Marca" class="input-custom" value="@v.Marca" required />
-                    </div>
-                    <div class="col-md-6 field-group">
-                        <label class="form-label-custom">Modelo *</label>
-                        <input name="Modelo" class="input-custom" value="@v.Modelo" required />
-                    </div>
-                    <div class="col-md-3 field-group">
-                        <label class="form-label-custom">Año *</label>
-                        <input name="Anio" type="number" class="input-custom" value="@v.Anio" min="1900" max="2100" required />
-                    </div>
-                    <div class="col-md-3 field-group">
-                        <label class="form-label-custom">Color</label>
-                        <input name="Color" class="input-custom" value="@v.Color" />
-                    </div>
-                    <div class="col-md-6 field-group">
-                        <label class="form-label-custom">VIN</label>
-                        <input name="Vin" class="input-custom" value="@v.Vin" />
-                    </div>
-                    <div class="col-md-6 field-group">
-                        <label class="form-label-custom">Km actuales *</label>
-                        <input name="KmActuales" type="number" class="input-custom" value="@v.KmActuales" min="0" required />
-                    </div>
+            <div class="row g-3">
+                <div class="col-md-6 field-group">
+                    <label class="form-label-custom">Placa *</label>
+                    <input id="ePlaca" class="input-custom" value="@v.Placa" style="text-transform:uppercase" maxlength="10" autocomplete="off" />
                 </div>
-                <div class="d-flex align-items-center gap-3 mt-4">
-                    <button type="submit" class="btn-guardar"><i class="bi bi-check-lg me-2"></i>Guardar cambios</button>
-                    <a href="/Cliente/MisVehiculos" class="btn-volver"><i class="bi bi-arrow-left"></i>Cancelar</a>
+                <div class="col-md-6 field-group">
+                    <label class="form-label-custom">Marca *</label>
+                    <input id="eMarca" class="input-custom" value="@v.Marca" autocomplete="off" />
                 </div>
-            </form>
+                <div class="col-md-6 field-group">
+                    <label class="form-label-custom">Modelo *</label>
+                    <input id="eModelo" class="input-custom" value="@v.Modelo" autocomplete="off" />
+                </div>
+                <div class="col-md-3 field-group">
+                    <label class="form-label-custom">Año *</label>
+                    <input id="eAnio" type="number" class="input-custom" value="@v.Anio" min="1900" max="2100" autocomplete="off" />
+                </div>
+                <div class="col-md-3 field-group">
+                    <label class="form-label-custom">Color *</label>
+                    <input id="eColor" class="input-custom" value="@v.Color" autocomplete="off" />
+                </div>
+
+                @* Campos bloqueados — solo visuales, los valores reales van en el form oculto *@
+                <div class="col-md-6 field-group">
+                    <label class="form-label-custom">VIN</label>
+                    <input class="input-custom input-readonly" value="@v.Vin" readonly />
+                    <span class="field-locked"><i class="bi bi-lock-fill"></i>No editable — dato técnico del vehículo</span>
+                </div>
+                <div class="col-md-6 field-group">
+                    <label class="form-label-custom">Km actuales</label>
+                    <input class="input-custom input-readonly" value="@v.KmActuales.ToString("N0") km" readonly />
+                    <span class="field-locked"><i class="bi bi-lock-fill"></i>Actualizado por el taller</span>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 mt-4">
+                <button type="button" class="btn-guardar" onclick="guardarCambios()">
+                    <i class="bi bi-check-lg me-2"></i>Guardar cambios
+                </button>
+                <a href="/Cliente/MisVehiculos" class="btn-volver">
+                    <i class="bi bi-arrow-left"></i>Cancelar
+                </a>
+            </div>
         </div>
 
         <div class="danger-zone">
@@ -338,34 +398,93 @@
         </form>
     </div>
 
+    @* Modal desactivar *@
     <div class="modal-overlay" id="modalDesactivar">
         <div class="modal-box">
             <div class="modal-icon">👁️</div>
             <p class="modal-title">¿Desactivar vehículo?</p>
             <p class="modal-desc">El vehículo <strong>@v.Placa</strong> quedará inactivo.</p>
+            <input type="password" id="passDesactivar" class="input-password" placeholder="Confirma tu contraseña..." autocomplete="new-password" />
+            <p id="errorPassDesactivar" class="error-pass"><i class="bi bi-exclamation-circle me-1"></i>Contraseña incorrecta</p>
             <div class="modal-actions">
                 <button class="btn-modal-cancel" onclick="cerrarModal('desactivar')">Cancelar</button>
-                <button class="btn-modal-confirm confirm-desactivar" onclick="document.getElementById('formDesactivar').submit()">Sí, desactivar</button>
+                <button class="btn-modal-confirm confirm-desactivar" onclick="verificarYAccion('desactivar')">
+                    Sí, desactivar
+                </button>
             </div>
         </div>
     </div>
 
+    @* Modal eliminar *@
     <div class="modal-overlay" id="modalEliminar">
         <div class="modal-box">
             <div class="modal-icon">🗑️</div>
             <p class="modal-title">¿Eliminar definitivamente?</p>
             <p class="modal-desc">Se borrarán todos los datos de <strong>@v.Placa</strong>. No se puede deshacer.</p>
+            <input type="password" id="passEliminar" class="input-password" placeholder="Confirma tu contraseña..." autocomplete="new-password" />
+            <p id="errorPassEliminar" class="error-pass"><i class="bi bi-exclamation-circle me-1"></i>Contraseña incorrecta</p>
             <div class="modal-actions">
                 <button class="btn-modal-cancel" onclick="cerrarModal('eliminar')">Cancelar</button>
-                <button class="btn-modal-confirm confirm-eliminar" onclick="document.getElementById('formEliminar').submit()">Sí, eliminar</button>
+                <button class="btn-modal-confirm confirm-eliminar" onclick="verificarYAccion('eliminar')">
+                    Sí, eliminar
+                </button>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function abrirModal(t) { document.getElementById(t==='desactivar'?'modalDesactivar':'modalEliminar').classList.add('show'); }
-        function cerrarModal(t) { document.getElementById(t==='desactivar'?'modalDesactivar':'modalEliminar').classList.remove('show'); }
+        // Guardar cambios directo — sin pedir contraseña (ya se verificó en MisVehiculos)
+        function guardarCambios() {
+            document.getElementById('hPlaca').value  = document.getElementById('ePlaca').value.toUpperCase();
+            document.getElementById('hMarca').value  = document.getElementById('eMarca').value;
+            document.getElementById('hModelo').value = document.getElementById('eModelo').value;
+            document.getElementById('hAnio').value   = document.getElementById('eAnio').value;
+            document.getElementById('hColor').value  = document.getElementById('eColor').value;
+            // hVin y hKm ya tienen el valor correcto desde el servidor, no se tocan
+            document.getElementById('formEditar').submit();
+        }
+
+        function abrirModal(tipo) {
+            const ids     = { desactivar: 'modalDesactivar', eliminar: 'modalEliminar' };
+            const passIds = { desactivar: 'passDesactivar',  eliminar: 'passEliminar'  };
+            const errIds  = { desactivar: 'errorPassDesactivar', eliminar: 'errorPassEliminar' };
+            document.getElementById(passIds[tipo]).value = '';
+            document.getElementById(errIds[tipo]).style.display = 'none';
+            document.getElementById(ids[tipo]).classList.add('show');
+            setTimeout(() => document.getElementById(passIds[tipo]).focus(), 100);
+        }
+
+        function cerrarModal(tipo) {
+            const ids = { desactivar: 'modalDesactivar', eliminar: 'modalEliminar' };
+            document.getElementById(ids[tipo]).classList.remove('show');
+        }
+
+        async function verificarContrasena(password) {
+            const resp = await fetch('/Cliente/VerificarContrasena', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contrasena: password })
+            });
+            const data = await resp.json();
+            return data.ok;
+        }
+
+        async function verificarYAccion(tipo) {
+            const passId = tipo === 'desactivar' ? 'passDesactivar' : 'passEliminar';
+            const errId  = tipo === 'desactivar' ? 'errorPassDesactivar' : 'errorPassEliminar';
+            const formId = tipo === 'desactivar' ? 'formDesactivar' : 'formEliminar';
+
+            const pass = document.getElementById(passId).value;
+            if (!pass) return;
+
+            const ok = await verificarContrasena(pass);
+            if (!ok) {
+                document.getElementById(errId).style.display = 'block';
+                return;
+            }
+            document.getElementById(formId).submit();
+        }
     </script>
 </body>
 </html>

@@ -160,6 +160,7 @@
         .buscar-wrap {
             position: relative;
             max-width: 280px;
+            width: 280px;
         }
 
             .buscar-wrap i {
@@ -192,6 +193,7 @@
         .btn-edit-sm {
             font-size: 0.72rem;
             color: var(--dorado);
+            background: transparent;
             text-decoration: none;
             border: 1px solid var(--borde-input);
             padding: 5px 12px;
@@ -200,6 +202,7 @@
             align-items: center;
             gap: 5px;
             transition: var(--transicion);
+            cursor: pointer;
         }
 
             .btn-edit-sm:hover {
@@ -207,7 +210,6 @@
                 color: var(--dorado);
             }
 
-        @* Alerta éxito *@
         .alerta-ok {
             background: rgba(22,163,74,0.06);
             border: 1px solid rgba(22,163,74,0.2);
@@ -261,10 +263,11 @@
                     <p class="section-sub">@((vehiculos as IEnumerable<dynamic>)?.Count() ?? 0) vehículo(s) encontrado(s)</p>
                 </div>
                 <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <div class="buscar-wrap">
-                        <i class="bi bi-search"></i>
-                        <input type="text" id="buscarInput" class="input-buscar"
-                               placeholder="Buscar placa, marca…" oninput="filtrarTabla()" />
+                  <div>
+                        <input type="text" id="buscarInput" name="q" class="input-buscar"
+                               placeholder="Buscar placa, marca…" oninput="filtrarTabla()"
+                               autocomplete="off" readonly
+                               onfocus="this.removeAttribute('readonly')" />
                     </div>
                     <a href="/Cliente/AgregarVehiculo" class="btn-agregar">
                         <i class="bi bi-plus-lg"></i>Agregar
@@ -325,9 +328,9 @@
                                     <td><span class="estado-activo"><i class="bi bi-circle-fill me-1" style="font-size:.45rem"></i>Activo</span></td>
                                     <td style="font-size:0.78rem;color:var(--texto-suave)">@(((DateTime)v.FechaRegistro).ToString("dd/MM/yyyy"))</td>
                                     <td>
-                                        <a href="/Cliente/EditarVehiculo/@v.IdVehiculo" class="btn-edit-sm">
+                                        <button type="button" class="btn-edit-sm" onclick="abrirVerificacion(@v.IdVehiculo)">
                                             <i class="bi bi-pencil"></i> Editar
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -349,6 +352,34 @@
         </div>
     </div>
 
+    <!-- Modal verificación -->
+    <div id="modalVerifEditar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:4px;padding:32px;max-width:400px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+            <div style="font-size:1.8rem;margin-bottom:10px">🔐</div>
+            <p style="font-family:var(--fuente-titulo);font-size:1rem;font-weight:700;color:var(--marfil);margin-bottom:6px">Verificación de identidad</p>
+            <p style="font-size:0.83rem;color:var(--texto-suave);margin-bottom:18px">Ingresa tu contraseña para editar este vehículo.</p>
+
+            <input type="password" id="passEditarMis" placeholder="Tu contraseña..."
+                   style="width:100%;padding:9px 14px;font-size:0.88rem;border:1px solid var(--borde-input);border-radius:2px;outline:none;box-sizing:border-box"
+                   onkeydown="if(event.key==='Enter') confirmarVerifEditar()" />
+
+            <p id="errorPassEditarMis" style="display:none;font-size:0.75rem;color:#b91c1c;margin-top:6px">
+                <i class="bi bi-exclamation-circle me-1"></i>Contraseña incorrecta
+            </p>
+
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px">
+                <button onclick="cerrarVerificacion()"
+                        style="font-size:0.75rem;padding:8px 18px;border:1px solid var(--borde-input);border-radius:2px;background:transparent;color:var(--texto-suave);cursor:pointer">
+                    Cancelar
+                </button>
+                <button id="btnConfirmarEditar" onclick="confirmarVerifEditar()"
+                        style="font-size:0.75rem;padding:8px 18px;border:none;border-radius:2px;background:var(--dorado);color:#fff;cursor:pointer;font-weight:600">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function filtrarTabla() {
@@ -358,6 +389,59 @@
                     f.dataset.marca.includes(buscar) || f.dataset.modelo.includes(buscar);
                 f.style.display = ok ? '' : 'none';
             });
+        }
+
+        let vehiculoIdPendiente = null;
+
+        function abrirVerificacion(id) {
+            vehiculoIdPendiente = id;
+            document.getElementById('passEditarMis').value = '';
+            document.getElementById('errorPassEditarMis').style.display = 'none';
+            document.getElementById('btnConfirmarEditar').disabled = false;
+            document.getElementById('btnConfirmarEditar').innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirmar';
+            document.getElementById('modalVerifEditar').style.display = 'flex';
+            setTimeout(() => document.getElementById('passEditarMis').focus(), 100);
+        }
+
+        function cerrarVerificacion() {
+            document.getElementById('modalVerifEditar').style.display = 'none';
+            vehiculoIdPendiente = null;
+        }
+
+        async function confirmarVerifEditar() {
+            const pass = document.getElementById('passEditarMis').value.trim();
+            const error = document.getElementById('errorPassEditarMis');
+            const btn = document.getElementById('btnConfirmarEditar');
+
+            if (!pass) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+            error.style.display = 'none';
+
+            try {
+                const resp = await fetch('/Cliente/VerificarContrasena', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contrasena: pass })
+                });
+                const data = await resp.json();
+
+                if (data.ok) {
+                    window.location.href = `/Cliente/EditarVehiculo/${vehiculoIdPendiente}`;
+                } else {
+                    error.style.display = 'block';
+                    document.getElementById('passEditarMis').value = '';
+                    document.getElementById('passEditarMis').focus();
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirmar';
+                }
+            } catch {
+                error.textContent = 'Error de conexión. Intenta de nuevo.';
+                error.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirmar';
+            }
         }
     </script>
 </body>
