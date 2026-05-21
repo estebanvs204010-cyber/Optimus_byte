@@ -1,0 +1,364 @@
+﻿@{
+    ViewData["Title"] = "Mis Vehículos";
+    Layout = null;
+    var nombre = ViewBag.Nombre as string ?? "Cliente";
+    var inicial = nombre.Length > 0 ? nombre[0].ToString().ToUpper() : "C";
+    var vehiculos = ViewBag.Vehiculos as List<dynamic> ?? new List<dynamic>();
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Mis Vehículos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/Portal.css" rel="stylesheet" />
+    <style>
+        .vehiculos-wrap {
+            background: #ffffff;
+            border: 1px solid var(--borde-input);
+            border-radius: 4px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(37,99,235,0.06);
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-family: var(--fuente-titulo);
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: var(--marfil);
+            margin: 0 0 4px;
+        }
+
+        .section-sub {
+            font-size: 0.78rem;
+            color: var(--texto-suave);
+            margin: 0;
+        }
+
+        .btn-volver {
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--dorado);
+            text-decoration: none;
+            border: 1px solid var(--borde-input);
+            padding: 7px 16px;
+            border-radius: 2px;
+            transition: var(--transicion);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .btn-volver:hover {
+                background: var(--dorado-suave);
+                color: var(--dorado);
+            }
+
+        .btn-agregar {
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #fff;
+            background: var(--dorado);
+            text-decoration: none;
+            border: 1px solid var(--dorado);
+            padding: 7px 16px;
+            border-radius: 2px;
+            transition: var(--transicion);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .btn-agregar:hover {
+                opacity: 0.85;
+                color: #fff;
+            }
+
+        .tabla-vehiculos {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+            .tabla-vehiculos thead tr {
+                border-bottom: 2px solid var(--borde-input);
+            }
+
+            .tabla-vehiculos th {
+                font-size: 0.68rem;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--texto-suave);
+                padding: 10px 14px;
+                font-weight: 600;
+            }
+
+            .tabla-vehiculos td {
+                padding: 13px 14px;
+                color: var(--texto-claro);
+                border-bottom: 1px solid var(--grafito-claro);
+                vertical-align: middle;
+            }
+
+            .tabla-vehiculos tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            .tabla-vehiculos tbody tr:hover td {
+                background: var(--grafito-med);
+            }
+
+        .placa-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            background: var(--dorado-suave);
+            color: var(--dorado);
+            border: 1px solid var(--borde);
+            padding: 3px 10px;
+            border-radius: 2px;
+        }
+
+        .estado-activo {
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #15803d;
+            background: rgba(22,163,74,0.08);
+            border: 1px solid rgba(22,163,74,0.2);
+            padding: 3px 10px;
+            border-radius: 2px;
+        }
+
+        .vehiculos-vacio {
+            text-align: center;
+            padding: 56px 20px;
+            color: var(--texto-suave);
+        }
+
+            .vehiculos-vacio i {
+                font-size: 3.2rem;
+                color: var(--borde);
+                margin-bottom: 16px;
+                display: block;
+            }
+
+        .buscar-wrap {
+            position: relative;
+            max-width: 280px;
+        }
+
+            .buscar-wrap i {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--texto-suave);
+                font-size: 0.85rem;
+                pointer-events: none;
+            }
+
+        .input-buscar {
+            width: 100%;
+            padding: 7px 12px 7px 34px;
+            font-size: 0.82rem;
+            border: 1px solid var(--borde-input);
+            border-radius: 2px;
+            background: var(--grafito-med);
+            color: var(--texto-claro);
+            outline: none;
+            transition: var(--transicion);
+        }
+
+            .input-buscar:focus {
+                border-color: var(--dorado);
+                background: #fff;
+            }
+
+        .btn-edit-sm {
+            font-size: 0.72rem;
+            color: var(--dorado);
+            text-decoration: none;
+            border: 1px solid var(--borde-input);
+            padding: 5px 12px;
+            border-radius: 2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: var(--transicion);
+        }
+
+            .btn-edit-sm:hover {
+                background: var(--dorado-suave);
+                color: var(--dorado);
+            }
+
+        @* Alerta éxito *@
+        .alerta-ok {
+            background: rgba(22,163,74,0.06);
+            border: 1px solid rgba(22,163,74,0.2);
+            border-left: 3px solid #16a34a;
+            color: #15803d;
+            padding: 13px 18px;
+            border-radius: 2px;
+            font-size: 0.83rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-rol">Cliente</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="user-name"><i class="bi bi-person-circle me-1"></i>@nombre</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="welcome-bar">
+            <div class="avatar">@inicial</div>
+            <div class="welcome-txt">
+                <h2>Mis Vehículos</h2>
+                <p>Consulta y gestiona los vehículos registrados a tu nombre.</p>
+            </div>
+        </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alerta-ok" style="background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.2);border-left-color:#dc2626;color:#b91c1c">
+                <i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]
+            </div>
+        }
+
+        <div class="vehiculos-wrap">
+            <div class="section-header">
+                <div>
+                    <p class="section-title">Vehículos registrados</p>
+                    <p class="section-sub">@((vehiculos as IEnumerable<dynamic>)?.Count() ?? 0) vehículo(s) encontrado(s)</p>
+                </div>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="buscar-wrap">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="buscarInput" class="input-buscar"
+                               placeholder="Buscar placa, marca…" oninput="filtrarTabla()" />
+                    </div>
+                    <a href="/Cliente/AgregarVehiculo" class="btn-agregar">
+                        <i class="bi bi-plus-lg"></i>Agregar
+                    </a>
+                    <a href="/Cliente/Portal" class="btn-volver">
+                        <i class="bi bi-arrow-left"></i>Volver
+                    </a>
+                </div>
+            </div>
+
+            @{
+                var lista = ViewBag.Vehiculos as IEnumerable<dynamic>;
+                bool hayVehiculos = lista != null && lista.Any();
+            }
+
+            @if (!hayVehiculos)
+            {
+                <div class="vehiculos-vacio">
+                    <i class="bi bi-car-front"></i>
+                    <p>No tienes vehículos registrados aún.</p>
+                    <a href="/Cliente/AgregarVehiculo" class="btn-agregar mt-3">
+                        <i class="bi bi-plus-lg"></i>Agregar vehículo
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="tabla-vehiculos" id="tablaVehiculos">
+                        <thead>
+                            <tr>
+                                <th>Placa</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
+                                <th>Año</th>
+                                <th>Color</th>
+                                <th>VIN</th>
+                                <th>Km actuales</th>
+                                <th>Estado</th>
+                                <th>Registro</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var v in lista!)
+                            {
+                                <tr class="fila-vehiculo"
+                                    data-placa="@(((string)v.Placa).ToLower())"
+                                    data-marca="@(((string)v.Marca).ToLower())"
+                                    data-modelo="@(((string)v.Modelo).ToLower())">
+                                    <td><span class="placa-badge">@v.Placa</span></td>
+                                    <td>@v.Marca</td>
+                                    <td>@v.Modelo</td>
+                                    <td>@v.Anio</td>
+                                    <td>@(string.IsNullOrWhiteSpace((string)v.Color) ? "—" : v.Color)</td>
+                                    <td style="font-size:0.78rem">@(string.IsNullOrWhiteSpace((string)v.Vin) ? "—" : v.Vin)</td>
+                                    <td>@v.KmActuales.ToString("N0") km</td>
+                                    <td><span class="estado-activo"><i class="bi bi-circle-fill me-1" style="font-size:.45rem"></i>Activo</span></td>
+                                    <td style="font-size:0.78rem;color:var(--texto-suave)">@(((DateTime)v.FechaRegistro).ToString("dd/MM/yyyy"))</td>
+                                    <td>
+                                        <a href="/Cliente/EditarVehiculo/@v.IdVehiculo" class="btn-edit-sm">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="info-section">
+            <p class="info-title">Información del Taller</p>
+            <p class="info-sub">Contáctanos si necesitas agendar o tienes alguna duda</p>
+            <div class="info-grid">
+                <div class="info-item"><i class="bi bi-telephone-fill"></i><div class="info-item-txt"><strong>Teléfono</strong><span>+57 318 509 4530</span></div></div>
+                <div class="info-item"><i class="bi bi-envelope-fill"></i><div class="info-item-txt"><strong>Correo</strong><span>louisfonsea070&#64;gmail.com</span></div></div>
+                <div class="info-item"><i class="bi bi-clock-fill"></i><div class="info-item-txt"><strong>Horario</strong><span>Lun – Sáb · 8:00 am – 6:00 pm</span></div></div>
+                <div class="info-item"><i class="bi bi-geo-alt-fill"></i><div class="info-item-txt"><strong>Ubicación</strong><span>Colombia</span></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function filtrarTabla() {
+            const buscar = document.getElementById('buscarInput').value.toLowerCase();
+            document.querySelectorAll('.fila-vehiculo').forEach(f => {
+                const ok = !buscar || f.dataset.placa.includes(buscar) ||
+                    f.dataset.marca.includes(buscar) || f.dataset.modelo.includes(buscar);
+                f.style.display = ok ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

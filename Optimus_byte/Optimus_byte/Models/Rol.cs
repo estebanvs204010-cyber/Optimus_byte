@@ -9,8 +9,11 @@ namespace Optimus_byte.Models
         [Key]
         [Column("id_rol")]
         public int RolId { get; set; }
-
         [Column("nombre")]
-        public string NombreRol { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+
+        // ← Alias para compatibilidad con las vistas
+        [NotMapped]
+        public string NombreRol => Nombre;
     }
 }
