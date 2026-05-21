@@ -1,0 +1,196 @@
+@model List<Optimus_byte.Models.ViewModels.OrdenResumenViewModel>
+@{
+    ViewData["Title"] = "Órdenes de Trabajo";
+    Layout = null;
+    string[] estados = { "Pendiente","En proceso","Esperando repuesto","Listo para entrega","Entregado","Cancelado" };
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Órdenes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/usuarios.css" rel="stylesheet" />
+    <style>
+        .badge-estado { display: inline-block; padding: 3px 9px; border-radius: 2px; font-size: .68rem; letter-spacing: .06em; white-space: nowrap; }
+        .estado-Pendiente           { background: rgba(234,179,8,.1);  border: 1px solid rgba(234,179,8,.3);  color: #a16207; }
+        .estado-En\ proceso         { background: rgba(37,99,235,.08); border: 1px solid rgba(37,99,235,.25); color: var(--dorado); }
+        .estado-Esperando\ repuesto { background: rgba(249,115,22,.08);border: 1px solid rgba(249,115,22,.2); color: #c2410c; }
+        .estado-Listo\ para\ entrega{ background: rgba(22,163,74,.08); border: 1px solid rgba(22,163,74,.2);  color: #15803d; }
+        .estado-Entregado           { background: rgba(100,116,139,.08);border: 1px solid rgba(100,116,139,.2);color: #64748b; }
+        .estado-Cancelado           { background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.2);  color: #b91c1c; }
+    </style>
+</head>
+<body>
+
+    <div class="admin-topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-admin">Admin</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+        </div>
+    </div>
+
+    <div class="admin-sidebar">
+        <nav class="sidebar-nav">
+            <a href="/Usuarios"         class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
+            <a href="/Admin/Ordenes"    class="nav-link active"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
+            <a href="/Admin/Inventario" class="nav-link"><i class="bi bi-box-seam"></i><span>Inventario</span></a>
+            <a href="/Admin/Facturas"   class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
+            <a href="/Admin/Dashboard"  class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+        </nav>
+    </div>
+
+    <div class="admin-content">
+
+        <div class="section-header">
+            <div>
+                <h1 class="section-title">Órdenes de Trabajo</h1>
+                <p class="section-sub">@Model.Count orden(es) encontrada(s)</p>
+            </div>
+            <button class="btn-nuevo" data-bs-toggle="modal" data-bs-target="#modalCrearOrden">
+                <i class="bi bi-plus-lg me-2"></i>Nueva Orden
+            </button>
+        </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alerta alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alerta alerta-err"><i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]</div>
+        }
+
+        <!-- Filtros -->
+        <form method="get" action="/Admin/Ordenes" class="filtro-bar mb-3">
+            <div class="input-buscar">
+                <i class="bi bi-search"></i>
+                <input type="text" name="buscar" value="@ViewBag.BuscarFiltro"
+                       placeholder="Buscar por placa o cliente..." />
+            </div>
+            <select name="estado" class="filtro-select" onchange="this.form.submit()">
+                <option value="">Todos los estados</option>
+                @foreach (var e in estados)
+                {
+                    <option value="@e" selected="@(ViewBag.EstadoFiltro == e ? "selected" : null)">@e</option>
+                }
+            </select>
+            <button type="submit" class="btn-nuevo" style="white-space:nowrap">
+                <i class="bi bi-funnel me-1"></i>Filtrar
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.EstadoFiltro) || !string.IsNullOrEmpty(ViewBag.BuscarFiltro))
+            {
+                <a href="/Admin/Ordenes" class="btn-cancelar">Limpiar</a>
+            }
+        </form>
+
+        <!-- Tabla -->
+        <div class="tabla-wrapper">
+            <table class="tabla-usuarios">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Placa / Vehículo</th>
+                        <th>Cliente</th>
+                        <th>Mecánico</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th>Fecha apertura</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in Model)
+                    {
+                        var estadoCss = "estado-" + o.Estado;
+                        <tr>
+                            <td style="color:var(--dorado);font-weight:500">#@o.IdOrden</td>
+                            <td>
+                                <strong>@o.Placa</strong>
+                                <div style="font-size:.75rem;color:var(--texto-suave)">@o.MarcaModelo</div>
+                            </td>
+                            <td>@o.Cliente</td>
+                            <td style="font-size:.8rem">@o.Mecanico</td>
+                            <td style="font-size:.78rem">@o.TipoServicio</td>
+                            <td><span class="badge-estado @estadoCss">@o.Estado</span></td>
+                            <td style="font-size:.78rem;color:var(--texto-suave)">@o.FechaApertura.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <a href="/Admin/OrdenDetalle/@o.IdOrden" class="btn-accion btn-editar" title="Ver detalle">
+                                    <i class="bi bi-eye-fill"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (!Model.Any())
+            {
+                <div class="tabla-vacia">
+                    <i class="bi bi-clipboard2-x" style="font-size:3rem;color:#334155"></i>
+                    <p class="mt-2">No se encontraron órdenes.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Modal Nueva Orden -->
+    <div class="modal fade" id="modalCrearOrden" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:6px">
+                <div class="modal-header" style="border-bottom:1px solid var(--borde-input)">
+                    <h5 class="modal-title" style="font-size:.9rem;letter-spacing:.06em;color:var(--dorado)">
+                        <i class="bi bi-plus-circle me-2"></i>Nueva Orden de Trabajo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Admin" asp-action="CrearOrden" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body" style="padding:24px">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">ID del Vehículo *</label>
+                            <input type="number" name="idVehiculo" class="input-custom" style="padding-left:14px" required placeholder="Ej: 3" />
+                            <small style="color:var(--texto-suave);font-size:.72rem">Puedes buscar el vehículo por placa en la BD</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Mecánico asignado</label>
+                            <select name="idMecanico" class="input-custom select-custom" style="padding-left:14px">
+                                <option value="">— Sin asignar aún —</option>
+                                @foreach (var m in (List<(int Id, string Nombre)>)(ViewBag.Mecanicos ?? new List<(int, string)>()))
+                                {
+                                    <option value="@m.Id">@m.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Tipo de servicio *</label>
+                            <select name="tipoServicio" class="input-custom select-custom" style="padding-left:14px" required>
+                                <option value="Correctivo">Correctivo</option>
+                                <option value="Preventivo">Preventivo</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Descripción del problema *</label>
+                            <textarea name="descripcionProblema" class="input-custom" style="padding:10px 14px;height:90px;resize:none" required placeholder="Describe el problema del vehículo..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Kilometraje de ingreso *</label>
+                            <input type="number" name="kmIngreso" class="input-custom" style="padding-left:14px" required min="0" placeholder="Ej: 45000" />
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
+                        <button type="submit" class="btn-guardar"><i class="bi bi-clipboard2-plus-fill me-2"></i>Crear orden</button>
+                        <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

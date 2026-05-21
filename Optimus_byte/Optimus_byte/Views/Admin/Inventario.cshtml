@@ -1,0 +1,226 @@
+@model List<Optimus_byte.Models.ViewModels.RepuestoViewModel>
+@{
+    ViewData["Title"] = "Inventario";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/usuarios.css" rel="stylesheet" />
+    <style>
+        .stock-ok  { color: #15803d; }
+        .stock-low { color: #dc2626; font-weight: 600; }
+        .badge-cat { display:inline-block;padding:2px 9px;border-radius:2px;font-size:.68rem;letter-spacing:.06em;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18);color:var(--dorado); }
+    </style>
+</head>
+<body>
+
+    <div class="admin-topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-admin">Admin</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+        </div>
+    </div>
+
+    <div class="admin-sidebar">
+        <nav class="sidebar-nav">
+            <a href="/Usuarios"         class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
+            <a href="/Admin/Ordenes"    class="nav-link"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
+            <a href="/Admin/Inventario" class="nav-link active"><i class="bi bi-box-seam"></i><span>Inventario</span></a>
+            <a href="/Admin/Facturas"   class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
+            <a href="/Admin/Dashboard"  class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+        </nav>
+    </div>
+
+    <div class="admin-content">
+
+        <div class="section-header">
+            <div>
+                <h1 class="section-title">Inventario de Repuestos</h1>
+                <p class="section-sub">@Model.Count repuesto(s) · @Model.Count(r => r.BajoStock) con bajo stock</p>
+            </div>
+            <button class="btn-nuevo" data-bs-toggle="modal" data-bs-target="#modalRepuesto" onclick="prepararModal(null)">
+                <i class="bi bi-plus-lg me-2"></i>Nuevo repuesto
+            </button>
+        </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alerta alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alerta alerta-err"><i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]</div>
+        }
+
+        <!-- Filtros -->
+        <form method="get" action="/Admin/Inventario" class="filtro-bar mb-3">
+            <div class="input-buscar">
+                <i class="bi bi-search"></i>
+                <input type="text" name="buscar" value="@ViewBag.BuscarFiltro" placeholder="Buscar por nombre o referencia..." />
+            </div>
+            <select name="categoria" class="filtro-select" onchange="this.form.submit()">
+                <option value="">Todas las categorías</option>
+                @foreach (var cat in (List<string>)(ViewBag.Categorias ?? new List<string>()))
+                {
+                    <option value="@cat" selected="@(ViewBag.CatFiltro == cat ? "selected" : null)">@cat</option>
+                }
+            </select>
+            <button type="submit" class="btn-nuevo" style="white-space:nowrap">
+                <i class="bi bi-funnel me-1"></i>Filtrar
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.BuscarFiltro) || !string.IsNullOrEmpty(ViewBag.CatFiltro))
+            {
+                <a href="/Admin/Inventario" class="btn-cancelar">Limpiar</a>
+            }
+        </form>
+
+        <!-- Tabla -->
+        <div class="tabla-wrapper">
+            <table class="tabla-usuarios">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Repuesto</th>
+                        <th>Referencia</th>
+                        <th>Categoría</th>
+                        <th>Precio unit.</th>
+                        <th>Stock actual</th>
+                        <th>Stock mín.</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        <tr class="@(r.BajoStock ? "fila-inactiva" : "")">
+                            <td>@r.IdRepuesto</td>
+                            <td>
+                                <strong>@r.Nombre</strong>
+                                @if (!string.IsNullOrEmpty(r.Descripcion))
+                                {
+                                    <div style="font-size:.73rem;color:var(--texto-suave)">@r.Descripcion</div>
+                                }
+                            </td>
+                            <td style="font-family:monospace;font-size:.82rem">@r.Referencia</td>
+                            <td><span class="badge-cat">@r.Categoria</span></td>
+                            <td>$@r.PrecioUnitario.ToString("N0")</td>
+                            <td>
+                                <span class="@(r.BajoStock ? "stock-low" : "stock-ok")">
+                                    @if (r.BajoStock)
+                                    {
+                                        <i class="bi bi-exclamation-triangle-fill me-1" style="font-size:.75rem"></i>
+                                    }
+                                    @r.StockActual
+                                </span>
+                            </td>
+                            <td>@r.StockMinimo</td>
+                            <td class="td-acciones">
+                                <button class="btn-accion btn-editar" title="Editar"
+                                    onclick="prepararModal(@r.IdRepuesto,'@r.Nombre.Replace("'","\\'")', '@r.Referencia', '@r.Descripcion.Replace("'","\\'")', '@r.Categoria', @r.PrecioUnitario, @r.StockActual, @r.StockMinimo)"
+                                    data-bs-toggle="modal" data-bs-target="#modalRepuesto">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <form asp-controller="Admin" asp-action="DesactivarRepuesto"
+                                      asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
+                                      onsubmit="return confirm('¿Desactivar el repuesto @r.Nombre?')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-accion btn-desactivar" title="Desactivar">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (!Model.Any())
+            {
+                <div class="tabla-vacia">
+                    <i class="bi bi-box-seam" style="font-size:3rem;color:#334155"></i>
+                    <p class="mt-2">No se encontraron repuestos.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Modal Crear/Editar repuesto -->
+    <div class="modal fade" id="modalRepuesto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:6px">
+                <div class="modal-header" style="border-bottom:1px solid var(--borde-input)">
+                    <h5 class="modal-title" id="modalRepuestoTitulo" style="font-size:.9rem;letter-spacing:.06em;color:var(--dorado)">
+                        <i class="bi bi-box-seam me-2"></i>Repuesto
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Admin" asp-action="GuardarRepuesto" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="idRepuesto" id="inputIdRepuesto" value="0" />
+                    <div class="modal-body" style="padding:24px">
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:16px">
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Nombre *</label>
+                                <input type="text" name="nombre" id="inputNombre" class="input-custom" style="padding-left:14px" required />
+                            </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Referencia *</label>
+                                <input type="text" name="referencia" id="inputRef" class="input-custom" style="padding-left:14px" required />
+                            </div>
+                            <div class="form-group-custom" style="grid-column:1/-1">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Descripción</label>
+                                <input type="text" name="descripcion" id="inputDesc" class="input-custom" style="padding-left:14px" />
+                            </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Categoría *</label>
+                                <input type="text" name="categoria" id="inputCat" class="input-custom" style="padding-left:14px" required placeholder="Ej: Frenos, Motor..." />
+                            </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Precio unitario *</label>
+                                <input type="number" name="precioUnitario" id="inputPrecio" class="input-custom" style="padding-left:14px" required min="0" step="0.01" />
+                            </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Stock actual *</label>
+                                <input type="number" name="stockActual" id="inputStock" class="input-custom" style="padding-left:14px" required min="0" />
+                            </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Stock mínimo *</label>
+                                <input type="number" name="stockMinimo" id="inputMin" class="input-custom" style="padding-left:14px" required min="0" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
+                        <button type="submit" class="btn-guardar"><i class="bi bi-floppy-fill me-2"></i>Guardar</button>
+                        <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
+            const esNuevo = !id;
+            document.getElementById('modalRepuestoTitulo').innerHTML =
+                `<i class="bi bi-box-seam me-2"></i>${esNuevo ? 'Nuevo repuesto' : 'Editar repuesto'}`;
+            document.getElementById('inputIdRepuesto').value = id || 0;
+            document.getElementById('inputNombre').value  = nombre || '';
+            document.getElementById('inputRef').value     = ref    || '';
+            document.getElementById('inputDesc').value    = desc   || '';
+            document.getElementById('inputCat').value     = cat    || '';
+            document.getElementById('inputPrecio').value  = precio || 0;
+            document.getElementById('inputStock').value   = stock  || 0;
+            document.getElementById('inputMin').value     = min    || 5;
+        }
+    </script>
+</body>
+</html>
