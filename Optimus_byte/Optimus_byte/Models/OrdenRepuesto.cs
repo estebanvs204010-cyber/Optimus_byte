@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace VistaPrincipal.Models
+namespace Optimus_byte.Models
 {
     [Table("OrdenRepuestos")]
     public class OrdenRepuesto

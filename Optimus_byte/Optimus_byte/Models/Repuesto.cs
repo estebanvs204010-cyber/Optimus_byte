@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace VistaPrincipal.Models
+namespace Optimus_byte.Models
 {
     [Table("Repuestos")]
     public class Repuesto
