@@ -1,0 +1,381 @@
+@model Optimus_byte.Models.ViewModels.MecanicoDashboardViewModel
+@{
+    ViewData["Title"] = "Panel de Mecanico";
+    Layout = null;
+    var inicial = Model.NombreMecanico.Length > 0 ? Model.NombreMecanico[0].ToString().ToUpper() : "M";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OPTIMUS-BYTE - Panel de Mecanico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/usuarios.css" rel="stylesheet" />
+    <link href="~/css/mecanico.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="admin-topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">OPTIMUS-BYTE</span>
+            <span class="badge-admin">Mecanico</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="admin-name">
+                <i class="bi bi-person-circle me-1"></i>@Model.NombreMecanico
+            </span>
+            <a href="/Login/Logout" class="btn-salir">
+                <i class="bi bi-box-arrow-right me-1"></i>Salir
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-sidebar">
+        <nav class="sidebar-nav">
+            <a href="#agenda" class="nav-link active"><i class="bi bi-calendar2-week"></i><span>Agenda</span></a>
+            <a href="#historial" class="nav-link"><i class="bi bi-clock-history"></i><span>Historial</span></a>
+            <a href="#checklists" class="nav-link"><i class="bi bi-ui-checks"></i><span>Checklists</span></a>
+            <a href="#evidencias" class="nav-link"><i class="bi bi-camera-fill"></i><span>Evidencias</span></a>
+            <a href="#mensajes" class="nav-link"><i class="bi bi-chat-dots-fill"></i><span>Chat</span></a>
+            <a href="#manuales" class="nav-link"><i class="bi bi-journal-text"></i><span>Manuales</span></a>
+            <a href="#herramientas" class="nav-link"><i class="bi bi-tools"></i><span>Herramientas</span></a>
+        </nav>
+    </div>
+
+    <main class="admin-content mecanico-content">
+        <section class="mechanic-hero">
+            <div class="mechanic-avatar">@inicial</div>
+            <div>
+                <h1 class="section-title">Panel de Mecanico</h1>
+                <p class="section-sub">Ordenes asignadas, tiempos, evidencias y soporte tecnico del taller</p>
+            </div>
+        </section>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alerta alerta-ok">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alerta alerta-err">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            </div>
+        }
+
+        <section class="stats-row mechanic-stats">
+            <div class="stat-card">
+                <div class="stat-icon bg-blue-soft"><i class="bi bi-calendar-check text-primary"></i></div>
+                <div>
+                    <div class="stat-num">@Model.CitasAsignadas.Count</div>
+                    <div class="stat-label">Citas asignadas</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-green-soft"><i class="bi bi-check2-square text-success"></i></div>
+                <div>
+                    <div class="stat-num">@Model.Checklists.Count</div>
+                    <div class="stat-label">Checklists activos</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-cyan-soft"><i class="bi bi-camera text-info"></i></div>
+                <div>
+                    <div class="stat-num">@Model.Evidencias.Count</div>
+                    <div class="stat-label">Evidencias</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon bg-red-soft"><i class="bi bi-exclamation-triangle text-danger"></i></div>
+                <div>
+                    <div class="stat-num">@Model.Herramientas.Count(h => h.Estado.Contains("revision", StringComparison.OrdinalIgnoreCase))</div>
+                    <div class="stat-label">Herramientas por revisar</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="agenda" class="panel-section">
+            <div class="section-mini-header">
+                <div>
+                    <h2>Agenda de citas asignadas</h2>
+                    <p>Vista rapida por hora, cliente, vehiculo y servicio programado.</p>
+                </div>
+                <button type="button" class="btn-nuevo" onclick="alternarAgenda()">
+                    <i class="bi bi-layout-three-columns me-2"></i><span>Cambiar vista</span>
+                </button>
+            </div>
+
+            <div class="agenda-grid" id="agendaCards">
+                @foreach (var cita in Model.CitasAsignadas)
+                {
+                    <article class="appointment-card">
+                        <div class="appointment-time">
+                            <span>@cita.FechaHora.ToString("dd MMM")</span>
+                            <strong>@cita.FechaHora.ToString("hh:mm tt")</strong>
+                        </div>
+                        <div class="appointment-body">
+                            <div class="d-flex justify-content-between gap-3">
+                                <h3>OT-@cita.Id</h3>
+                                <span class="estado-badge estado-activo">@cita.Estado</span>
+                            </div>
+                            <p class="vehicle-line">@cita.Vehiculo · @cita.Placa</p>
+                            <p class="client-line"><i class="bi bi-person me-1"></i>@cita.Cliente</p>
+                            <p class="service-line">@cita.Servicio</p>
+                            <div class="estimate-pill">
+                                <i class="bi bi-stopwatch"></i>
+                                Estimado: @cita.TiempoEstimadoMinutos min
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+
+            <div class="tabla-wrapper mechanic-table d-none" id="agendaTabla">
+                <table class="tabla-usuarios">
+                    <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Vehiculo</th>
+                            <th>Servicio</th>
+                            <th>Estimado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cita in Model.CitasAsignadas)
+                        {
+                            <tr>
+                                <td>OT-@cita.Id</td>
+                                <td>@cita.FechaHora.ToString("dd/MM/yyyy hh:mm tt")</td>
+                                <td>@cita.Cliente</td>
+                                <td>@cita.Vehiculo - @cita.Placa</td>
+                                <td>@cita.Servicio</td>
+                                <td>@cita.TiempoEstimadoMinutos min</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="two-column">
+            <div id="historial" class="panel-section">
+                <div class="section-mini-header compact">
+                    <div>
+                        <h2>Historial de servicios</h2>
+                        <p>Contexto tecnico del vehiculo antes de intervenir.</p>
+                    </div>
+                </div>
+                <div class="timeline-list">
+                    @foreach (var servicio in Model.HistorialServicios)
+                    {
+                        <article class="timeline-item">
+                            <span class="timeline-date">@servicio.Fecha.ToString("dd/MM/yyyy")</span>
+                            <h3>@servicio.Vehiculo</h3>
+                            <p>@servicio.Diagnostico</p>
+                            <div class="parts-line">
+                                <i class="bi bi-nut-fill"></i>
+                                @servicio.PartesReemplazadas
+                            </div>
+                            <small>Tecnico anterior: @servicio.Tecnico</small>
+                        </article>
+                    }
+                </div>
+            </div>
+
+            <div id="checklists" class="panel-section">
+                <div class="section-mini-header compact">
+                    <div>
+                        <h2>Checklists digitales</h2>
+                        <p>Marca pasos de inspeccion y mantenimiento.</p>
+                    </div>
+                </div>
+                @foreach (var checklist in Model.Checklists)
+                {
+                    <article class="checklist-box">
+                        <div class="checklist-title">
+                            <strong>@checklist.Nombre</strong>
+                            <span>@checklist.Orden</span>
+                        </div>
+                        @foreach (var paso in checklist.Pasos)
+                        {
+                            <label class="check-row">
+                                <input type="checkbox" onchange="actualizarProgreso(this)" />
+                                <span>@paso</span>
+                            </label>
+                        }
+                        <div class="progress slim-progress">
+                            <div class="progress-bar" style="width:0%"></div>
+                        </div>
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="two-column">
+            <div id="evidencias" class="panel-section">
+                <div class="section-mini-header compact">
+                    <div>
+                        <h2>Carga de evidencias</h2>
+                        <p>Fotos y notas del antes y despues de la reparacion.</p>
+                    </div>
+                </div>
+                <form asp-controller="Mecanico" asp-action="CargarEvidencia" method="post" enctype="multipart/form-data" class="mechanic-form">
+                    @Html.AntiForgeryToken()
+                    <div class="form-grid-small">
+                        <select name="orden" class="input-custom select-custom">
+                            @foreach (var cita in Model.CitasAsignadas)
+                            {
+                                <option value="OT-@cita.Id">OT-@cita.Id - @cita.Placa</option>
+                            }
+                        </select>
+                        <select name="tipo" class="input-custom select-custom">
+                            <option>Antes</option>
+                            <option>Durante</option>
+                            <option>Despues</option>
+                        </select>
+                    </div>
+                    <textarea name="nota" class="textarea-custom" rows="3" placeholder="Describe la evidencia o el estado del vehiculo"></textarea>
+                    <input name="archivos" type="file" multiple class="file-custom" accept="image/*" />
+                    <button type="submit" class="btn-guardar">
+                        <i class="bi bi-cloud-arrow-up me-2"></i><span>Subir evidencia</span>
+                    </button>
+                </form>
+
+                <div class="evidence-list">
+                    @foreach (var evidencia in Model.Evidencias)
+                    {
+                        <div class="evidence-item">
+                            <i class="bi bi-image"></i>
+                            <div>
+                                <strong>@evidencia.Orden · @evidencia.Tipo</strong>
+                                <p>@evidencia.Nota</p>
+                                <small>@evidencia.FechaRegistro.ToString("dd/MM/yyyy hh:mm tt")</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div id="mensajes" class="panel-section">
+                <div class="section-mini-header compact">
+                    <div>
+                        <h2>Chat interno</h2>
+                        <p>Comunicate con administracion o recepcion.</p>
+                    </div>
+                </div>
+                <div class="message-list">
+                    @foreach (var mensaje in Model.Mensajes)
+                    {
+                        <article class="message-item">
+                            <div>
+                                <strong>@mensaje.De</strong>
+                                <span class="message-priority">@mensaje.Prioridad</span>
+                            </div>
+                            <p>@mensaje.Mensaje</p>
+                            <small>@mensaje.FechaHora.ToString("hh:mm tt")</small>
+                        </article>
+                    }
+                </div>
+                <form asp-controller="Mecanico" asp-action="EnviarMensaje" method="post" class="mechanic-form mt-3">
+                    @Html.AntiForgeryToken()
+                    <select name="para" class="input-custom select-custom">
+                        <option>Administrador</option>
+                        <option>Recepcion</option>
+                        <option>Inventario</option>
+                    </select>
+                    <textarea name="mensaje" class="textarea-custom" rows="3" placeholder="Escribe una consulta sobre la orden o repuestos"></textarea>
+                    <button type="submit" class="btn-guardar">
+                        <i class="bi bi-send-fill me-2"></i><span>Enviar</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section class="two-column">
+            <div id="manuales" class="panel-section">
+                <div class="section-mini-header compact">
+                    <div>
+                        <h2>Manuales y guias tecnicas</h2>
+                        <p>Accesos rapidos para diagnostico y mantenimiento.</p>
+                    </div>
+                </div>
+                <div class="manual-grid">
+                    @foreach (var manual in Model.Manuales)
+                    {
+                        <a href="@manual.Url" class="manual-card" target="_blank">
+                            <i class="bi bi-file-earmark-text-fill"></i>
+                            <span>@manual.Categoria</span>
+                            <strong>@manual.Titulo</strong>
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <div id="herramientas" class="panel-section">
+                <div class="section-mini-header compact">
+                    <div>
+                        <h2>Gestion de herramientas</h2>
+                        <p>Control de uso y alertas de mantenimiento.</p>
+                    </div>
+                </div>
+                <div class="tool-list">
+                    @foreach (var herramienta in Model.Herramientas)
+                    {
+                        var claseEstado = herramienta.Estado.Contains("revision", StringComparison.OrdinalIgnoreCase) ? "estado-inactivo" : "estado-activo";
+                        <article class="tool-item">
+                            <div>
+                                <strong>@herramienta.Nombre</strong>
+                                <span>@herramienta.Codigo · Ultimo uso: @herramienta.UltimoUso</span>
+                            </div>
+                            <span class="estado-badge @claseEstado">@herramienta.Estado</span>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="panel-section">
+            <div class="section-mini-header compact">
+                <div>
+                    <h2>Tiempo real de reparacion</h2>
+                    <p>Registra la duracion para medir productividad y planificar mejor.</p>
+                </div>
+            </div>
+            <form asp-controller="Mecanico" asp-action="RegistrarTiempo" method="post" class="time-form">
+                @Html.AntiForgeryToken()
+                <select name="ordenId" class="input-custom select-custom">
+                    @foreach (var cita in Model.CitasAsignadas)
+                    {
+                        <option value="@cita.Id">OT-@cita.Id - @cita.Servicio</option>
+                    }
+                </select>
+                <input name="minutos" type="number" min="1" class="input-custom" placeholder="Minutos usados" />
+                <input name="observacion" class="input-custom" placeholder="Observacion del trabajo realizado" />
+                <button type="submit" class="btn-guardar">
+                    <i class="bi bi-stopwatch-fill me-2"></i><span>Registrar tiempo</span>
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function alternarAgenda() {
+            document.getElementById('agendaCards').classList.toggle('d-none');
+            document.getElementById('agendaTabla').classList.toggle('d-none');
+        }
+
+        function actualizarProgreso(checkbox) {
+            const box = checkbox.closest('.checklist-box');
+            const checks = box.querySelectorAll('input[type="checkbox"]');
+            const marcados = box.querySelectorAll('input[type="checkbox"]:checked');
+            const porcentaje = Math.round((marcados.length / checks.length) * 100);
+            box.querySelector('.progress-bar').style.width = porcentaje + '%';
+        }
+    </script>
+</body>
+</html>

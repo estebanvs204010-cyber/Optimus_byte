@@ -23,5 +23,6 @@ namespace Optimus_byte.Models.ViewModels
         // Vacío = no cambiar contraseña
         public string? Contrasena { get; set; }
         public Rol? Rol { get; set; }
+        public string NombreRol { get; set; } = "";
     }
 }
