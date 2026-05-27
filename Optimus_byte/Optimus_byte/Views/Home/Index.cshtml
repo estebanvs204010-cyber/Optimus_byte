@@ -1,9 +1,9 @@
 ﻿@{
-    Layout = null;
-    ViewData["Title"] = "Inicio";
-    var nombre = ViewBag.UsuarioNombre as string;
-    var rol = ViewBag.UsuarioRol as string;
-    bool logueado = !string.IsNullOrEmpty(nombre);
+Layout = null;
+ViewData["Title"] = "Inicio";
+var nombre = ViewBag.UsuarioNombre as string;
+var rol = ViewBag.UsuarioRol as string;
+bool logueado = !string.IsNullOrEmpty(nombre);
 }
 
 <!DOCTYPE html>
@@ -11,339 +11,385 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - VistaPrincipal</title>
+    <title>@ViewData["Title"] - Optimus-Byte</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
 </head>
 
 <body>
 
-    <header class="barra-superior">
-        <button class="boton-menu" onclick="mostrarMenu()">☰</button>
+    <!-- ══ NAVBAR ══ -->
+    <nav class="ob-navbar">
+        <button class="ob-hamburger" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
 
-        <a class="logo-proyecto" asp-controller="Home" asp-action="Index">
-            <img src="~/img/logo-optimus-byte.png" alt="Optimus-Byte" class="logo-img" />
+        <a class="ob-nav-logo" asp-controller="Home" asp-action="Index">
+            <img src="~/img/putin.png" alt="Optimus-Byte" />
         </a>
 
-        <div class="nav-acciones">
+       
+
+        <div class="ob-nav-acciones">
             @if (!logueado)
             {
-                <a class="boton-ingresar" asp-controller="Login" asp-action="Index">
+                <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">
                     Ingresar
                 </a>
-
-                <a class="boton-registro" asp-controller="Registro" asp-action="Index">
+                <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">
                     Registrarse
                 </a>
             }
             else
             {
-                <div class="dropdown">
-                    <button class="boton-usuario dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <div class="ob-dropdown">
+                    <button class="ob-btn-usuario" onclick="toggleMenu(this)">
+                        <i class="fas fa-circle-user"></i>
                         @nombre
+                        <i class="fas fa-chevron-down" style="font-size:0.65rem; opacity:0.6;"></i>
                     </button>
-
-                    <ul class="dropdown-menu dropdown-menu-end menu-usuario">
-                        <li>
-                            <a class="dropdown-item" asp-controller="Perfil" asp-action="Index">
-                                Editar perfil
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item" asp-controller="Facturas" asp-action="Index">
-                                Facturas
-                            </a>
-                        </li>
-
-                        <li><hr class="dropdown-divider" /></li>
-
-                        <li>
-                            <form asp-controller="Home" asp-action="Logout" method="post">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="dropdown-item">
-                                    Cerrar sesión
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
+                    <div class="ob-menu-usuario" id="menuUsuario">
+                        <a asp-controller="Perfil" asp-action="Index">
+                            <i class="fas fa-user-pen" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                            Editar perfil
+                        </a>
+                        <a asp-controller="Facturas" asp-action="Index">
+                            <i class="fas fa-file-invoice" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                            Facturas
+                        </a>
+                        <hr class="ob-menu-divider" />
+                        <form asp-controller="Home" asp-action="Logout" method="post" style="margin:0;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit">
+                                <i class="fas fa-arrow-right-from-bracket" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    </div>
                 </div>
             }
         </div>
-    </header>
+    </nav>
 
-
-    <aside class="barra-lateral" id="barraLateral">
-        <h2>Optimus-Byte</h2>
-
-        <a asp-controller="Home" asp-action="Index">Inicio</a>
-        <a asp-controller="Inventario" asp-action="Index">Inventario</a>
-        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
-        <a asp-controller="Citas" asp-action="Index">Citas</a>
-        <a asp-controller="Home" asp-action="Sobre">Acerca de</a>
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="ob-sidebar" id="obSidebar">
+        <div class="ob-sidebar-title">Optimus-Byte</div>
+        <a asp-controller="Home" asp-action="Index">
+            <i class="fas fa-house"></i> Inicio
+        </a>
+        <a asp-controller="Inventario" asp-action="Index">
+            <i class="fas fa-boxes-stacked"></i> Inventario
+        </a>
+        <a asp-controller="Servicios" asp-action="Index">
+            <i class="fas fa-screwdriver-wrench"></i> Servicios
+        </a>
+        <a asp-controller="Citas" asp-action="Index">
+            <i class="fas fa-calendar-check"></i> Citas
+        </a>
+        <a asp-controller="Home" asp-action="Sobre">
+            <i class="fas fa-circle-info"></i> Acerca de
+        </a>
     </aside>
 
-    <main class="container contenido-principal" id="contenidoPrincipal">
+    <!-- Overlay para cerrar sidebar al hacer clic fuera -->
+    <div class="ob-overlay" id="obOverlay" onclick="closeSidebar()"></div>
 
-        <!-- HERO PRINCIPAL -->
+    <!-- ══ HERO ══ -->
+    <section class="ob-hero">
+        <div class="ob-hero-bg-text">AUTO</div>
 
-        <section class="hero-principal">
+        <div>
+            <div class="ob-hero-tag ob-fade-up">
+                Taller Inteligente — Sistema de Gestión
+            </div>
 
-            <div class="hero-texto animate-fade-up">
+            @if (logueado)
+            {
+                <h1 class="ob-fade-up">
+                    Bienvenido,
+                    <em>@nombre</em>
+                </h1>
+                <p class="ob-fade-up">
+                    Gestiona tu taller mecánico, controla servicios,
+                    citas y repuestos desde una sola plataforma potente y eficiente.
+                </p>
+            }
+            else
+            {
+                <h1 class="ob-fade-up">
+                    Cuidamos tu
+                    <em>vehículo</em>
+                </h1>
+                <p class="ob-fade-up">
+                    Diagnóstico, mantenimiento y reparación para vehículos modernos
+                    con tecnología de punta y atención profesional de primer nivel.
+                </p>
+            }
 
-                <span class="hero-etiqueta">
-                    Taller Inteligente
-                </span>
+            <div class="ob-hero-botones ob-fade-up">
+                <a asp-controller="Citas" asp-action="Index" class="ob-btn-primario">
+                    <i class="fas fa-calendar-plus"></i>
+                    Agendar cita
+                </a>
+                <a asp-controller="Servicios" asp-action="Index" class="ob-btn-secundario">
+                    Ver servicios
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
 
-                @if (logueado)
-                {
-                    <h1>
-                        Bienvenido,
-                        <em>@nombre</em>
-                    </h1>
+        <div class="ob-hero-imagen ob-fade-in">
+            <img src="~/img/imagehome.jpg" alt="Taller mecánico profesional" />
+        </div>
+    </section>
 
-                    <p>
-                        Gestiona tu taller mecánico, controla servicios,
-                        citas y repuestos desde una sola plataforma.
-                    </p>
-                }
-                else
-                {
-                    <h1>
-                        Cuidamos tu vehículo con
-                        <em>tecnología y confianza</em>
-                    </h1>
+    <!-- ══ BARRA DE CONFIANZA ══ -->
+    <div class="ob-trust-bar">
+        <div class="ob-trust-item">
+            <i class="fas fa-shield-halved"></i>
+            <div>
+                <strong>Garantía de servicio</strong>
+                <span>Trabajos certificados y garantizados</span>
+            </div>
+        </div>
+        <div class="ob-trust-item">
+            <i class="fas fa-clock"></i>
+            <div>
+                <strong>Atención 24/7</strong>
+                <span>Soporte y gestión permanente</span>
+            </div>
+        </div>
+        <div class="ob-trust-item">
+            <i class="fas fa-medal"></i>
+            <div>
+                <strong>Técnicos certificados</strong>
+                <span>Equipo de alto rendimiento</span>
+            </div>
+        </div>
+        <div class="ob-trust-item">
+            <i class="fas fa-bolt"></i>
+            <div>
+                <strong>Diagnóstico rápido</strong>
+                <span>Resultados en el menor tiempo</span>
+            </div>
+        </div>
+    </div>
 
-                    <p>
-                        Diagnóstico, mantenimiento y reparación
-                        para vehículos modernos con atención profesional.
-                    </p>
-                }
+    <!-- ══ SERVICIOS ══ -->
+    <section class="ob-servicios">
+        <div class="ob-section-header">
+            <div>
+                <span class="ob-section-label">Nuestros servicios</span>
+                <h2 class="ob-section-titulo">Lo que<br>hacemos</h2>
+            </div>
+            <div class="ob-section-numero">01</div>
+        </div>
 
-                <div class="hero-botones">
-
-                    <a asp-controller="Citas"
-                       asp-action="Index"
-                       class="boton-primario">
-                        Agendar cita
-                    </a>
-
-                    <a asp-controller="Servicios"
-                       asp-action="Index"
-                       class="btn-elegante">
-                        Ver servicios
-                    </a>
-
+        <div class="ob-servicios-grid">
+            <a class="ob-servicio-card" asp-controller="Servicios" asp-action="Index">
+                <div class="ob-servicio-numero">01</div>
+                <div class="ob-servicio-icon">
+                    <i class="fas fa-oil-can"></i>
                 </div>
-
-            </div>
-
-            <div class="hero-imagen animate-fade-in">
-
-                <img src="~/img/imagehome.jpg"
-                     alt="Vehículo">
-
-            </div>
-
-        </section>
-
-
-        <!-- SERVICIOS -->
-
-        <section class="servicios-home">
-
-            <div class="seccion-modulo">
                 <h3>Mantenimiento</h3>
-
                 <p>
-                    Cambio de aceite, filtros,
-                    alineación y revisión general.
+                    Cambio de aceite, filtros, alineación y revisión general.
+                    Mantenemos tu vehículo en condiciones óptimas.
                 </p>
-
-                <a asp-controller="Servicios"
-                   asp-action="Index">
-                    Ver más
-                </a>
-            </div>
-
-            <div class="seccion-modulo">
-                <h3>Diagnóstico</h3>
-
-                <p>
-                    Escaneo electrónico y detección
-                    de fallas automotrices.
-                </p>
-
-                <a asp-controller="Servicios"
-                   asp-action="Index">
-                    Ver más
-                </a>
-            </div>
-
-            <div class="seccion-modulo">
-                <h3>Reparaciones</h3>
-
-                <p>
-                    Frenos, suspensión, motor
-                    y reparación especializada.
-                </p>
-
-                <a asp-controller="Servicios"
-                   asp-action="Index">
-                    Ver más
-                </a>
-            </div>
-
-        </section>
-
-
-        <!-- ESTADÍSTICAS -->
-
-        <section class="estadisticas">
-
-            <div>
-                <h2>+500</h2>
-                <p>Vehículos atendidos</p>
-            </div>
-
-            <div>
-                <h2>98%</h2>
-                <p>Clientes satisfechos</p>
-            </div>
-
-            <div>
-                <h2>24/7</h2>
-                <p>Soporte y gestión</p>
-            </div>
-
-        </section>
-
-
-        <!-- REPUESTOS -->
-
-        <section class="seccion-repuestos">
-
-            <h2>Repuestos destacados</h2>
-
-            <p>
-                Productos y componentes de alta calidad
-                para tu vehículo.
-            </p>
-
-            <div class="contenedor-repuestos">
-
-                <a class="caja-repuesto"
-                   asp-controller="Inventario"
-                   asp-action="Detalles"
-                   asp-route-id="1">
-
-                    <h3>Aceite de motor</h3>
-
-                    <p>
-                        Lubricante premium para
-                        mantenimiento preventivo.
-                    </p>
-
-                    <span>Ver detalles</span>
-
-                </a>
-
-                <a class="caja-repuesto"
-                   asp-controller="Inventario"
-                   asp-action="Detalles"
-                   asp-route-id="2">
-
-                    <h3>Filtro de aire</h3>
-
-                    <p>
-                        Mantiene limpio el sistema
-                        de admisión del motor.
-                    </p>
-
-                    <span>Ver detalles</span>
-
-                </a>
-
-                <a class="caja-repuesto"
-                   asp-controller="Inventario"
-                   asp-action="Detalles"
-                   asp-route-id="3">
-
-                    <h3>Pastillas de freno</h3>
-
-                    <p>
-                        Seguridad y rendimiento
-                        para frenado preciso.
-                    </p>
-
-                    <span>Ver detalles</span>
-
-                </a>
-
-                <a class="caja-repuesto"
-                   asp-controller="Inventario"
-                   asp-action="Detalles"
-                   asp-route-id="4">
-
-                    <h3>Batería</h3>
-
-                    <p>
-                        Energía confiable para
-                        vehículos modernos.
-                    </p>
-
-                    <span>Ver detalles</span>
-
-                </a>
-
-            </div>
-
-            <a class="boton-catalogo"
-               asp-controller="Inventario"
-               asp-action="Index">
-
-                Ver catálogo
-
+                <span class="ob-servicio-link">
+                    Ver más <i class="fas fa-arrow-right"></i>
+                </span>
             </a>
 
-        </section>
-
-
-        <!-- CTA FINAL -->
-
-        <section class="cta-final">
-
-            <div class="cta-contenido">
-
-                <h2>
-                    Agenda tu cita hoy mismo
-                </h2>
-
+            <a class="ob-servicio-card" asp-controller="Servicios" asp-action="Index">
+                <div class="ob-servicio-numero">02</div>
+                <div class="ob-servicio-icon">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <h3>Diagnóstico</h3>
                 <p>
-                    Nuestro equipo está listo para
-                    ayudarte con el mantenimiento
-                    de tu vehículo.
+                    Escaneo electrónico avanzado y detección de fallas automotrices
+                    con equipos de última generación.
                 </p>
+                <span class="ob-servicio-link">
+                    Ver más <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
 
-                <a asp-controller="Citas"
-                   asp-action="Index"
-                   class="boton-primario">
+            <a class="ob-servicio-card" asp-controller="Servicios" asp-action="Index">
+                <div class="ob-servicio-numero">03</div>
+                <div class="ob-servicio-icon">
+                    <i class="fas fa-wrench"></i>
+                </div>
+                <h3>Reparaciones</h3>
+                <p>
+                    Frenos, suspensión, motor y reparaciones especializadas.
+                    Soluciones completas para cualquier problema.
+                </p>
+                <span class="ob-servicio-link">
+                    Ver más <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+        </div>
+    </section>
 
-                    Solicitar cita
+    <!-- ══ ESTADÍSTICAS ══ -->
+    <div class="ob-stats">
+        <div class="ob-stat-item">
+            <div class="ob-stat-numero">+500</div>
+            <div class="ob-stat-label">Vehículos atendidos</div>
+        </div>
+        <div class="ob-stat-item">
+            <div class="ob-stat-numero">98%</div>
+            <div class="ob-stat-label">Clientes satisfechos</div>
+        </div>
+        <div class="ob-stat-item">
+            <div class="ob-stat-numero">24/7</div>
+            <div class="ob-stat-label">Soporte y gestión</div>
+        </div>
+    </div>
 
-                </a>
-
+    <!-- ══ REPUESTOS ══ -->
+    <section class="ob-repuestos">
+        <div class="ob-section-header">
+            <div>
+                <span class="ob-section-label">Inventario</span>
+                <h2 class="ob-section-titulo">Repuestos<br>destacados</h2>
             </div>
+            <div class="ob-section-numero">02</div>
+        </div>
 
-        </section>
+        <div class="ob-repuestos-grid">
+            <a class="ob-repuesto-card"
+               asp-controller="Inventario" asp-action="Detalles" asp-route-id="1">
+                <i class="fas fa-droplet"></i>
+                <h3>Aceite de motor</h3>
+                <p>Lubricante premium para mantenimiento preventivo de alto rendimiento.</p>
+                <span class="ob-repuesto-link">Ver detalles <i class="fas fa-arrow-right"></i></span>
+            </a>
 
-    </main>
+            <a class="ob-repuesto-card"
+               asp-controller="Inventario" asp-action="Detalles" asp-route-id="2">
+                <i class="fas fa-wind"></i>
+                <h3>Filtro de aire</h3>
+                <p>Mantiene limpio el sistema de admisión del motor con máxima eficiencia.</p>
+                <span class="ob-repuesto-link">Ver detalles <i class="fas fa-arrow-right"></i></span>
+            </a>
 
-    </main>
+            <a class="ob-repuesto-card"
+               asp-controller="Inventario" asp-action="Detalles" asp-route-id="3">
+                <i class="fas fa-circle-stop"></i>
+                <h3>Pastillas de freno</h3>
+                <p>Seguridad y rendimiento garantizados para un frenado preciso y confiable.</p>
+                <span class="ob-repuesto-link">Ver detalles <i class="fas fa-arrow-right"></i></span>
+            </a>
+
+            <a class="ob-repuesto-card"
+               asp-controller="Inventario" asp-action="Detalles" asp-route-id="4">
+                <i class="fas fa-car-battery"></i>
+                <h3>Batería</h3>
+                <p>Energía confiable y duradera para vehículos modernos de toda gama.</p>
+                <span class="ob-repuesto-link">Ver detalles <i class="fas fa-arrow-right"></i></span>
+            </a>
+        </div>
+
+        <div class="ob-catalogo-wrap">
+            <a class="ob-btn-primario" asp-controller="Inventario" asp-action="Index"
+               style="display:inline-flex; margin-top:8px;">
+                <i class="fas fa-boxes-stacked"></i>
+                Ver catálogo completo
+            </a>
+        </div>
+    </section>
+
+    <!-- ══ CTA FINAL ══ -->
+    <section class="ob-cta">
+        <div class="ob-cta-contenido">
+            <span class="ob-section-label" style="margin-bottom:20px; display:block;">Acción</span>
+            <h2>Agenda tu cita<br><em>hoy mismo</em></h2>
+            <p>
+                Nuestro equipo de expertos está listo para atenderte.
+                Reserva en minutos y lleva tu vehículo al siguiente nivel.
+            </p>
+            <a asp-controller="Citas" asp-action="Index" class="ob-btn-primario">
+                <i class="fas fa-calendar-check"></i>
+                Solicitar cita ahora
+            </a>
+        </div>
+    </section>
+
+    <!-- ══ FOOTER ══ -->
+    <footer class="ob-footer">
+        <div class="ob-footer-copy">
+            &copy; 2026 — Optimus-Byte · Taller Inteligente
+        </div>
+        <div class="ob-footer-links">
+            <a asp-controller="Servicios" asp-action="Index">Servicios</a>
+            <a asp-controller="Inventario" asp-action="Index">Inventario</a>
+            <a asp-controller="Citas" asp-action="Index">Citas</a>
+            <a asp-controller="Home" asp-action="Sobre">Nosotros</a>
+        </div>
+    </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        /* ── SIDEBAR ── */
+        function toggleSidebar() {
+            const sidebar = document.getElementById('obSidebar');
+            const overlay = document.getElementById('obOverlay');
+            const isOpen = sidebar.classList.contains('activa');
+            if (isOpen) {
+                closeSidebar();
+            } else {
+                sidebar.classList.add('activa');
+                overlay.classList.add('activa');
+            }
+        }
 
+        function closeSidebar() {
+            document.getElementById('obSidebar').classList.remove('activa');
+            document.getElementById('obOverlay').classList.remove('activa');
+        }
+
+        // Cerrar sidebar al hacer clic en cualquier link dentro de él
+        document.querySelectorAll('.ob-sidebar a').forEach(function(link) {
+            link.addEventListener('click', closeSidebar);
+        });
+
+        /* ── DROPDOWN USUARIO ── */
+        function toggleMenu(btn) {
+            event.stopPropagation();
+            const menu = document.getElementById('menuUsuario');
+            if (menu) menu.classList.toggle('abierto');
+        }
+
+        document.addEventListener('click', function () {
+            const menu = document.getElementById('menuUsuario');
+            if (menu) menu.classList.remove('abierto');
+        });
+
+        /* ── SCROLL REVEAL ── */
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.ob-servicio-card, .ob-repuesto-card, .ob-stat-item, .ob-trust-item').forEach(function(el) {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            observer.observe(el);
+        });
+    </script>
 </body>
 </html>
