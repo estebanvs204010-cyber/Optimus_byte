@@ -1,4 +1,4 @@
-﻿@model VistaPrincipal.Models.ViewModels.PagoFormViewModel
+﻿@model Optimus_byte.Models.ViewModels.PagoFormViewModel
 @{
     ViewData["Title"] = "Nuevo Pago";
     Layout = null;
@@ -31,21 +31,11 @@
 
     <div class="admin-sidebar">
         <nav class="sidebar-nav">
-            <a href="/Usuarios" class="nav-link">
-                <i class="bi bi-people-fill"></i><span>Usuarios</span>
-            </a>
-            <a href="/Admin/Ordenes" class="nav-link">
-                <i class="bi bi-clipboard2-check"></i><span>Órdenes</span>
-            </a>
-            <a href="/Admin/Inventario" class="nav-link">
-                <i class="bi bi-box-seam"></i><span>Inventario</span>
-            </a>
-            <a href="/Pagos" class="nav-link active">
-                <i class="bi bi-cash-coin"></i><span>Pagos</span>
-            </a>
-            <a href="/Admin/Dashboard" class="nav-link">
-                <i class="bi bi-speedometer2"></i><span>Dashboard</span>
-            </a>
+            <a href="/Usuarios" class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
+            <a href="/Admin/Ordenes" class="nav-link"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
+            <a href="/Admin/Inventario" class="nav-link"><i class="bi bi-box-seam"></i><span>Inventario</span></a>
+            <a href="/Pagos" class="nav-link active"><i class="bi bi-cash-coin"></i><span>Pagos</span></a>
+            <a href="/Admin/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
         </nav>
     </div>
 
@@ -84,6 +74,12 @@
                         <label asp-for="Metodo"></label>
                         <select asp-for="Metodo" asp-items="ViewBag.MetodosPago" class="form-control"></select>
                         <span asp-validation-for="Metodo" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="EstadoPago"></label>
+                        <select asp-for="EstadoPago" asp-items="ViewBag.EstadosPago" class="form-control"></select>
+                        <span asp-validation-for="EstadoPago" class="text-danger"></span>
                     </div>
 
                     <div class="form-group">

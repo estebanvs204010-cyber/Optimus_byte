@@ -1,4 +1,5 @@
-﻿@model VistaPrincipal.Models.ViewModels.PagosIndexViewModel
+﻿@model Optimus_byte.Models.ViewModels.PagosIndexViewModel
+
 @{
     ViewData["Title"] = "Gestión de Pagos";
     Layout = null;
@@ -66,6 +67,7 @@
                 <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
             </div>
         }
+
         @if (TempData["Error"] != null)
         {
             <div class="alerta alerta-err">
@@ -74,7 +76,7 @@
         }
 
         <div class="stats-row">
-            <div class="stat-card">
+            <div class="stat-card" onclick="verTodosLosPagos()" style="cursor:pointer">
                 <div class="stat-icon" style="background:#1e3a5f">
                     <i class="bi bi-receipt-cutoff text-info"></i>
                 </div>
@@ -83,6 +85,7 @@
                     <div class="stat-label">Pagos registrados</div>
                 </div>
             </div>
+
             <div class="stat-card">
                 <div class="stat-icon" style="background:#1a3a2a">
                     <i class="bi bi-cash-coin text-success"></i>
@@ -92,7 +95,8 @@
                     <div class="stat-label">Total recaudado</div>
                 </div>
             </div>
-            <div class="stat-card">
+
+            <div class="stat-card" onclick="verPendientes()" style="cursor:pointer">
                 <div class="stat-icon" style="background:#2a2a1a">
                     <i class="bi bi-hourglass-split text-warning"></i>
                 </div>
@@ -101,12 +105,13 @@
                     <div class="stat-label">Pendientes</div>
                 </div>
             </div>
-            <div class="stat-card">
+
+            <div class="stat-card" onclick="verFacturasPagadas()" style="cursor:pointer">
                 <div class="stat-icon" style="background:#1a3a2a">
                     <i class="bi bi-check2-circle text-success"></i>
                 </div>
                 <div>
-                    <div class="stat-num">@Model.FacturasPagadas</div>
+                    <div class="stat-num">@Model.Pagos.Count(p => p.EstadoPago == "Pagado")</div>
                     <div class="stat-label">Facturas pagadas</div>
                 </div>
             </div>
@@ -119,15 +124,16 @@
                        placeholder="Buscar por factura, orden, método o referencia..."
                        onkeyup="filtrarTabla()" />
             </div>
+
             <select id="filtroMetodo" class="filtro-select" onchange="filtrarTabla()">
                 <option value="">Todos los métodos</option>
-                <option value="Efectivo">Efectivo</option>
                 <option value="Transferencia">Transferencia</option>
                 <option value="Tarjeta debito">Tarjeta débito</option>
                 <option value="Tarjeta credito">Tarjeta crédito</option>
                 <option value="PSE">PSE</option>
                 <option value="Nequi">Nequi</option>
             </select>
+
             <select id="filtroEstado" class="filtro-select" onchange="filtrarTabla()">
                 <option value="">Todos los estados</option>
                 <option value="Pendiente">Pendiente</option>
@@ -180,6 +186,7 @@
                                     ? "estado-activo"
                                     : pago.EstadoPago == "Anulado" ? "estado-inactivo" : "estado-pendiente";
                                 }
+
                                 <span class="estado-badge @estadoClase">
                                     <i class="bi bi-circle-fill me-1" style="font-size:.45rem"></i>@pago.EstadoPago
                                 </span>
@@ -189,6 +196,7 @@
                                    class="btn-accion btn-editar" title="Editar pago">
                                     <i class="bi bi-pencil-fill"></i>
                                 </a>
+
                                 <form asp-controller="Pagos" asp-action="Eliminar" asp-route-id="@pago.IdPago"
                                       method="post" class="d-inline"
                                       onsubmit="return confirm('¿Eliminar el pago #@pago.IdPago?')">
@@ -229,6 +237,40 @@
                 const okEstado = !estado || fila.dataset.estado === estado;
 
                 fila.style.display = (okBuscar && okMetodo && okEstado) ? '' : 'none';
+            });
+        }
+
+        function verFacturasPagadas() {
+            document.getElementById('buscarInput').value = '';
+            document.getElementById('filtroMetodo').value = '';
+            document.getElementById('filtroEstado').value = 'Pagado';
+
+            filtrarTabla();
+            irATablaPagos();
+        }
+
+        function verPendientes() {
+            document.getElementById('buscarInput').value = '';
+            document.getElementById('filtroMetodo').value = '';
+            document.getElementById('filtroEstado').value = 'Pendiente';
+
+            filtrarTabla();
+            irATablaPagos();
+        }
+
+        function verTodosLosPagos() {
+            document.getElementById('buscarInput').value = '';
+            document.getElementById('filtroMetodo').value = '';
+            document.getElementById('filtroEstado').value = '';
+
+            filtrarTabla();
+            irATablaPagos();
+        }
+
+        function irATablaPagos() {
+            document.getElementById('tablaPagos').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
             });
         }
     </script>
