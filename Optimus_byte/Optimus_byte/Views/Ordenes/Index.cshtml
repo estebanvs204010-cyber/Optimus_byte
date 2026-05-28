@@ -1,0 +1,472 @@
+﻿@{
+    ViewData["Title"] = "Órdenes de Trabajo";
+    Layout = null;
+    var ordenes = ViewBag.Ordenes as List<dynamic> ?? new List<dynamic>();
+    var mecanicos = ViewBag.Mecanicos as List<dynamic> ?? new List<dynamic>();
+    var vehiculos = ViewBag.Vehiculos as List<dynamic> ?? new List<dynamic>();
+
+    int total = ordenes.Count;
+    int pendientes = ordenes.Count(o => (string)o.Estado == "Pendiente");
+    int enProceso = ordenes.Count(o => (string)o.Estado == "En proceso");
+    int listos = ordenes.Count(o => (string)o.Estado == "Listo para entrega");
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Órdenes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/usuarios.css" rel="stylesheet" />
+    <style>
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #fff; border-radius: 8px; padding: 28px;
+            max-width: 560px; width: 95%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-box h5 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 18px; }
+        .mlabel {
+            font-size: 0.71rem; letter-spacing: .08em; text-transform: uppercase;
+            color: #64748b; font-weight: 600; margin-bottom: 4px; display: block;
+        }
+        .minput {
+            width: 100%; padding: 8px 12px; font-size: .87rem;
+            border: 1px solid #cbd5e1; border-radius: 4px; outline: none;
+            box-sizing: border-box; margin-bottom: 12px;
+        }
+        .minput:focus { border-color: #2563eb; }
+        .mfooter { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+        .btn-mcancel {
+            font-size: .82rem; padding: 8px 20px;
+            border: 1px solid #cbd5e1; border-radius: 4px;
+            background: transparent; color: #64748b; cursor: pointer;
+        }
+        .btn-msave {
+            font-size: .82rem; padding: 8px 20px; border: none;
+            border-radius: 4px; background: #2563eb; color: #fff;
+            cursor: pointer; font-weight: 600;
+        }
+        .btn-msave:hover { opacity: .88; }
+        .estado-badge {
+            font-size: .68rem; font-weight: 600; padding: 3px 10px;
+            border-radius: 20px; white-space: nowrap;
+        }
+        .e-pendiente   { background:#fef9c3; color:#854d0e; border:1px solid #fde68a; }
+        .e-proceso     { background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .e-repuesto    { background:#fce7f3; color:#9d174d; border:1px solid #fbcfe8; }
+        .e-listo       { background:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+        .e-entregado   { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
+        .e-cancelado   { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+        .btn-accion-sm {
+            font-size:.75rem; padding:4px 9px; border-radius:4px;
+            border:1px solid #cbd5e1; background:transparent;
+            color:#475569; cursor:pointer; white-space:nowrap;
+        }
+        .btn-accion-sm:hover { background:#f1f5f9; }
+        .btn-accion-blue { border-color:#bfdbfe; color:#1d4ed8; background:rgba(37,99,235,.06); }
+        .btn-accion-blue:hover { background:rgba(37,99,235,.12); }
+        .detalle-bloque {
+            background:#f8fafc; border:1px solid #e2e8f0;
+            border-radius:6px; padding:14px; margin-bottom:10px; font-size:.83rem;
+        }
+        .detalle-bloque strong { color:#334155; }
+    </style>
+</head>
+<body>
+    <div class="admin-topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-admin">Admin</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+        </div>
+    </div>
+
+    <div class="admin-sidebar">
+        <nav class="sidebar-nav">
+            <a href="/Usuarios" class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
+            <a href="/Ordenes" class="nav-link active"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
+            <a href="/Inventario" class="nav-link"><i class="bi bi-box-seam"></i><span>Inventario</span></a>
+            <a href="/Facturas" class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
+            <a href="/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+            <a href="/VehiculosAdmin" class="nav-link"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
+        </nav>
+    </div>
+
+    <div class="admin-content">
+        <div class="section-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h1 class="section-title">Órdenes de Trabajo</h1>
+                <p class="section-sub">@total orden(es) encontrada(s)</p>
+            </div>
+            <button class="btn-msave" style="padding:9px 20px;border-radius:4px"
+                    onclick="abrirModal('modalCrear')">
+                <i class="bi bi-plus-lg me-1"></i>Nueva orden
+            </button>
+        </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alerta alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alerta alerta-err"><i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]</div>
+        }
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#1e3a5f"><i class="bi bi-clipboard2-check text-info"></i></div>
+                <div><div class="stat-num">@total</div><div class="stat-label">Total</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#3a2e1a"><i class="bi bi-hourglass-split text-warning"></i></div>
+                <div><div class="stat-num">@pendientes</div><div class="stat-label">Pendientes</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#1a2a3a"><i class="bi bi-gear-fill text-primary"></i></div>
+                <div><div class="stat-num">@enProceso</div><div class="stat-label">En proceso</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#1a3a2a"><i class="bi bi-check2-circle text-success"></i></div>
+                <div><div class="stat-num">@listos</div><div class="stat-label">Listos</div></div>
+            </div>
+        </div>
+
+        <div class="filtro-bar">
+            <div class="input-buscar">
+                <i class="bi bi-search"></i>
+                <input type="text" id="buscarInput" placeholder="Buscar por placa o cliente..."
+                       onkeyup="filtrar()" autocomplete="off" readonly
+                       onfocus="this.removeAttribute('readonly')" />
+            </div>
+            <select id="filtroEstado" class="filtro-select" onchange="filtrar()">
+                <option value="">Todos los estados</option>
+                <option>Pendiente</option>
+                <option>En proceso</option>
+                <option>Esperando repuesto</option>
+                <option>Listo para entrega</option>
+                <option>Entregado</option>
+                <option>Cancelado</option>
+            </select>
+        </div>
+
+        <div class="tabla-wrapper">
+            <table class="tabla-usuarios" id="tablaOrdenes">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Placa / Vehículo</th>
+                        <th>Cliente</th>
+                        <th>Mecánico</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th>Fecha apertura</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in ordenes)
+                    {
+                        string estado = (string)o.Estado;
+                        string badgeClass = estado switch
+                        {
+                            "Pendiente" => "e-pendiente",
+                            "En proceso" => "e-proceso",
+                            "Esperando repuesto" => "e-repuesto",
+                            "Listo para entrega" => "e-listo",
+                            "Entregado" => "e-entregado",
+                            "Cancelado" => "e-cancelado",
+                            _ => "e-pendiente"
+                        };
+                        <tr class="fila-orden"
+                            data-placa="@(((string)o.Placa).ToLower())"
+                            data-cliente="@(((string)o.ClienteNombre).ToLower())"
+                            data-estado="@estado">
+                            <td>@o.IdOrden</td>
+                            <td>
+                                <span class="rol-badge badge-admin-rol" style="font-size:.72rem;letter-spacing:.08em">@o.Placa</span>
+                                <span style="font-size:.78rem;color:#64748b;display:block">@o.Marca @o.Modelo</span>
+                            </td>
+                            <td>@o.ClienteNombre</td>
+                            <td style="font-size:.83rem">@o.MecanicoNombre</td>
+                            <td style="font-size:.78rem">@o.TipoServicio</td>
+                            <td><span class="estado-badge @badgeClass">@estado</span></td>
+                            <td style="font-size:.78rem;color:#64748b">@(((DateTime)o.FechaApertura).ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <button class="btn-accion-sm btn-accion-blue"
+                                            onclick="abrirDetalle(@o.IdOrden, '@o.Placa', '@o.Marca @o.Modelo',
+                                                    '@o.ClienteNombre', '@o.MecanicoNombre', '@estado',
+                                                    '@o.TipoServicio', @o.KmIngreso,
+                                                    '@o.DescripcionProblema.Replace("'", "\'").Replace("\n", " ")',
+                                                    '@((string)(o.Diagnostico ?? "")).Replace(" '","\' ").Replace(" \n"," ")',
+                                                    '@((string)(o.Observaciones ?? "")).Replace(" '","\' ").Replace(" \n"," ")',
+                                                    '@(((DateTime)o.FechaApertura).ToString("dd/MM/yyyy HH:mm"))')">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </button>
+                                    <button class="btn-accion-sm"
+                                            onclick="abrirAsignar(@o.IdOrden, @((int?)(o.IdMecanico) ?? 0))">
+                                        <i class="bi bi-person-gear"></i> Asignar
+                                    </button>
+                                    <button class="btn-accion-sm"
+                                            onclick="abrirEstado(@o.IdOrden, '@estado')">
+                                        <i class="bi bi-arrow-repeat"></i> Estado
+                                    </button>
+                                    <button class="btn-accion-sm"
+                                            onclick="abrirDiagnostico(@o.IdOrden,
+                                                    '@((string)(o.Diagnostico ?? "")).Replace(" '","\' ").Replace(" \n"," ")',
+                                                    '@((string)(o.Observaciones ?? "")).Replace(" '","\' ").Replace(" \n"," ")')">
+                                        <i class="bi bi-journal-text"></i> Diagnóstico
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (!ordenes.Any())
+            {
+                <div class="tabla-vacia">
+                    <i class="bi bi-clipboard2-x" style="font-size:3rem;color:#334155"></i>
+                    <p class="mt-2">No se encontraron órdenes.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── Forms ocultos ── *@
+    <form id="formAsignar" action="/Ordenes/AsignarMecanico" method="post" style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="aIdOrden" name="IdOrden" />
+        <input type="hidden" id="aIdMecanico" name="IdMecanico" />
+    </form>
+    <form id="formEstado" action="/Ordenes/CambiarEstado" method="post" style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="eIdOrden" name="IdOrden" />
+        <input type="hidden" id="eEstado" name="NuevoEstado" />
+        <input type="hidden" id="eObsEstado" name="Observacion" />
+    </form>
+    <form id="formDiag" action="/Ordenes/GuardarDiagnostico" method="post" style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="dIdOrden" name="IdOrden" />
+        <input type="hidden" id="dDiagnostico" name="Diagnostico" />
+        <input type="hidden" id="dObservaciones" name="Observaciones" />
+    </form>
+
+    @* ── Modal: Crear orden ── *@
+    <div class="modal-overlay" id="modalCrear">
+        <div class="modal-box">
+            <h5><i class="bi bi-plus-circle me-2"></i>Nueva orden de trabajo</h5>
+            <form action="/Ordenes/Crear" method="post">
+                @Html.AntiForgeryToken()
+                <label class="mlabel">Vehículo *</label>
+                <select name="IdVehiculo" class="minput" required>
+                    <option value="">— Selecciona vehículo —</option>
+                    @foreach (var veh in vehiculos)
+                    {
+                        <option value="@veh.IdVehiculo">@veh.Placa — @veh.Marca @veh.Modelo (@veh.ClienteNombre)</option>
+                    }
+                </select>
+                <label class="mlabel">Tipo de servicio *</label>
+                <select name="TipoServicio" class="minput" required>
+                    <option value="Correctivo">Correctivo</option>
+                    <option value="Preventivo">Preventivo</option>
+                </select>
+                <label class="mlabel">Descripción del problema *</label>
+                <textarea name="DescripcionProblema" class="minput" rows="3" required style="resize:vertical"></textarea>
+                <label class="mlabel">Km al ingreso *</label>
+                <input type="number" name="KmIngreso" class="minput" min="0" required autocomplete="off" />
+                <label class="mlabel">Asignar mecánico (opcional)</label>
+                <select name="IdMecanico" class="minput">
+                    <option value="">— Sin asignar —</option>
+                    @foreach (var m in mecanicos)
+                    {
+                        <option value="@m.IdUsuario">@m.NombreCompleto</option>
+                    }
+                </select>
+                <div class="mfooter">
+                    <button type="button" class="btn-mcancel" onclick="cerrarModal('modalCrear')">Cancelar</button>
+                    <button type="submit" class="btn-msave"><i class="bi bi-check-lg me-1"></i>Crear orden</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ── Modal: Ver detalle ── *@
+    <div class="modal-overlay" id="modalDetalle">
+        <div class="modal-box">
+            <h5><i class="bi bi-clipboard2-check me-2"></i>Detalle de la orden</h5>
+            <div class="detalle-bloque">
+                <div class="row g-2">
+                    <div class="col-6"><strong>Placa:</strong> <span id="dPlaca"></span></div>
+                    <div class="col-6"><strong>Vehículo:</strong> <span id="dVehiculo"></span></div>
+                    <div class="col-6"><strong>Cliente:</strong> <span id="dCliente"></span></div>
+                    <div class="col-6"><strong>Mecánico:</strong> <span id="dMecanico"></span></div>
+                    <div class="col-6"><strong>Tipo:</strong> <span id="dTipo"></span></div>
+                    <div class="col-6"><strong>Estado:</strong> <span id="dEstado"></span></div>
+                    <div class="col-6"><strong>Km ingreso:</strong> <span id="dKm"></span></div>
+                    <div class="col-6"><strong>Fecha apertura:</strong> <span id="dFecha"></span></div>
+                </div>
+            </div>
+            <div class="detalle-bloque">
+                <strong>Descripción del problema:</strong>
+                <p id="dDescripcion" style="margin:6px 0 0;color:#475569"></p>
+            </div>
+            <div class="detalle-bloque">
+                <strong>Diagnóstico:</strong>
+                <p id="dDiagnostico" style="margin:6px 0 0;color:#475569"></p>
+            </div>
+            <div class="detalle-bloque">
+                <strong>Observaciones / trabajos realizados:</strong>
+                <p id="dObservaciones" style="margin:6px 0 0;color:#475569"></p>
+            </div>
+            <div class="mfooter">
+                <button class="btn-mcancel" onclick="cerrarModal('modalDetalle')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    @* ── Modal: Asignar mecánico ── *@
+    <div class="modal-overlay" id="modalAsignar">
+        <div class="modal-box" style="max-width:380px">
+            <h5><i class="bi bi-person-gear me-2"></i>Asignar mecánico</h5>
+            <label class="mlabel">Mecánico</label>
+            <select id="selMecanico" class="minput">
+                <option value="">— Sin asignar —</option>
+                @foreach (var m in mecanicos)
+                {
+                    <option value="@m.IdUsuario">@m.NombreCompleto</option>
+                }
+            </select>
+            <div class="mfooter">
+                <button class="btn-mcancel" onclick="cerrarModal('modalAsignar')">Cancelar</button>
+                <button class="btn-msave" onclick="guardarAsignar()"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    @* ── Modal: Cambiar estado ── *@
+    <div class="modal-overlay" id="modalEstado">
+        <div class="modal-box" style="max-width:400px">
+            <h5><i class="bi bi-arrow-repeat me-2"></i>Cambiar estado</h5>
+            <label class="mlabel">Nuevo estado</label>
+            <select id="selEstado" class="minput">
+                <option value="Pendiente">Pendiente</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Esperando repuesto">Esperando repuesto</option>
+                <option value="Listo para entrega">Listo para entrega</option>
+                <option value="Entregado">Entregado</option>
+                <option value="Cancelado">Cancelado</option>
+            </select>
+            <label class="mlabel">Observación (opcional)</label>
+            <textarea id="obsEstado" class="minput" rows="2" style="resize:vertical"
+                      placeholder="Ej: Se reemplazó la correa de distribución..."></textarea>
+            <div class="mfooter">
+                <button class="btn-mcancel" onclick="cerrarModal('modalEstado')">Cancelar</button>
+                <button class="btn-msave" onclick="guardarEstado()"><i class="bi bi-check-lg me-1"></i>Actualizar</button>
+            </div>
+        </div>
+    </div>
+
+    @* ── Modal: Diagnóstico ── *@
+    <div class="modal-overlay" id="modalDiag">
+        <div class="modal-box">
+            <h5><i class="bi bi-journal-text me-2"></i>Diagnóstico y trabajos realizados</h5>
+            <label class="mlabel">Diagnóstico</label>
+            <textarea id="tDiagnostico" class="minput" rows="4" style="resize:vertical"
+                      placeholder="Describe el diagnóstico técnico..."></textarea>
+            <label class="mlabel">Observaciones / trabajos realizados</label>
+            <textarea id="tObservaciones" class="minput" rows="4" style="resize:vertical"
+                      placeholder="Lista los trabajos realizados..."></textarea>
+            <div class="mfooter">
+                <button class="btn-mcancel" onclick="cerrarModal('modalDiag')">Cancelar</button>
+                <button class="btn-msave" onclick="guardarDiag()"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let idOrdenActual = null;
+
+        function abrirModal(id)  { document.getElementById(id).classList.add('show'); }
+        function cerrarModal(id) { document.getElementById(id).classList.remove('show'); idOrdenActual = null; }
+
+        function filtrar() {
+            const b = document.getElementById('buscarInput').value.toLowerCase();
+            const e = document.getElementById('filtroEstado').value;
+            document.querySelectorAll('.fila-orden').forEach(f => {
+                const okB = !b || f.dataset.placa.includes(b) || f.dataset.cliente.includes(b);
+                const okE = !e || f.dataset.estado === e;
+                f.style.display = (okB && okE) ? '' : 'none';
+            });
+        }
+
+        function abrirDetalle(id, placa, vehiculo, cliente, mecanico, estado, tipo, km, desc, diag, obs, fecha) {
+            idOrdenActual = id;
+            document.getElementById('dPlaca').textContent       = placa;
+            document.getElementById('dVehiculo').textContent    = vehiculo;
+            document.getElementById('dCliente').textContent     = cliente;
+            document.getElementById('dMecanico').textContent    = mecanico;
+            document.getElementById('dEstado').textContent      = estado;
+            document.getElementById('dTipo').textContent        = tipo;
+            document.getElementById('dKm').textContent          = km + ' km';
+            document.getElementById('dFecha').textContent       = fecha;
+            document.getElementById('dDescripcion').textContent = desc || '—';
+            document.getElementById('dDiagnostico').textContent = diag || '—';
+            document.getElementById('dObservaciones').textContent = obs || '—';
+            abrirModal('modalDetalle');
+        }
+
+        function abrirAsignar(idOrden, idMecActual) {
+            idOrdenActual = idOrden;
+            document.getElementById('selMecanico').value = idMecActual || '';
+            abrirModal('modalAsignar');
+        }
+
+        function guardarAsignar() {
+            document.getElementById('aIdOrden').value    = idOrdenActual;
+            document.getElementById('aIdMecanico').value = document.getElementById('selMecanico').value;
+            document.getElementById('formAsignar').submit();
+        }
+
+        function abrirEstado(idOrden, estadoActual) {
+            idOrdenActual = idOrden;
+            document.getElementById('selEstado').value = estadoActual;
+            document.getElementById('obsEstado').value = '';
+            abrirModal('modalEstado');
+        }
+
+        function guardarEstado() {
+            document.getElementById('eIdOrden').value   = idOrdenActual;
+            document.getElementById('eEstado').value    = document.getElementById('selEstado').value;
+            document.getElementById('eObsEstado').value = document.getElementById('obsEstado').value;
+            document.getElementById('formEstado').submit();
+        }
+
+        function abrirDiagnostico(idOrden, diag, obs) {
+            idOrdenActual = idOrden;
+            document.getElementById('tDiagnostico').value   = diag;
+            document.getElementById('tObservaciones').value = obs;
+            abrirModal('modalDiag');
+        }
+
+        function guardarDiag() {
+            document.getElementById('dIdOrden').value       = idOrdenActual;
+            document.getElementById('dDiagnostico').value   = document.getElementById('tDiagnostico').value;
+            document.getElementById('dObservaciones').value = document.getElementById('tObservaciones').value;
+            document.getElementById('formDiag').submit();
+        }
+    </script>
+</body>
+</html>

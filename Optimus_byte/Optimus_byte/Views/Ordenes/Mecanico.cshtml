@@ -1,0 +1,454 @@
+﻿@{
+    ViewData["Title"] = "Mis Órdenes";
+    Layout = null;
+    var ordenes = ViewBag.Ordenes as List<dynamic> ?? new List<dynamic>();
+    var nombre = ViewBag.Nombre as string ?? "Mecánico";
+    var inicial = nombre.Length > 0 ? nombre[0].ToString().ToUpper() : "M";
+    int total = ordenes.Count;
+    int enProceso = ordenes.Count(o => (string)o.Estado == "En proceso");
+    int listos = ordenes.Count(o => (string)o.Estado == "Listo para entrega");
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Mis Órdenes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/Portal.css" rel="stylesheet" />
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .modal-overlay.show {
+                display: flex;
+            }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 8px;
+            padding: 28px;
+            max-width: 520px;
+            width: 95%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+            .modal-box h5 {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #1e293b;
+                margin-bottom: 18px;
+            }
+
+        .mlabel {
+            font-size: .71rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .minput {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: .87rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            outline: none;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+
+            .minput:focus {
+                border-color: var(--dorado);
+            }
+
+        .mfooter {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        .btn-mcancel {
+            font-size: .82rem;
+            padding: 8px 20px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .btn-msave {
+            font-size: .82rem;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            background: var(--dorado);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+            .btn-msave:hover {
+                opacity: .88;
+            }
+
+        .estado-badge {
+            font-size: .68rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .e-pendiente {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde68a;
+        }
+
+        .e-proceso {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .e-repuesto {
+            background: #fce7f3;
+            color: #9d174d;
+            border: 1px solid #fbcfe8;
+        }
+
+        .e-listo {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .e-entregado {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .e-cancelado {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .orden-card {
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(37,99,235,.05);
+        }
+
+        .orden-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .placa-badge {
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            background: var(--dorado-suave);
+            color: var(--dorado);
+            border: 1px solid var(--borde);
+            padding: 3px 10px;
+            border-radius: 2px;
+        }
+
+        .btn-accion-sm {
+            font-size: .75rem;
+            padding: 5px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--borde-input);
+            background: transparent;
+            color: var(--texto-claro);
+            cursor: pointer;
+        }
+
+            .btn-accion-sm:hover {
+                background: var(--grafito-med);
+            }
+
+        .detalle-campo {
+            font-size: .83rem;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+            .detalle-campo strong {
+                color: #1e293b;
+            }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-rol">Mecánico</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="user-name"><i class="bi bi-person-circle me-1"></i>@nombre</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="welcome-bar">
+            <div class="avatar">@inicial</div>
+            <div class="welcome-txt">
+                <h2>Mis Órdenes</h2>
+                <p>Vehículos asignados para diagnóstico y reparación.</p>
+            </div>
+        </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alerta-ok" style="background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.2);border-left-color:#dc2626;color:#b91c1c">
+                <i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]
+            </div>
+        }
+
+        <div class="row g-3 mb-4">
+            <div class="col-4">
+                <div style="background:#fff;border:1px solid var(--borde-input);border-radius:6px;padding:16px;text-align:center">
+                    <div style="font-size:1.8rem;font-weight:700;color:var(--dorado)">@total</div>
+                    <div style="font-size:.75rem;color:var(--texto-suave)">Total asignadas</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div style="background:#fff;border:1px solid var(--borde-input);border-radius:6px;padding:16px;text-align:center">
+                    <div style="font-size:1.8rem;font-weight:700;color:#1d4ed8">@enProceso</div>
+                    <div style="font-size:.75rem;color:var(--texto-suave)">En proceso</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div style="background:#fff;border:1px solid var(--borde-input);border-radius:6px;padding:16px;text-align:center">
+                    <div style="font-size:1.8rem;font-weight:700;color:#065f46">@listos</div>
+                    <div style="font-size:.75rem;color:var(--texto-suave)">Listos</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+            <select id="filtroEstado" class="minput" style="max-width:260px;margin-bottom:0"
+                    onchange="filtrar()">
+                <option value="">Todos los estados</option>
+                <option>Pendiente</option>
+                <option>En proceso</option>
+                <option>Esperando repuesto</option>
+                <option>Listo para entrega</option>
+                <option>Entregado</option>
+                <option>Cancelado</option>
+            </select>
+        </div>
+
+        @if (!ordenes.Any())
+        {
+            <div style="text-align:center;padding:60px 20px;color:var(--texto-suave)">
+                <i class="bi bi-clipboard2-x" style="font-size:3rem;color:var(--borde);display:block;margin-bottom:12px"></i>
+                <p>No tienes órdenes asignadas.</p>
+            </div>
+        }
+        else
+        {
+            <div id="listaOrdenes">
+                @foreach (var o in ordenes)
+                {
+                    string estado = (string)o.Estado;
+                    string badgeClass = estado switch
+                    {
+                        "Pendiente" => "e-pendiente",
+                        "En proceso" => "e-proceso",
+                        "Esperando repuesto" => "e-repuesto",
+                        "Listo para entrega" => "e-listo",
+                        "Entregado" => "e-entregado",
+                        "Cancelado" => "e-cancelado",
+                        _ => "e-pendiente"
+                    };
+                    <div class="orden-card fila-orden" data-estado="@estado">
+                        <div class="orden-card-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="placa-badge">@o.Placa</span>
+                                <span style="font-size:.83rem;color:var(--texto-suave)">@o.Marca @o.Modelo</span>
+                                <span class="estado-badge @badgeClass">@estado</span>
+                            </div>
+                            <span style="font-size:.75rem;color:var(--texto-suave)">
+                                <i class="bi bi-calendar3 me-1"></i>@(((DateTime)o.FechaApertura).ToString("dd/MM/yyyy"))
+                            </span>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6 detalle-campo">
+                                <strong>Cliente:</strong> @o.ClienteNombre
+                            </div>
+                            <div class="col-md-3 detalle-campo">
+                                <strong>Tipo:</strong> @o.TipoServicio
+                            </div>
+                            <div class="col-md-3 detalle-campo">
+                                <strong>Km ingreso:</strong> @o.KmIngreso.ToString("N0") km
+                            </div>
+                            <div class="col-12 detalle-campo">
+                                <strong>Problema:</strong> @o.DescripcionProblema
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace((string)o.Diagnostico))
+                            {
+                                <div class="col-12 detalle-campo">
+                                    <strong>Diagnóstico:</strong> @o.Diagnostico
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace((string)o.Observaciones))
+                            {
+                                <div class="col-12 detalle-campo">
+                                    <strong>Trabajos realizados:</strong> @o.Observaciones
+                                </div>
+                            }
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn-accion-sm"
+                                    onclick="abrirEstado(@o.IdOrden, '@estado')">
+                                <i class="bi bi-arrow-repeat me-1"></i>Cambiar estado
+                            </button>
+                            <button class="btn-accion-sm"
+                                    onclick="abrirDiagnostico(@o.IdOrden,
+                                                '@((string)(o.Diagnostico ?? "")).Replace(" '","\' ").Replace(" \n"," ")',
+                                                '@((string)(o.Observaciones ?? "")).Replace(" '","\' ").Replace(" \n"," ")')">
+                                <i class="bi bi-journal-text me-1"></i>Diagnóstico
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* Forms ocultos *@
+    <form id="formEstado" action="/Ordenes/CambiarEstado" method="post" style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="eIdOrden" name="IdOrden" />
+        <input type="hidden" id="eEstado" name="NuevoEstado" />
+        <input type="hidden" id="eObsEstado" name="Observacion" />
+    </form>
+    <form id="formDiag" action="/Ordenes/GuardarDiagnostico" method="post" style="display:none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="dIdOrden" name="IdOrden" />
+        <input type="hidden" id="dDiagnostico" name="Diagnostico" />
+        <input type="hidden" id="dObservaciones" name="Observaciones" />
+    </form>
+
+    @* Modal: Cambiar estado *@
+    <div class="modal-overlay" id="modalEstado">
+        <div class="modal-box" style="max-width:400px">
+            <h5><i class="bi bi-arrow-repeat me-2"></i>Cambiar estado</h5>
+            <label class="mlabel">Nuevo estado</label>
+            <select id="selEstado" class="minput">
+                <option value="Pendiente">Pendiente</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Esperando repuesto">Esperando repuesto</option>
+                <option value="Listo para entrega">Listo para entrega</option>
+                <option value="Entregado">Entregado</option>
+                <option value="Cancelado">Cancelado</option>
+            </select>
+            <label class="mlabel">Observación (opcional)</label>
+            <textarea id="obsEstado" class="minput" rows="3" style="resize:vertical"
+                      placeholder="Ej: Se reemplazó la correa..."></textarea>
+            <div class="mfooter">
+                <button class="btn-mcancel" onclick="cerrarModal('modalEstado')">Cancelar</button>
+                <button class="btn-msave" onclick="guardarEstado()">
+                    <i class="bi bi-check-lg me-1"></i>Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @* Modal: Diagnóstico *@
+    <div class="modal-overlay" id="modalDiag">
+        <div class="modal-box">
+            <h5><i class="bi bi-journal-text me-2"></i>Diagnóstico y trabajos</h5>
+            <label class="mlabel">Diagnóstico técnico</label>
+            <textarea id="tDiagnostico" class="minput" rows="4" style="resize:vertical"
+                      placeholder="Describe el diagnóstico..."></textarea>
+            <label class="mlabel">Trabajos realizados / Observaciones</label>
+            <textarea id="tObservaciones" class="minput" rows="4" style="resize:vertical"
+                      placeholder="Lista los trabajos realizados..."></textarea>
+            <div class="mfooter">
+                <button class="btn-mcancel" onclick="cerrarModal('modalDiag')">Cancelar</button>
+                <button class="btn-msave" onclick="guardarDiag()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let idOrdenActual = null;
+
+        function abrirModal(id)  { document.getElementById(id).classList.add('show'); }
+        function cerrarModal(id) { document.getElementById(id).classList.remove('show'); idOrdenActual = null; }
+
+        function filtrar() {
+            const e = document.getElementById('filtroEstado').value;
+            document.querySelectorAll('.fila-orden').forEach(f => {
+                f.style.display = (!e || f.dataset.estado === e) ? '' : 'none';
+            });
+        }
+
+        function abrirEstado(idOrden, estadoActual) {
+            idOrdenActual = idOrden;
+            document.getElementById('selEstado').value = estadoActual;
+            document.getElementById('obsEstado').value = '';
+            abrirModal('modalEstado');
+        }
+
+        function guardarEstado() {
+            document.getElementById('eIdOrden').value   = idOrdenActual;
+            document.getElementById('eEstado').value    = document.getElementById('selEstado').value;
+            document.getElementById('eObsEstado').value = document.getElementById('obsEstado').value;
+            document.getElementById('formEstado').submit();
+        }
+
+        function abrirDiagnostico(idOrden, diag, obs) {
+            idOrdenActual = idOrden;
+            document.getElementById('tDiagnostico').value   = diag;
+            document.getElementById('tObservaciones').value = obs;
+            abrirModal('modalDiag');
+        }
+
+        function guardarDiag() {
+            document.getElementById('dIdOrden').value       = idOrdenActual;
+            document.getElementById('dDiagnostico').value   = document.getElementById('tDiagnostico').value;
+            document.getElementById('dObservaciones').value = document.getElementById('tObservaciones').value;
+            document.getElementById('formDiag').submit();
+        }
+    </script>
+</body>
+</html>
+
