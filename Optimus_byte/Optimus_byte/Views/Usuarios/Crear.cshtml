@@ -112,7 +112,7 @@
                             <i class="bi bi-shield-check"></i>
                             <select asp-for="IdRol" class="input-custom select-custom" id="selectRol" onchange="actualizarPreview(this)">
                                 <option value="">— Selecciona un rol —</option>
-                                @foreach (var rol in (List<VistaPrincipal.Models.Rol>)ViewBag.Roles)
+                                @foreach (var rol in (List<Optimus_byte.Models.Rol>)ViewBag.Roles)
                                 {
                                     var emoji = rol.NombreRol switch
                                     {

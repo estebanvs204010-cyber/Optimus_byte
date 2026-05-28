@@ -1,17 +1,17 @@
-﻿using BC = BCrypt.Net.BCrypt;
+using BC = BCrypt.Net.BCrypt;
 using Microsoft.AspNetCore.Mvc;
-using VistaPrincipal.Models;
-using VistaPrincipal.Models.ViewModels;
-using VistaPrincipal.Data;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using Optimus_byte.Models;
+using Optimus_byte.Models.ViewModels;
+using Optimus_byte.DATA;
 
-namespace VistaPrincipal.Controllers
+namespace Optimus_byte.Controllers
 {
     public class LoginController : Controller
     {
-        private readonly optimusDBContext _db;
+        private readonly DbHelper _db;
 
-        public LoginController(optimusDBContext db) => _db = db;
+        public LoginController(DbHelper db) => _db = db;
 
         // GET: /Login
         [HttpGet]
@@ -31,113 +31,82 @@ namespace VistaPrincipal.Controllers
             if (!ModelState.IsValid)
                 return View("~/Views/Login/Index.cshtml", model);
 
-            var usuario = _db.Usuarios
-                .Include(u => u.Rol)
-                .FirstOrDefault(u => u.Correo == model.Correo && u.Activo);
+            int    idUsuario    = 0;
+            string nombreCompleto = "";
+            string contrasenaHash = "";
+            string nombreRol    = "";
+            bool   activo       = false;
 
-            if (usuario == null || !BC.Verify(model.Contrasena, usuario.ContrasenaHash))
+            // Buscar usuario con su rol
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT u.id_usuario, u.nombre_completo, u.contrasena_hash, u.activo, r.nombre
+                FROM Usuarios u
+                INNER JOIN Roles r ON u.id_rol = r.id_rol
+                WHERE u.correo = @correo", conn))
             {
-                _db.IntentosFallidos.Add(new IntentoFallido { Correo = model.Correo });
-                _db.SaveChanges();
+                cmd.Parameters.AddWithValue("@correo", model.Correo);
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    idUsuario     = Convert.ToInt32(reader["id_usuario"]);
+                    nombreCompleto = reader["nombre_completo"].ToString()!;
+                    contrasenaHash = reader["contrasena_hash"].ToString()!;
+                    activo        = Convert.ToBoolean(reader["activo"]);
+                    nombreRol     = reader["nombre"].ToString()!;
+                }
+            }
+
+            // Validar credenciales
+            if (idUsuario == 0 || !activo || !BC.Verify(model.Contrasena, contrasenaHash))
+            {
+                // Registrar intento fallido
+                using (var conn = _db.GetConnection())
+                using (var cmd = new SqlCommand(
+                    "INSERT INTO IntentosFallidos (correo, bloqueado) VALUES (@correo, 0)", conn))
+                {
+                    cmd.Parameters.AddWithValue("@correo", model.Correo);
+                    cmd.ExecuteNonQuery();
+                }
 
                 ModelState.AddModelError("", "Correo o contraseña incorrectos.");
                 return View("~/Views/Login/Index.cshtml", model);
             }
 
             // Guardar sesión
-            HttpContext.Session.SetString("UsuarioId", usuario.IdUsuario.ToString());
-            HttpContext.Session.SetString("UsuarioNombre", usuario.NombreCompleto);
-            HttpContext.Session.SetString("UsuarioRol", usuario.Rol!.NombreRol);
+            HttpContext.Session.SetString("UsuarioId",     idUsuario.ToString());
+            HttpContext.Session.SetString("UsuarioNombre", nombreCompleto);
+            HttpContext.Session.SetString("UsuarioRol",    nombreRol);
 
             // Log auditoría
-            _db.LogAuditoria.Add(new LogAuditoria
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand(@"
+                INSERT INTO LogAuditoria (id_usuario, accion, modulo)
+                VALUES (@id, @accion, @modulo)", conn))
             {
-                IdUsuario = usuario.IdUsuario,
-                Accion = "Inicio de sesión exitoso",
-                Modulo = "Autenticación"
-            });
-            _db.SaveChanges();
+                cmd.Parameters.AddWithValue("@id",     idUsuario);
+                cmd.Parameters.AddWithValue("@accion", "Inicio de sesión exitoso");
+                cmd.Parameters.AddWithValue("@modulo", "Autenticación");
+                cmd.ExecuteNonQuery();
+            }
 
-            // ── Redirigir según los 3 roles ──────────────────────
-            return RedirigirPorRol(usuario.Rol.NombreRol);
+            return RedirigirPorRol(nombreRol);
         }
 
         // Helper de redirección
         private IActionResult RedirigirPorRol(string rol) => rol switch
         {
-            "Admin" => RedirectToAction("Index", "Usuarios"),
-            "Mecanico" => RedirectToAction("MisOrdenes", "Mecanico"),
-            "Cliente" => RedirectToAction("Portal", "Cliente"),
-            _ => RedirectToAction("Index", "Home")
+            "Admin"    => RedirectToAction("Index",     "Usuarios"),
+            "Mecanico" => RedirectToAction("MisOrdenes","Mecanico"),
+            "Cliente"  => RedirectToAction("Portal",    "Cliente"),
+            _          => RedirectToAction("Index",     "Home")
         };
 
-        // ── REGISTRO ─────────────────────────────────────────
-        [HttpGet]
-        public IActionResult Registro()
-        {
-            return View("~/Views/Registro/Index.cshtml");
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Registro(Usuario model)
-        {
-            if (_db.Usuarios.Any(u => u.Correo == model.Correo))
-            {
-                ModelState.AddModelError("Correo", "Este correo ya está registrado.");
-                return View("~/Views/Registro/Index.cshtml", model);
-            }
-
-            if (!ModelState.IsValid)
-                return View("~/Views/Registro/Index.cshtml", model);
-
-            var nuevoUsuario = new Usuario
-            {
-                NombreCompleto = model.NombreCompleto,
-                Correo = model.Correo,
-                Telefono = model.Telefono,
-                ContrasenaHash = BC.HashPassword(model.Contrasena),
-                Activo = true,
-                IdRol = 3   // ← rol Cliente (id 3)
-            };
-
-            _db.Usuarios.Add(nuevoUsuario);
-            _db.SaveChanges();
-
-            TempData["RegistroExitoso"] = $"¡Bienvenido {model.NombreCompleto}! Ya puedes iniciar sesión.";
-            return RedirectToAction("Index");
-        }
-
-        // ── LOGOUT ───────────────────────────────────────────
+        // GET: /Login/Logout
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
             return RedirectToAction("Index");
         }
-        public IActionResult Usuarios_Index()
-        {
-            if (HttpContext.Session.GetString("UsuarioRol") != "Admin")
-                return RedirectToAction("Index");
-
-            var usuarios = _db.Usuarios
-                .Include(u => u.Rol)
-                .OrderBy(u => u.IdRol)
-                .ThenBy(u => u.NombreCompleto)
-                .Select(u => new UsuarioEditarViewModel
-                {
-                    IdUsuario = u.IdUsuario,
-                    NombreCompleto = u.NombreCompleto,
-                    Correo = u.Correo,
-                    Telefono = u.Telefono ?? "",
-                    IdRol = u.IdRol,
-                    Activo = u.Activo,
-                    Rol = u.Rol
-                })
-                .ToList();
-
-            ViewBag.Roles = _db.Roles.OrderBy(r => r.RolId).ToList();
-            return RedirectToAction("Index", "Usuarios");
-        }
     }
 }
-

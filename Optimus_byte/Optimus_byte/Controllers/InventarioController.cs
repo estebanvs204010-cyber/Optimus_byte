@@ -1,19 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+// InventarioController.cs ─────────────────────────────────────────
+using Microsoft.AspNetCore.Mvc;
 
-namespace VistaPrincipal.Controllers
+namespace Optimus_byte.Controllers
 {
     public class InventarioController : Controller
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
+
         public IActionResult Detalles(int id)
         {
             ViewBag.Id = id;
             return View();
         }
-
-
     }
 }
