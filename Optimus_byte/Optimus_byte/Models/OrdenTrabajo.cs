@@ -1,5 +1,4 @@
-using Optimus_byte.Models;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Optimus_byte.Models
@@ -54,3 +53,4 @@ namespace Optimus_byte.Models
         public Usuario? Administrador { get; set; }
     }
 }
+

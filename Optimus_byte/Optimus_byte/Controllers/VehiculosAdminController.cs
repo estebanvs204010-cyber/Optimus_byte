@@ -53,7 +53,7 @@ namespace Optimus_byte.Controllers
             }
 
             ViewBag.Vehiculos = vehiculos;
-            return View("~/Views/VehiculosAdmin/Index.cshtml");
+            return View("~/Views/Admin/Vehiculos.cshtml");
         }
 
         // ── Editar vehículo ───────────────────────────────────

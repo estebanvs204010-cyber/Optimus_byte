@@ -32,5 +32,5 @@ public class Usuario
 
     [NotMapped]
     [Required]
-    public string Contrasena { get; set; } = string.Empty;// ← sin = string.Empty
+    public string Contrasena { get; set; } = string.Empty; 
 }
