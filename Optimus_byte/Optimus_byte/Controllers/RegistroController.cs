@@ -10,8 +10,13 @@ namespace Optimus_byte.Controllers
     public class RegistroController : Controller
     {
         private readonly DbHelper _db;
+        private readonly EmailService _email;
 
-        public RegistroController(DbHelper db) => _db = db;
+        public RegistroController(DbHelper db, EmailService email)
+        {
+            _db = db;
+            _email = email;
+        }
 
         // GET: /Registro
         [HttpGet]
@@ -26,7 +31,7 @@ namespace Optimus_byte.Controllers
         // POST: /Registro
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Index(RegistroViewModel model)
+        public async Task<IActionResult> Index(RegistroViewModel model)
         {
             using var conn = _db.GetConnection();
 
@@ -104,6 +109,33 @@ namespace Optimus_byte.Controllers
 
             TempData["RegistroExitoso"] =
                 $"Cuenta creada. Bienvenido {model.NombreCompleto}, ya puedes iniciar sesión.";
+            try
+            {
+                await _email.EnviarCorreoAsync(
+                    model.Correo,
+                    model.NombreCompleto,
+                    "¡Bienvenido a Optimus Byte!",
+                    $@"
+            <div style='font-family:Arial,sans-serif;max-width:600px;
+                        margin:auto;background:#1a1a2e;color:#ffffff;
+                        padding:30px;border-radius:10px;'>
+                <h1 style='color:#f0a500;text-align:center;'>
+                    Taller Optimus Byte
+                </h1>
+                <h2>Hola {model.NombreCompleto},</h2>
+                <p>Tu cuenta fue creada exitosamente.</p>
+                <p><strong>Correo:</strong> {model.Correo}</p>
+                <hr style='border-color:#f0a500;'>
+                <p style='color:#aaaaaa;font-size:12px;'>
+                    Si no solicitaste esta cuenta ignora este mensaje.
+                </p>
+            </div>"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error correo: {ex.Message}");
+            }
             return RedirectToAction("Index", "Login");
         }
     }

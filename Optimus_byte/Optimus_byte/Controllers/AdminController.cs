@@ -10,7 +10,12 @@ namespace Optimus_byte.Controllers
     public class AdminController : Controller
     {
         private readonly DbHelper _db;
-        public AdminController(DbHelper db) => _db = db;
+        private readonly EmailService _email;
+        public AdminController(DbHelper db, EmailService email)
+        {
+            _db = db;
+            _email = email;
+        }
 
         private bool EsAdmin() =>
             HttpContext.Session.GetString("UsuarioRol") == "Admin";
@@ -263,10 +268,10 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Admin/OrdenDetalle.cshtml", vm);
         }
 
-        // POST: Crear orden
+        // POST: Crear orden  ← AQUÍ va el correo
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CrearOrden(int idVehiculo, int? idMecanico,
+        public async Task<IActionResult> CrearOrden(int idVehiculo, int? idMecanico,
             string tipoServicio, string descripcionProblema, int kmIngreso)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -293,14 +298,65 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada");
 
+            // ── Enviar correo al cliente ──────────────────────────────
+            string correoCliente = "";
+            string nombreCliente = "";
+            string placa = "";
+
+            using (var conEmail = _db.GetConnection())
+            {
+                conEmail.Open();
+                var cmdEmail = new SqlCommand(@"
+                    SELECT u.nombre_completo, u.correo, v.placa
+                    FROM OrdenesTrabajo o
+                    JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                    JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                    JOIN Usuarios  u ON c.id_usuario  = u.id_usuario
+                    WHERE o.id_orden = @id", conEmail);
+                cmdEmail.Parameters.AddWithValue("@id", idOrden);
+                using var reader = cmdEmail.ExecuteReader();
+                if (reader.Read())
+                {
+                    nombreCliente = reader["nombre_completo"].ToString()!;
+                    correoCliente = reader["correo"].ToString()!;
+                    placa = reader["placa"].ToString()!;
+                }
+            }
+
+            try
+            {
+                await _email.EnviarCorreoAsync(
+                    correoCliente,
+                    nombreCliente,
+                    "Nueva orden de trabajo — Taller Optimus Byte",
+                    $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                            background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
+                        <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
+                        <h2>Hola {nombreCliente},</h2>
+                        <p>Se ha creado una orden de trabajo para tu vehículo
+                           <strong style='color:#f0a500;'>{placa}</strong>.</p>
+                        <p>Puedes seguir el estado de tu orden desde tu portal.</p>
+                        <hr style='border-color:#f0a500;'>
+                        <p style='color:#aaaaaa;font-size:12px;'>
+                            Taller Optimus Byte — Sistema de gestión automotriz
+                        </p>
+                    </div>"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error correo orden: {ex.Message}");
+            }
+            // ─────────────────────────────────────────────────────────
+
             TempData["Exito"] = $"Orden #{idOrden} creada correctamente.";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
         }
 
-        // POST: Cambiar estado de orden
+        // POST: Cambiar estado de orden  ← AQUÍ también va correo de estado
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CambiarEstado(int idOrden, string nuevoEstado,
+        public async Task<IActionResult> CambiarEstado(int idOrden, string nuevoEstado,
             string? observacion, int? idMecanico)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -325,6 +381,59 @@ namespace Optimus_byte.Controllers
             }
 
             RegistrarEstado(conn, idOrden, idAdmin, nuevoEstado, observacion ?? "");
+
+            // ── Enviar correo al cliente sobre cambio de estado ───────
+            string correoCliente = "";
+            string nombreCliente = "";
+            string placa = "";
+
+            using (var conEmail = _db.GetConnection())
+            {
+                conEmail.Open();
+                var cmdEmail = new SqlCommand(@"
+                    SELECT u.nombre_completo, u.correo, v.placa
+                    FROM OrdenesTrabajo o
+                    JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                    JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                    JOIN Usuarios  u ON c.id_usuario  = u.id_usuario
+                    WHERE o.id_orden = @id", conEmail);
+                cmdEmail.Parameters.AddWithValue("@id", idOrden);
+                using var reader = cmdEmail.ExecuteReader();
+                if (reader.Read())
+                {
+                    nombreCliente = reader["nombre_completo"].ToString()!;
+                    correoCliente = reader["correo"].ToString()!;
+                    placa = reader["placa"].ToString()!;
+                }
+            }
+
+            try
+            {
+                await _email.EnviarCorreoAsync(
+                    correoCliente,
+                    nombreCliente,
+                    $"Estado actualizado: {nuevoEstado} — Taller Optimus Byte",
+                    $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                            background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
+                        <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
+                        <h2>Hola {nombreCliente},</h2>
+                        <p>El estado de tu vehículo
+                           <strong style='color:#f0a500;'>{placa}</strong> cambió a:</p>
+                        <h2 style='color:#f0a500;text-align:center;'>{nuevoEstado}</h2>
+                        {(string.IsNullOrEmpty(observacion) ? "" :
+                            $"<p><strong>Observación:</strong> {observacion}</p>")}
+                        <hr style='border-color:#f0a500;'>
+                        <p style='color:#aaaaaa;font-size:12px;'>
+                            Taller Optimus Byte — Sistema de gestión automotriz
+                        </p>
+                    </div>"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error correo estado: {ex.Message}");
+            }
+            // ─────────────────────────────────────────────────────────
 
             TempData["Exito"] = $"Estado actualizado a: {nuevoEstado}";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
@@ -546,10 +655,10 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Admin/Facturas.cshtml", lista);
         }
 
-        // POST: Crear factura desde orden
+        // POST: Crear factura desde orden  ← AQUÍ también va correo de factura
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CrearFactura(int idOrden, decimal subtotal, decimal iva)
+        public async Task<IActionResult> CrearFactura(int idOrden, decimal subtotal, decimal iva)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
@@ -574,6 +683,79 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@iva", iva);
             cmd.Parameters.AddWithValue("@tot", total);
             cmd.ExecuteNonQuery();
+
+            // ── Enviar correo de factura al cliente ───────────────────
+            string correoCliente = "";
+            string nombreCliente = "";
+            string placa = "";
+
+            using (var conEmail = _db.GetConnection())
+            {
+                conEmail.Open();
+                var cmdEmail = new SqlCommand(@"
+                    SELECT u.nombre_completo, u.correo, v.placa
+                    FROM OrdenesTrabajo o
+                    JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                    JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                    JOIN Usuarios  u ON c.id_usuario  = u.id_usuario
+                    WHERE o.id_orden = @id", conEmail);
+                cmdEmail.Parameters.AddWithValue("@id", idOrden);
+                using var reader = cmdEmail.ExecuteReader();
+                if (reader.Read())
+                {
+                    nombreCliente = reader["nombre_completo"].ToString()!;
+                    correoCliente = reader["correo"].ToString()!;
+                    placa = reader["placa"].ToString()!;
+                }
+            }
+
+            try
+            {
+                await _email.EnviarCorreoAsync(
+                    correoCliente,
+                    nombreCliente,
+                    "Tu factura está lista — Taller Optimus Byte",
+                    $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                            background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
+                        <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
+                        <h2>Hola {nombreCliente},</h2>
+                        <p>Se ha generado tu factura para el vehículo
+                           <strong style='color:#f0a500;'>{placa}</strong>.</p>
+                        <table style='width:100%;border-collapse:collapse;margin-top:20px;'>
+                            <tr style='background:#f0a500;color:#000;'>
+                                <td style='padding:10px;'>Subtotal</td>
+                                <td style='padding:10px;text-align:right;'>
+                                    ${subtotal.ToString("N0")}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style='padding:10px;'>IVA (19%)</td>
+                                <td style='padding:10px;text-align:right;'>
+                                    ${iva.ToString("N0")}
+                                </td>
+                            </tr>
+                            <tr style='background:#f0a500;color:#000;font-weight:bold;'>
+                                <td style='padding:10px;'>TOTAL</td>
+                                <td style='padding:10px;text-align:right;'>
+                                    ${total.ToString("N0")}
+                                </td>
+                            </tr>
+                        </table>
+                        <p style='margin-top:20px;'>
+                            Puedes ver el detalle completo desde tu portal.
+                        </p>
+                        <hr style='border-color:#f0a500;'>
+                        <p style='color:#aaaaaa;font-size:12px;'>
+                            Taller Optimus Byte — Sistema de gestión automotriz
+                        </p>
+                    </div>"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error correo factura: {ex.Message}");
+            }
+            // ─────────────────────────────────────────────────────────
 
             TempData["Exito"] = $"Factura creada por ${total:N0}.";
             return RedirectToAction("Facturas");
