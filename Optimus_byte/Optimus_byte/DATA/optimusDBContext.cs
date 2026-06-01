@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using VistaPrincipal.Models;
 using System.Collections.Generic;
+using Optimus_byte.Models;
 
-namespace VistaPrincipal.Data
+namespace Optimus_byte.Data
 {
     public class optimusDBContext : DbContext
     {
