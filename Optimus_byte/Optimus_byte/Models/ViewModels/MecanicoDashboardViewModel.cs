@@ -22,6 +22,8 @@ namespace Optimus_byte.Models.ViewModels
         public string Servicio { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
         public int TiempoEstimadoMinutos { get; set; }
+        public string Diagnostico { get; set; } = string.Empty;
+        public DateTime? FechaEntregaEstimada { get; set; }
     }
 
     public class ServicioVehiculoViewModel

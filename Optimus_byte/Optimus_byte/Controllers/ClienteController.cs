@@ -5,7 +5,6 @@ using Optimus_byte.Models;
 using BC = BCrypt.Net.BCrypt;
 
 namespace Optimus_byte.Controllers
-
 {
     public class ClienteController : Controller
     {
@@ -18,7 +17,7 @@ namespace Optimus_byte.Controllers
         private int GetIdUsuario() =>
             int.Parse(HttpContext.Session.GetString("UsuarioId") ?? "0");
 
-        // ?? Portal ????????????????????????????????????????????
+        // Portal
         public IActionResult Portal()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -26,7 +25,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/Portal.cshtml");
         }
 
-        // ?? Mis Vehículos ?????????????????????????????????????
+        // Mis Vehículos
         public IActionResult MisVehiculos()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -35,10 +34,8 @@ namespace Optimus_byte.Controllers
             var vehiculos = new List<dynamic>();
             int idCliente = 0;
 
-            // Obtener id_cliente
             using (var conn = _db.GetConnection())
-            using (var cmd = new SqlCommand(
-                "SELECT id_cliente FROM Clientes WHERE id_usuario = @id", conn))
+            using (var cmd = new SqlCommand("SELECT id_cliente FROM Clientes WHERE id_usuario = @id", conn))
             {
                 cmd.Parameters.AddWithValue("@id", idUsuario);
                 var result = cmd.ExecuteScalar();
@@ -79,7 +76,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Vehiculo/MisVehiculos.cshtml");
         }
 
-        // ?? Agregar Vehículo GET ???????????????????????????????
+        // Agregar Vehículo GET
         public IActionResult AgregarVehiculo()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -87,7 +84,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Vehiculo/AgregarVehiculo.cshtml");
         }
 
-        // ?? Agregar Vehículo POST ??????????????????????????????
+        // Agregar Vehículo POST
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult AgregarVehiculo(string Placa, string Marca, string Modelo,
             int Anio, string? Color, string? Vin, int KmActuales)
@@ -98,8 +95,7 @@ namespace Optimus_byte.Controllers
             int idCliente = 0;
 
             using (var conn = _db.GetConnection())
-            using (var cmd = new SqlCommand(
-                "SELECT id_cliente FROM Clientes WHERE id_usuario = @id", conn))
+            using (var cmd = new SqlCommand("SELECT id_cliente FROM Clientes WHERE id_usuario = @id", conn))
             {
                 cmd.Parameters.AddWithValue("@id", idUsuario);
                 var result = cmd.ExecuteScalar();
@@ -112,11 +108,9 @@ namespace Optimus_byte.Controllers
                 return RedirectToAction("MisVehiculos");
             }
 
-            // Verificar placa duplicada
             bool placaExiste = false;
             using (var conn = _db.GetConnection())
-            using (var cmd = new SqlCommand(
-                "SELECT COUNT(1) FROM Vehiculos WHERE placa = @placa", conn))
+            using (var cmd = new SqlCommand("SELECT COUNT(1) FROM Vehiculos WHERE placa = @placa", conn))
             {
                 cmd.Parameters.AddWithValue("@placa", Placa.ToUpper());
                 placaExiste = (int)cmd.ExecuteScalar()! > 0;
@@ -144,6 +138,79 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@color", (object?)Color ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@vin", (object?)Vin ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@km", KmActuales);
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
                 cmd.ExecuteNonQuery();
             }
 
@@ -152,7 +219,7 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Editar Vehículo GET ???????????????????????????????
+        // Editar Vehículo GET
         public IActionResult EditarVehiculo(int id)
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -193,7 +260,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Vehiculo/EditarVehiculo.cshtml");
         }
 
-        // ?? Editar Vehículo POST ??????????????????????????????
+        // Editar Vehículo POST
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult EditarVehiculo(int IdVehiculo, string Placa, string Marca,
             string Modelo, int Anio, string? Color, string? Vin, int KmActuales)
@@ -202,7 +269,6 @@ namespace Optimus_byte.Controllers
 
             var idUsuario = GetIdUsuario();
 
-            // Verificar placa duplicada excluyendo este vehículo
             bool placaExiste = false;
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(
@@ -244,7 +310,7 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Desactivar Vehículo ???????????????????????????????
+        // Desactivar Vehículo
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult DesactivarVehiculo(int id)
         {
@@ -270,7 +336,7 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Eliminar Vehículo ?????????????????????????????????
+        // Eliminar Vehículo
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult EliminarVehiculo(int id)
         {
@@ -296,7 +362,7 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisVehiculos");
         }
 
-        // ?? Mis Órdenes ???????????????????????????????????????
+        // ─── Mis Órdenes (con fecha_entrega_estimada) ─────────────────────────────
         public IActionResult MisOrdenes()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -306,9 +372,11 @@ namespace Optimus_byte.Controllers
 
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(@"
-                SELECT o.id_orden, v.placa, o.tipo_servicio, o.descripcion_problema,
+                SELECT o.id_orden, v.placa, v.marca, v.modelo,
+                       o.tipo_servicio, o.descripcion_problema,
                        o.diagnostico, o.observaciones, o.estado,
-                       o.fecha_apertura, o.fecha_cierre
+                       o.fecha_apertura, o.fecha_cierre,
+                       o.fecha_entrega_estimada
                 FROM OrdenesTrabajo o
                 INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
                 INNER JOIN Clientes c  ON v.id_cliente  = c.id_cliente
@@ -323,6 +391,8 @@ namespace Optimus_byte.Controllers
                     {
                         IdOrden = Convert.ToInt32(reader["id_orden"]),
                         Placa = reader["placa"].ToString()!,
+                        Marca = reader["marca"].ToString()!,
+                        Modelo = reader["modelo"].ToString()!,
                         TipoServicio = reader["tipo_servicio"].ToString()!,
                         DescripcionProblema = reader["descripcion_problema"].ToString()!,
                         Diagnostico = reader["diagnostico"]?.ToString() ?? "",
@@ -330,8 +400,11 @@ namespace Optimus_byte.Controllers
                         Estado = reader["estado"].ToString()!,
                         FechaApertura = Convert.ToDateTime(reader["fecha_apertura"]),
                         FechaCierre = reader["fecha_cierre"] == DBNull.Value
-                                              ? (DateTime?)null
-                                              : Convert.ToDateTime(reader["fecha_cierre"])
+                                                ? (DateTime?)null
+                                                : Convert.ToDateTime(reader["fecha_cierre"]),
+                        FechaEntregaEstimada = reader["fecha_entrega_estimada"] == DBNull.Value
+                                                ? (DateTime?)null
+                                                : Convert.ToDateTime(reader["fecha_entrega_estimada"])
                     });
                 }
             }
@@ -341,7 +414,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/MisOrdenes.cshtml");
         }
 
-        // ?? Helper auditoría ??????????????????????????????????
+        // Helper auditoría
         private void RegistrarAuditoria(string accion)
         {
             using var conn = _db.GetConnection();
@@ -353,7 +426,8 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@modulo", "Vehículos");
             cmd.ExecuteNonQuery();
         }
-        // ── Verificar contraseña via AJAX ─────────────────────
+
+        // Verificar contraseña via AJAX
         [HttpPost]
         public IActionResult VerificarContrasena([FromBody] VerificarContrasenaRequest request)
         {
@@ -375,6 +449,7 @@ namespace Optimus_byte.Controllers
         }
     }
 }
+
 public class VerificarContrasenaRequest
 {
     public string Contrasena { get; set; } = "";

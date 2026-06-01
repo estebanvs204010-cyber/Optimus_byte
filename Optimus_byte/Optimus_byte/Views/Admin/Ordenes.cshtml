@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Órdenes de Trabajo";
     Layout = null;
-    string[] estados = { "Pendiente","En proceso","Esperando repuesto","Listo para entrega","Entregado","Cancelado" };
+    string[] estados = { "Pendiente", "En proceso", "Esperando repuesto", "Listo para entrega", "Entregado", "Cancelado" };
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -13,13 +13,50 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
     <link href="~/css/usuarios.css" rel="stylesheet" />
     <style>
-        .badge-estado { display: inline-block; padding: 3px 9px; border-radius: 2px; font-size: .68rem; letter-spacing: .06em; white-space: nowrap; }
-        .estado-Pendiente           { background: rgba(234,179,8,.1);  border: 1px solid rgba(234,179,8,.3);  color: #a16207; }
-        .estado-En\ proceso         { background: rgba(37,99,235,.08); border: 1px solid rgba(37,99,235,.25); color: var(--dorado); }
-        .estado-Esperando\ repuesto { background: rgba(249,115,22,.08);border: 1px solid rgba(249,115,22,.2); color: #c2410c; }
-        .estado-Listo\ para\ entrega{ background: rgba(22,163,74,.08); border: 1px solid rgba(22,163,74,.2);  color: #15803d; }
-        .estado-Entregado           { background: rgba(100,116,139,.08);border: 1px solid rgba(100,116,139,.2);color: #64748b; }
-        .estado-Cancelado           { background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.2);  color: #b91c1c; }
+        .badge-estado {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 2px;
+            font-size: .68rem;
+            letter-spacing: .06em;
+            white-space: nowrap;
+        }
+
+        .estado-Pendiente {
+            background: rgba(234,179,8,.1);
+            border: 1px solid rgba(234,179,8,.3);
+            color: #a16207;
+        }
+
+        .estado-En\ proceso {
+            background: rgba(37,99,235,.08);
+            border: 1px solid rgba(37,99,235,.25);
+            color: var(--dorado);
+        }
+
+        .estado-Esperando\ repuesto {
+            background: rgba(249,115,22,.08);
+            border: 1px solid rgba(249,115,22,.2);
+            color: #c2410c;
+        }
+
+        .estado-Listo\ para\ entrega {
+            background: rgba(22,163,74,.08);
+            border: 1px solid rgba(22,163,74,.2);
+            color: #15803d;
+        }
+
+        .estado-Entregado {
+            background: rgba(100,116,139,.08);
+            border: 1px solid rgba(100,116,139,.2);
+            color: #64748b;
+        }
+
+        .estado-Cancelado {
+            background: rgba(220,38,38,.08);
+            border: 1px solid rgba(220,38,38,.2);
+            color: #b91c1c;
+        }
     </style>
 </head>
 <body>
@@ -37,12 +74,12 @@
 
     <div class="admin-sidebar">
         <nav class="sidebar-nav">
-            <a href="/Usuarios"         class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
-            <a href="/Admin/Ordenes"    class="nav-link active"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
+            <a href="/Usuarios" class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
+            <a href="/Admin/Ordenes" class="nav-link active"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
             <a href="/Admin/Inventario" class="nav-link"><i class="bi bi-box-seam"></i><span>Inventario</span></a>
-            <a href="/Admin/Facturas"   class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
-            <a href="/Admin/Dashboard"  class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-            <a href="/VehiculosAdmin/Index" class="nav-link active"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
+            <a href="/Admin/Facturas" class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
+            <a href="/Admin/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+            <a href="/VehiculosAdmin/Index" class="nav-link"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
         </nav>
     </div>
 
@@ -72,7 +109,8 @@
             <div class="input-buscar">
                 <i class="bi bi-search"></i>
                 <input type="text" name="buscar" value="@ViewBag.BuscarFiltro"
-                       placeholder="Buscar por placa o cliente..." />
+                       placeholder="Buscar por placa o cliente..."
+                       autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" />
             </div>
             <select name="estado" class="filtro-select" onchange="this.form.submit()">
                 <option value="">Todos los estados</option>
@@ -152,11 +190,19 @@
                 <form asp-controller="Admin" asp-action="CrearOrden" method="post">
                     @Html.AntiForgeryToken()
                     <div class="modal-body" style="padding:24px">
+
+                        <!-- DROPDOWN DE VEHÍCULOS -->
                         <div class="mb-3">
-                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">ID del Vehículo *</label>
-                            <input type="number" name="idVehiculo" class="input-custom" style="padding-left:14px" required placeholder="Ej: 3" />
-                            <small style="color:var(--texto-suave);font-size:.72rem">Puedes buscar el vehículo por placa en la BD</small>
+                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Vehículo *</label>
+                            <select name="idVehiculo" class="input-custom select-custom" style="padding-left:14px" required>
+                                <option value="">— Selecciona un vehículo —</option>
+                                @foreach (var veh in (ViewBag.VehiculosLista as IEnumerable<dynamic> ?? new List<dynamic>()))
+                                {
+                                    <option value="@veh.IdVehiculo">@veh.Placa — @veh.Marca @veh.Modelo (@veh.ClienteNombre)</option>
+                                }
+                            </select>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Mecánico asignado</label>
                             <select name="idMecanico" class="input-custom select-custom" style="padding-left:14px">
@@ -167,6 +213,7 @@
                                 }
                             </select>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Tipo de servicio *</label>
                             <select name="tipoServicio" class="input-custom select-custom" style="padding-left:14px" required>
@@ -174,14 +221,17 @@
                                 <option value="Preventivo">Preventivo</option>
                             </select>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Descripción del problema *</label>
                             <textarea name="descripcionProblema" class="input-custom" style="padding:10px 14px;height:90px;resize:none" required placeholder="Describe el problema del vehículo..."></textarea>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Kilometraje de ingreso *</label>
                             <input type="number" name="kmIngreso" class="input-custom" style="padding-left:14px" required min="0" placeholder="Ej: 45000" />
                         </div>
+
                     </div>
                     <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
                         <button type="submit" class="btn-guardar"><i class="bi bi-clipboard2-plus-fill me-2"></i>Crear orden</button>

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Optimus_byte.DATA;
 using Optimus_byte.Models.ViewModels;
@@ -48,7 +48,9 @@ namespace Optimus_byte.Controllers
                     Placa = string.IsNullOrWhiteSpace(orden.Placa) ? "Sin placa" : orden.Placa,
                     Servicio = $"{orden.TipoServicio}: {Recortar(orden.DescripcionProblema, 55)}",
                     Estado = orden.Estado,
-                    TiempoEstimadoMinutos = EstimarMinutos(orden.TipoServicio)
+                    TiempoEstimadoMinutos = EstimarMinutos(orden.TipoServicio),
+                    Diagnostico = orden.Diagnostico,
+                    FechaEntregaEstimada = orden.FechaEntregaEstimada
                 }).ToList(),
                 HistorialServicios = historialBase.Select(orden => new ServicioVehiculoViewModel
                 {
@@ -108,6 +110,143 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Mecanico/MisOrdenes.cshtml", modelo);
         }
 
+        // ─── Cambiar estado ───────────────────────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CambiarEstado(int ordenId, string nuevoEstado, string observacion)
+        {
+            if (!EsMecanico()) return RedirectToAction("Index", "Login");
+
+            if (ordenId <= 0 || string.IsNullOrWhiteSpace(nuevoEstado))
+            {
+                TempData["Error"] = "Selecciona una orden y un estado valido.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            var idMecanico = ObtenerIdUsuarioActual();
+            using var conn = _db.GetConnection();
+
+            if (!OrdenPerteneceAlMecanico(conn, ordenId, idMecanico))
+            {
+                TempData["Error"] = "La orden seleccionada no esta asignada a tu usuario.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            using (var cmd = new SqlCommand(@"
+                UPDATE OrdenesTrabajo
+                SET estado = @estado,
+                    fecha_cierre = CASE WHEN @estado IN ('Entregado','Cancelado') THEN GETDATE() ELSE fecha_cierre END
+                WHERE id_orden = @ordenId AND id_mecanico = @idMecanico", conn))
+            {
+                cmd.Parameters.AddWithValue("@estado", nuevoEstado);
+                cmd.Parameters.AddWithValue("@ordenId", ordenId);
+                cmd.Parameters.AddWithValue("@idMecanico", idMecanico);
+                cmd.ExecuteNonQuery();
+            }
+
+            if (TieneColumnas(conn, "EstadosOrden", "id_orden", "id_usuario", "estado_nuevo", "observacion", "fecha_cambio"))
+            {
+                using var cmdLog = new SqlCommand(@"
+                    INSERT INTO EstadosOrden (id_orden, id_usuario, estado_nuevo, observacion, fecha_cambio)
+                    VALUES (@ordenId, @idUsuario, @estado, @obs, GETDATE())", conn);
+                cmdLog.Parameters.AddWithValue("@ordenId", ordenId);
+                cmdLog.Parameters.AddWithValue("@idUsuario", idMecanico);
+                cmdLog.Parameters.AddWithValue("@estado", nuevoEstado);
+                cmdLog.Parameters.AddWithValue("@obs", observacion ?? string.Empty);
+                cmdLog.ExecuteNonQuery();
+            }
+
+            RegistrarAuditoria(conn, idMecanico, $"Cambio estado OT-{ordenId} a '{nuevoEstado}'.");
+            TempData["Exito"] = $"Estado de OT-{ordenId} actualizado a '{nuevoEstado}'.";
+            return RedirectToAction("MisOrdenes");
+        }
+
+        // ─── Registrar diagnostico ────────────────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RegistrarDiagnostico(int ordenId, string diagnostico, string trabajosRealizados)
+        {
+            if (!EsMecanico()) return RedirectToAction("Index", "Login");
+
+            if (ordenId <= 0 || string.IsNullOrWhiteSpace(diagnostico))
+            {
+                TempData["Error"] = "Selecciona una orden y escribe el diagnostico.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            var idMecanico = ObtenerIdUsuarioActual();
+            using var conn = _db.GetConnection();
+
+            if (!OrdenPerteneceAlMecanico(conn, ordenId, idMecanico))
+            {
+                TempData["Error"] = "La orden seleccionada no esta asignada a tu usuario.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            var textoTrabajo = string.IsNullOrWhiteSpace(trabajosRealizados)
+                ? string.Empty
+                : $"\nTrabajos realizados: {trabajosRealizados.Trim()}";
+
+            using (var cmd = new SqlCommand(@"
+                UPDATE OrdenesTrabajo
+                SET diagnostico = @diagnostico,
+                    observaciones = CONCAT(COALESCE(observaciones + CHAR(13) + CHAR(10), ''), @trabajos)
+                WHERE id_orden = @ordenId AND id_mecanico = @idMecanico", conn))
+            {
+                cmd.Parameters.AddWithValue("@diagnostico", diagnostico.Trim());
+                cmd.Parameters.AddWithValue("@trabajos", textoTrabajo);
+                cmd.Parameters.AddWithValue("@ordenId", ordenId);
+                cmd.Parameters.AddWithValue("@idMecanico", idMecanico);
+                cmd.ExecuteNonQuery();
+            }
+
+            RegistrarAuditoria(conn, idMecanico, $"Diagnostico registrado en OT-{ordenId}.");
+            TempData["Exito"] = $"Diagnostico guardado para OT-{ordenId}.";
+            return RedirectToAction("MisOrdenes");
+        }
+
+        // ─── Guardar tiempo estimado de entrega ───────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult GuardarTiempoEstimado(int ordenId, int? horas, DateTime? fechaEntrega)
+        {
+            if (!EsMecanico()) return RedirectToAction("Index", "Login");
+
+            if (ordenId <= 0 || (horas == null && fechaEntrega == null))
+            {
+                TempData["Error"] = "Define las horas o una fecha de entrega.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            var idMecanico = ObtenerIdUsuarioActual();
+            using var conn = _db.GetConnection();
+
+            if (!OrdenPerteneceAlMecanico(conn, ordenId, idMecanico))
+            {
+                TempData["Error"] = "La orden no esta asignada a tu usuario.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            var fechaFinal = fechaEntrega ?? DateTime.Now.AddHours(horas!.Value);
+
+            using (var cmd = new SqlCommand(@"
+                UPDATE OrdenesTrabajo
+                SET fecha_entrega_estimada = @fecha
+                WHERE id_orden = @ordenId AND id_mecanico = @idMecanico", conn))
+            {
+                cmd.Parameters.AddWithValue("@fecha", fechaFinal);
+                cmd.Parameters.AddWithValue("@ordenId", ordenId);
+                cmd.Parameters.AddWithValue("@idMecanico", idMecanico);
+                cmd.ExecuteNonQuery();
+            }
+
+            RegistrarAuditoria(conn, idMecanico,
+                $"Tiempo estimado OT-{ordenId}: entrega {fechaFinal:dd/MM/yyyy HH:mm}");
+            TempData["Exito"] = $"Entrega estimada para OT-{ordenId}: {fechaFinal:dd/MM/yyyy HH:mm}.";
+            return RedirectToAction("MisOrdenes");
+        }
+
+        // ─── Registrar tiempo ─────────────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RegistrarTiempo(int ordenId, int minutos, string observacion)
@@ -146,6 +285,7 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisOrdenes");
         }
 
+        // ─── Enviar mensaje ───────────────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult EnviarMensaje(string para, string mensaje)
@@ -161,11 +301,11 @@ namespace Optimus_byte.Controllers
             var idMecanico = ObtenerIdUsuarioActual();
             using var conn = _db.GetConnection();
             RegistrarAuditoria(conn, idMecanico, $"Mensaje interno para {para}: {mensaje.Trim()}");
-
             TempData["Exito"] = $"Mensaje enviado a {para}.";
             return RedirectToAction("MisOrdenes");
         }
 
+        // ─── Cargar evidencia ─────────────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CargarEvidencia(string orden, string tipo, string nota, List<IFormFile> archivos)
@@ -183,20 +323,23 @@ namespace Optimus_byte.Controllers
             }
 
             RegistrarAuditoria(conn, idMecanico,
-                $"Evidencia {tipo} registrada para OT-{idOrden}. Archivos recibidos: {archivos?.Count ?? 0}. Nota: {nota}");
-
+                $"Evidencia {tipo} registrada para OT-{idOrden}. Archivos: {archivos?.Count ?? 0}. Nota: {nota}");
             TempData["Exito"] = $"Evidencia registrada para OT-{idOrden}. Archivos recibidos: {archivos?.Count ?? 0}.";
             return RedirectToAction("MisOrdenes");
         }
 
+        // ═════════════════════════════════════════════════════════════════════════
+        // PRIVADOS
+        // ═════════════════════════════════════════════════════════════════════════
+
         private List<OrdenMecanicoData> ObtenerOrdenesAsignadas(SqlConnection conn, int idMecanico)
         {
             var ordenes = new List<OrdenMecanicoData>();
-
             using var cmd = new SqlCommand(@"
                 SELECT TOP (12)
                        o.id_orden, o.id_vehiculo, o.estado, o.tipo_servicio,
                        o.descripcion_problema, o.diagnostico, o.fecha_apertura, o.fecha_cierre,
+                       o.fecha_entrega_estimada,
                        v.placa, v.marca, v.modelo, v.anio,
                        c.nombre_completo AS cliente_nombre,
                        m.nombre_completo AS mecanico_nombre
@@ -210,36 +353,28 @@ namespace Optimus_byte.Controllers
 
             cmd.Parameters.AddWithValue("@idMecanico", idMecanico);
             using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                ordenes.Add(MapearOrden(reader));
-            }
-
+            while (reader.Read()) ordenes.Add(MapearOrden(reader));
             return ordenes;
         }
 
         private List<OrdenMecanicoData> ObtenerHistorial(SqlConnection conn, int idMecanico)
         {
             var ordenes = new List<OrdenMecanicoData>();
-
             using var cmd = new SqlCommand(@"
-                WITH VehiculosAsignados AS
-                (
-                    SELECT DISTINCT id_vehiculo
-                    FROM OrdenesTrabajo
+                WITH VehiculosAsignados AS (
+                    SELECT DISTINCT id_vehiculo FROM OrdenesTrabajo
                     WHERE id_mecanico = @idMecanico
-                      AND COALESCE(estado, '') NOT IN ('Entregado', 'Cancelado')
+                      AND COALESCE(estado,'') NOT IN ('Entregado','Cancelado')
                 ),
-                OrdenesActivas AS
-                (
-                    SELECT id_orden
-                    FROM OrdenesTrabajo
+                OrdenesActivas AS (
+                    SELECT id_orden FROM OrdenesTrabajo
                     WHERE id_mecanico = @idMecanico
-                      AND COALESCE(estado, '') NOT IN ('Entregado', 'Cancelado')
+                      AND COALESCE(estado,'') NOT IN ('Entregado','Cancelado')
                 )
                 SELECT TOP (10)
                        o.id_orden, o.id_vehiculo, o.estado, o.tipo_servicio,
                        o.descripcion_problema, o.diagnostico, o.fecha_apertura, o.fecha_cierre,
+                       o.fecha_entrega_estimada,
                        v.placa, v.marca, v.modelo, v.anio,
                        c.nombre_completo AS cliente_nombre,
                        m.nombre_completo AS mecanico_nombre
@@ -254,11 +389,7 @@ namespace Optimus_byte.Controllers
 
             cmd.Parameters.AddWithValue("@idMecanico", idMecanico);
             using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                ordenes.Add(MapearOrden(reader));
-            }
-
+            while (reader.Read()) ordenes.Add(MapearOrden(reader));
             return ordenes;
         }
 
@@ -267,21 +398,16 @@ namespace Optimus_byte.Controllers
             var partes = new Dictionary<int, List<string>>();
             if (!ordenesIds.Any()) return new Dictionary<int, string>();
 
-            var parametros = ordenesIds
-                .Select((_, index) => $"@id{index}")
-                .ToList();
-
+            var parametros = ordenesIds.Select((_, i) => $"@id{i}").ToList();
             using var cmd = new SqlCommand($@"
-                SELECT ore.id_orden, COALESCE(r.nombre, 'Repuesto') AS nombre, ore.cantidad
+                SELECT ore.id_orden, COALESCE(r.nombre,'Repuesto') AS nombre, ore.cantidad
                 FROM OrdenRepuestos ore
                 LEFT JOIN Repuestos r ON r.id_repuesto = ore.id_repuesto
                 WHERE ore.id_orden IN ({string.Join(", ", parametros)})
                 ORDER BY ore.id_orden, r.nombre", conn);
 
             for (var i = 0; i < ordenesIds.Count; i++)
-            {
                 cmd.Parameters.AddWithValue(parametros[i], ordenesIds[i]);
-            }
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -289,16 +415,10 @@ namespace Optimus_byte.Controllers
                 var idOrden = Convert.ToInt32(reader["id_orden"]);
                 var nombre = ObtenerString(reader, "nombre", "Repuesto");
                 var cantidad = ObtenerInt(reader, "cantidad");
-
-                if (!partes.ContainsKey(idOrden))
-                {
-                    partes[idOrden] = new List<string>();
-                }
-
+                if (!partes.ContainsKey(idOrden)) partes[idOrden] = new List<string>();
                 partes[idOrden].Add($"{nombre} x{cantidad}");
             }
-
-            return partes.ToDictionary(parte => parte.Key, parte => string.Join(", ", parte.Value));
+            return partes.ToDictionary(p => p.Key, p => string.Join(", ", p.Value));
         }
 
         private List<CambioOrdenData> ObtenerCambiosOrden(SqlConnection conn, List<int> ordenesIds)
@@ -306,14 +426,9 @@ namespace Optimus_byte.Controllers
             var cambios = new List<CambioOrdenData>();
             if (!ordenesIds.Any() ||
                 !TieneColumnas(conn, "EstadosOrden", "id_orden", "id_usuario", "estado_nuevo", "observacion", "fecha_cambio"))
-            {
                 return cambios;
-            }
 
-            var parametros = ordenesIds
-                .Select((_, index) => $"@id{index}")
-                .ToList();
-
+            var parametros = ordenesIds.Select((_, i) => $"@id{i}").ToList();
             using var cmd = new SqlCommand($@"
                 SELECT TOP (6)
                        e.id_orden, e.estado_nuevo, e.observacion, e.fecha_cambio,
@@ -324,9 +439,7 @@ namespace Optimus_byte.Controllers
                 ORDER BY e.fecha_cambio DESC", conn);
 
             for (var i = 0; i < ordenesIds.Count; i++)
-            {
                 cmd.Parameters.AddWithValue(parametros[i], ordenesIds[i]);
-            }
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -340,17 +453,14 @@ namespace Optimus_byte.Controllers
                     Usuario = ObtenerString(reader, "usuario_nombre", "Sistema")
                 });
             }
-
             return cambios;
         }
 
         private bool OrdenPerteneceAlMecanico(SqlConnection conn, int ordenId, int idMecanico)
         {
             using var cmd = new SqlCommand(@"
-                SELECT COUNT(1)
-                FROM OrdenesTrabajo
+                SELECT COUNT(1) FROM OrdenesTrabajo
                 WHERE id_orden = @ordenId AND id_mecanico = @idMecanico", conn);
-
             cmd.Parameters.AddWithValue("@ordenId", ordenId);
             cmd.Parameters.AddWithValue("@idMecanico", idMecanico);
             return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
@@ -361,7 +471,6 @@ namespace Optimus_byte.Controllers
             using var cmd = new SqlCommand(@"
                 INSERT INTO LogAuditoria (id_usuario, accion, modulo)
                 VALUES (@id, @accion, @modulo)", conn);
-
             cmd.Parameters.AddWithValue("@id", idUsuario);
             cmd.Parameters.AddWithValue("@accion", accion);
             cmd.Parameters.AddWithValue("@modulo", "Panel de Mecanico");
@@ -371,29 +480,22 @@ namespace Optimus_byte.Controllers
         private bool TieneColumnas(SqlConnection conn, string tabla, params string[] columnas)
         {
             using var cmd = new SqlCommand(@"
-                SELECT COUNT(1)
-                FROM INFORMATION_SCHEMA.COLUMNS
+                SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_NAME = @tabla
-                  AND COLUMN_NAME IN (" + string.Join(", ", columnas.Select((_, index) => $"@col{index}")) + ")", conn);
-
+                  AND COLUMN_NAME IN (" +
+                string.Join(", ", columnas.Select((_, i) => $"@col{i}")) + ")", conn);
             cmd.Parameters.AddWithValue("@tabla", tabla);
             for (var i = 0; i < columnas.Length; i++)
-            {
                 cmd.Parameters.AddWithValue($"@col{i}", columnas[i]);
-            }
-
             return Convert.ToInt32(cmd.ExecuteScalar()) == columnas.Length;
         }
 
-        private int ObtenerIdUsuarioActual()
-        {
-            return int.TryParse(HttpContext.Session.GetString("UsuarioId"), out var id) ? id : 0;
-        }
+        private int ObtenerIdUsuarioActual() =>
+            int.TryParse(HttpContext.Session.GetString("UsuarioId"), out var id) ? id : 0;
 
         private static int ExtraerIdOrden(string orden)
         {
             if (string.IsNullOrWhiteSpace(orden)) return 0;
-
             var valor = orden.Replace("OT-", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
             return int.TryParse(valor, out var idOrden) ? idOrden : 0;
         }
@@ -410,6 +512,7 @@ namespace Optimus_byte.Controllers
                 Diagnostico = ObtenerString(reader, "diagnostico", string.Empty),
                 FechaApertura = ObtenerDateTime(reader, "fecha_apertura", DateTime.Now),
                 FechaCierre = ObtenerDateTimeNullable(reader, "fecha_cierre"),
+                FechaEntregaEstimada = ObtenerDateTimeNullable(reader, "fecha_entrega_estimada"),
                 Placa = ObtenerString(reader, "placa", string.Empty),
                 Marca = ObtenerString(reader, "marca", string.Empty),
                 Modelo = ObtenerString(reader, "modelo", string.Empty),
@@ -426,8 +529,8 @@ namespace Optimus_byte.Controllers
                 new()
                 {
                     Nombre = "Inspeccion inicial",
-                    Orden = ordenesAsignadas.FirstOrDefault() is { } primeraOrden ? $"OT-{primeraOrden.IdOrden}" : "OT",
-                    Pasos = new List<string>
+                    Orden  = ordenesAsignadas.FirstOrDefault() is { } p ? $"OT-{p.IdOrden}" : "OT",
+                    Pasos  = new List<string>
                     {
                         "Verificar kilometraje y nivel de combustible",
                         "Registrar estado exterior del vehiculo",
@@ -439,8 +542,8 @@ namespace Optimus_byte.Controllers
                 new()
                 {
                     Nombre = "Mantenimiento preventivo",
-                    Orden = ordenesAsignadas.Skip(1).FirstOrDefault() is { } segundaOrden ? $"OT-{segundaOrden.IdOrden}" : "OT",
-                    Pasos = new List<string>
+                    Orden  = ordenesAsignadas.Skip(1).FirstOrDefault() is { } s ? $"OT-{s.IdOrden}" : "OT",
+                    Pasos  = new List<string>
                     {
                         "Drenar aceite usado",
                         "Cambiar filtros",
@@ -452,15 +555,13 @@ namespace Optimus_byte.Controllers
             };
         }
 
-        private static int EstimarMinutos(string tipoServicio)
-        {
-            return tipoServicio.Equals("Preventivo", StringComparison.OrdinalIgnoreCase) ? 120 : 90;
-        }
+        private static int EstimarMinutos(string tipoServicio) =>
+            tipoServicio.Equals("Preventivo", StringComparison.OrdinalIgnoreCase) ? 120 : 90;
 
         private static string FormatearVehiculo(OrdenMecanicoData orden)
         {
-            var vehiculo = $"{orden.Marca} {orden.Modelo} {(orden.Anio > 0 ? orden.Anio.ToString() : string.Empty)}".Trim();
-            return string.IsNullOrWhiteSpace(vehiculo) ? "Vehiculo sin registrar" : vehiculo;
+            var v = $"{orden.Marca} {orden.Modelo} {(orden.Anio > 0 ? orden.Anio.ToString() : string.Empty)}".Trim();
+            return string.IsNullOrWhiteSpace(v) ? "Vehiculo sin registrar" : v;
         }
 
         private static string Recortar(string? texto, int maximo)
@@ -503,6 +604,7 @@ namespace Optimus_byte.Controllers
             public string Diagnostico { get; set; } = string.Empty;
             public DateTime FechaApertura { get; set; }
             public DateTime? FechaCierre { get; set; }
+            public DateTime? FechaEntregaEstimada { get; set; }
             public string Placa { get; set; } = string.Empty;
             public string Marca { get; set; } = string.Empty;
             public string Modelo { get; set; } = string.Empty;

@@ -1,0 +1,370 @@
+﻿@{
+    ViewData["Title"] = "Mis Órdenes";
+    Layout = null;
+    var ordenes = ViewBag.Ordenes as List<dynamic> ?? new List<dynamic>();
+    var nombre = ViewBag.Nombre as string ?? "Cliente";
+    var inicial = nombre.Length > 0 ? nombre[0].ToString().ToUpper() : "C";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>OPTIMUS-BYTE — Mis Órdenes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/Portal.css" rel="stylesheet" />
+    <style>
+        .orden-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px 22px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(37,99,235,.05);
+            transition: box-shadow .2s;
+        }
+
+            .orden-card:hover {
+                box-shadow: 0 4px 16px rgba(37,99,235,.10);
+            }
+
+        .orden-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .placa-tag {
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            background: rgba(37,99,235,.08);
+            color: #2563eb;
+            border: 1px solid rgba(37,99,235,.2);
+            padding: 3px 10px;
+            border-radius: 4px;
+        }
+
+        .vehiculo-tag {
+            font-size: .82rem;
+            color: #64748b;
+        }
+
+        /* Badges de estado */
+        .estado-pill {
+            font-size: .68rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .ep-pendiente {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde68a;
+        }
+
+        .ep-proceso {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .ep-repuesto {
+            background: #fce7f3;
+            color: #9d174d;
+            border: 1px solid #fbcfe8;
+        }
+
+        .ep-listo {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .ep-entregado {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .ep-cancelado {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .campo {
+            font-size: .83rem;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+            .campo strong {
+                color: #1e293b;
+            }
+
+        /* Cuenta regresiva */
+        .countdown-box {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            border-radius: 10px;
+            padding: .45rem 1rem;
+            font-size: .82rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .cd-ok {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .cd-medio {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde68a;
+        }
+
+        .cd-urgente {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .cd-vencido {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
+
+        .filtro-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filtro-select {
+            height: 38px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 0 12px;
+            font-size: .83rem;
+            outline: none;
+            background: #fff;
+            color: #334155;
+        }
+
+        .vacia {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+            .vacia i {
+                font-size: 3rem;
+                display: block;
+                margin-bottom: 12px;
+            }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-rol">Cliente</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="user-name"><i class="bi bi-person-circle me-1"></i>@nombre</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="welcome-bar">
+            <div class="avatar">@inicial</div>
+            <div class="welcome-txt">
+                <h2>Mis Órdenes</h2>
+                <p>Consulta el estado de tus vehículos en el taller y el tiempo estimado de entrega.</p>
+            </div>
+        </div>
+
+        <div style="margin-bottom:12px">
+            <a href="/Cliente/Portal" style="font-size:.82rem;color:#2563eb;text-decoration:none;">
+                <i class="bi bi-arrow-left me-1"></i>Volver al portal
+            </a>
+        </div>
+
+        @if (TempData["Exito"] != null)
+        {
+            <div class="alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+        }
+
+        @if (!ordenes.Any())
+        {
+            <div class="vacia">
+                <i class="bi bi-clipboard2-x"></i>
+                <p>No tienes órdenes registradas aún.</p>
+            </div>
+        }
+        else
+        {
+            <div class="filtro-bar">
+                <select class="filtro-select" id="filtroEstado" onchange="filtrar()">
+                    <option value="">Todos los estados</option>
+                    <option>Pendiente</option>
+                    <option>En proceso</option>
+                    <option>Esperando repuesto</option>
+                    <option>Listo para entrega</option>
+                    <option>Entregado</option>
+                    <option>Cancelado</option>
+                </select>
+                <span style="font-size:.78rem;color:#94a3b8">@ordenes.Count orden(es)</span>
+            </div>
+
+            <div id="listaOrdenes">
+                @foreach (var o in ordenes)
+                {
+                    string estado = (string)o.Estado;
+                    string badgeClass = estado switch
+                    {
+                        "Pendiente" => "ep-pendiente",
+                        "En proceso" => "ep-proceso",
+                        "Esperando repuesto" => "ep-repuesto",
+                        "Listo para entrega" => "ep-listo",
+                        "Entregado" => "ep-entregado",
+                        "Cancelado" => "ep-cancelado",
+                        _ => "ep-pendiente"
+                    };
+
+                    DateTime? fechaEntrega = (DateTime?)o.FechaEntregaEstimada;
+
+                    <div class="orden-card fila-orden" data-estado="@estado">
+                        <div class="orden-header">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="placa-tag">@o.Placa</span>
+                                <span class="vehiculo-tag">@o.Marca @o.Modelo</span>
+                                <span class="estado-pill @badgeClass">@estado</span>
+                            </div>
+                            <span style="font-size:.75rem;color:#94a3b8">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                @(((DateTime)o.FechaApertura).ToString("dd/MM/yyyy"))
+                            </span>
+                        </div>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6 campo">
+                                <strong>Tipo:</strong> @o.TipoServicio
+                            </div>
+                            <div class="col-md-6 campo">
+                                <strong>Orden #:</strong> @o.IdOrden
+                            </div>
+                            <div class="col-12 campo">
+                                <strong>Problema reportado:</strong> @o.DescripcionProblema
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace((string)o.Diagnostico))
+                            {
+                                <div class="col-12 campo">
+                                    <strong>Diagnóstico del mecánico:</strong> @o.Diagnostico
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace((string)o.Observaciones))
+                            {
+                                <div class="col-12 campo">
+                                    <strong>Trabajos realizados:</strong> @o.Observaciones
+                                </div>
+                            }
+                            @if (o.FechaCierre != null)
+                            {
+                                <div class="col-12 campo">
+                                    <strong>Fecha de cierre:</strong>
+                                    @(((DateTime)o.FechaCierre).ToString("dd/MM/yyyy HH:mm"))
+                                </div>
+                            }
+                        </div>
+
+                        @* Cuenta regresiva *@
+                        @if (fechaEntrega.HasValue && estado != "Entregado" && estado != "Cancelado")
+                        {
+                            <div class="countdown-box cd-ok" id="cd-@o.IdOrden"
+                                 data-entrega="@fechaEntrega.Value.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                <i class="bi bi-clock"></i>
+                                <span class="cd-texto">Calculando...</span>
+                            </div>
+                        }
+                        else if (estado == "Listo para entrega")
+                        {
+                            <div class="countdown-box cd-listo" style="background:#d1fae5;color:#065f46;border:1px solid #a7f3d0">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>¡Tu vehículo está listo para recoger!</span>
+                            </div>
+                        }
+                        else if (estado == "Entregado")
+                        {
+                            <div class="countdown-box" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1">
+                                <i class="bi bi-check2-all"></i>
+                                <span>Vehículo entregado</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function filtrar() {
+            const e = document.getElementById('filtroEstado').value;
+            document.querySelectorAll('.fila-orden').forEach(f => {
+                f.style.display = (!e || f.dataset.estado === e) ? '' : 'none';
+            });
+        }
+
+        function actualizarCuentas() {
+            document.querySelectorAll('[data-entrega]').forEach(box => {
+                const fechaEntrega = new Date(box.dataset.entrega);
+                const ahora = new Date();
+                const diff = fechaEntrega - ahora;
+                const texto = box.querySelector('.cd-texto');
+                if (!texto) return;
+
+                box.classList.remove('cd-ok', 'cd-medio', 'cd-urgente', 'cd-vencido');
+
+                if (diff <= 0) {
+                    texto.textContent = 'Tiempo de entrega vencido';
+                    box.classList.add('cd-vencido');
+                    return;
+                }
+
+                const dias  = Math.floor(diff / 86400000);
+                const horas = Math.floor((diff % 86400000) / 3600000);
+                const mins  = Math.floor((diff % 3600000) / 60000);
+
+                if (dias > 0) {
+                    texto.textContent = `Entrega estimada en ${dias}d ${horas}h`;
+                    box.classList.add(dias > 1 ? 'cd-ok' : 'cd-medio');
+                } else if (horas > 0) {
+                    texto.textContent = `Entrega estimada en ${horas}h ${mins}m`;
+                    box.classList.add(horas > 2 ? 'cd-medio' : 'cd-urgente');
+                } else {
+                    texto.textContent = `Entrega estimada en ${mins} minutos`;
+                    box.classList.add('cd-urgente');
+                }
+            });
+        }
+
+        actualizarCuentas();
+        setInterval(actualizarCuentas, 30000);
+    </script>
+</body>
+</html>

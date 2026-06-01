@@ -26,23 +26,21 @@ namespace Optimus_byte.Controllers
 
             using var conn = _db.GetConnection();
 
-            // Totales
-            vm.TotalUsuarios   = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Usuarios");
-            vm.TotalClientes   = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Clientes WHERE activo = 1");
-            vm.TotalVehiculos  = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Vehiculos WHERE activo = 1");
+            vm.TotalUsuarios = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Usuarios");
+            vm.TotalClientes = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Clientes WHERE activo = 1");
+            vm.TotalVehiculos = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Vehiculos WHERE activo = 1");
             vm.OrdenesAbiertas = EjecutarScalar<int>(conn,
                 "SELECT COUNT(1) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
-            vm.OrdenesHoy      = EjecutarScalar<int>(conn,
+            vm.OrdenesHoy = EjecutarScalar<int>(conn,
                 "SELECT COUNT(1) FROM OrdenesTrabajo WHERE CAST(fecha_apertura AS DATE) = CAST(GETDATE() AS DATE)");
             vm.RepuestosBajoStock = EjecutarScalar<int>(conn,
                 "SELECT COUNT(1) FROM Repuestos WHERE stock_actual <= stock_minimo AND activo = 1");
-            vm.IngresosMes     = EjecutarScalar<decimal>(conn,
+            vm.IngresosMes = EjecutarScalar<decimal>(conn,
                 @"SELECT ISNULL(SUM(total),0) FROM Facturas
                   WHERE estado_pago = 'Pagado'
                   AND MONTH(fecha_emision) = MONTH(GETDATE())
                   AND YEAR(fecha_emision) = YEAR(GETDATE())");
 
-            // Órdenes recientes
             using (var cmd = new SqlCommand(@"
                 SELECT TOP 8
                     o.id_orden, o.estado, o.tipo_servicio, o.fecha_apertura,
@@ -59,18 +57,17 @@ namespace Optimus_byte.Controllers
                 while (r.Read())
                     vm.OrdenesRecientes.Add(new OrdenResumenViewModel
                     {
-                        IdOrden       = Convert.ToInt32(r["id_orden"]),
-                        Estado        = r["estado"].ToString()!,
-                        TipoServicio  = r["tipo_servicio"].ToString()!,
+                        IdOrden = Convert.ToInt32(r["id_orden"]),
+                        Estado = r["estado"].ToString()!,
+                        TipoServicio = r["tipo_servicio"].ToString()!,
                         FechaApertura = Convert.ToDateTime(r["fecha_apertura"]),
-                        Placa         = r["placa"].ToString()!,
-                        MarcaModelo   = $"{r["marca"]} {r["modelo"]}",
-                        Cliente       = r["cliente"].ToString()!,
-                        Mecanico      = r["mecanico"].ToString()!
+                        Placa = r["placa"].ToString()!,
+                        MarcaModelo = $"{r["marca"]} {r["modelo"]}",
+                        Cliente = r["cliente"].ToString()!,
+                        Mecanico = r["mecanico"].ToString()!
                     });
             }
 
-            // Repuestos con bajo stock
             using (var cmd2 = new SqlCommand(@"
                 SELECT TOP 5 nombre, referencia, stock_actual, stock_minimo
                 FROM Repuestos
@@ -81,10 +78,10 @@ namespace Optimus_byte.Controllers
                 while (r2.Read())
                     vm.RepuestosCriticos.Add(new RepuestoCriticoViewModel
                     {
-                        Nombre       = r2["nombre"].ToString()!,
-                        Referencia   = r2["referencia"].ToString()!,
-                        StockActual  = Convert.ToInt32(r2["stock_actual"]),
-                        StockMinimo  = Convert.ToInt32(r2["stock_minimo"])
+                        Nombre = r2["nombre"].ToString()!,
+                        Referencia = r2["referencia"].ToString()!,
+                        StockActual = Convert.ToInt32(r2["stock_actual"]),
+                        StockMinimo = Convert.ToInt32(r2["stock_minimo"])
                     });
             }
 
@@ -102,10 +99,10 @@ namespace Optimus_byte.Controllers
 
             string where = "WHERE 1=1";
             if (!string.IsNullOrWhiteSpace(estado))
-                where += $" AND o.estado = '{estado.Replace("'","''")}'";
+                where += $" AND o.estado = '{estado.Replace("'", "''")}'";
             if (!string.IsNullOrWhiteSpace(buscar))
-                where += $@" AND (v.placa LIKE '%{buscar.Replace("'","''")}%'
-                              OR c.nombre_completo LIKE '%{buscar.Replace("'","''")}%')";
+                where += $@" AND (v.placa LIKE '%{buscar.Replace("'", "''")}%'
+                              OR c.nombre_completo LIKE '%{buscar.Replace("'", "''")}%')";
 
             using var conn = _db.GetConnection();
             using (var cmd = new SqlCommand($@"
@@ -127,15 +124,15 @@ namespace Optimus_byte.Controllers
                 while (r.Read())
                     lista.Add(new OrdenResumenViewModel
                     {
-                        IdOrden       = Convert.ToInt32(r["id_orden"]),
-                        Estado        = r["estado"].ToString()!,
-                        TipoServicio  = r["tipo_servicio"].ToString()!,
+                        IdOrden = Convert.ToInt32(r["id_orden"]),
+                        Estado = r["estado"].ToString()!,
+                        TipoServicio = r["tipo_servicio"].ToString()!,
                         FechaApertura = Convert.ToDateTime(r["fecha_apertura"]),
-                        FechaCierre   = r["fecha_cierre"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_cierre"]),
-                        Placa         = r["placa"].ToString()!,
-                        MarcaModelo   = $"{r["marca"]} {r["modelo"]}",
-                        Cliente       = r["cliente"].ToString()!,
-                        Mecanico      = r["mecanico"].ToString()!,
+                        FechaCierre = r["fecha_cierre"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_cierre"]),
+                        Placa = r["placa"].ToString()!,
+                        MarcaModelo = $"{r["marca"]} {r["modelo"]}",
+                        Cliente = r["cliente"].ToString()!,
+                        Mecanico = r["mecanico"].ToString()!,
                         Administrador = r["administrador"].ToString()!
                     });
             }
@@ -143,6 +140,31 @@ namespace Optimus_byte.Controllers
             ViewBag.Mecanicos = ObtenerMecanicos(conn);
             ViewBag.EstadoFiltro = estado ?? "";
             ViewBag.BuscarFiltro = buscar ?? "";
+
+            // Dropdown de vehículos para el modal de crear orden
+            var vehiculosLista = new List<dynamic>();
+            using (var cmdV = new SqlCommand(@"
+                SELECT v.id_vehiculo, v.placa, v.marca, v.modelo,
+                       u.nombre_completo AS cliente_nombre
+                FROM Vehiculos v
+                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+                INNER JOIN Usuarios u ON c.id_usuario = u.id_usuario
+                WHERE v.activo = 1
+                ORDER BY v.placa", conn))
+            using (var rV = cmdV.ExecuteReader())
+            {
+                while (rV.Read())
+                    vehiculosLista.Add(new
+                    {
+                        IdVehiculo = Convert.ToInt32(rV["id_vehiculo"]),
+                        Placa = rV["placa"].ToString()!,
+                        Marca = rV["marca"].ToString()!,
+                        Modelo = rV["modelo"].ToString()!,
+                        ClienteNombre = rV["cliente_nombre"].ToString()!
+                    });
+            }
+            ViewBag.VehiculosLista = vehiculosLista;
+
             return View("~/Views/Admin/Ordenes.cshtml", lista);
         }
 
@@ -176,31 +198,30 @@ namespace Optimus_byte.Controllers
                 {
                     vm = new OrdenDetalleViewModel
                     {
-                        IdOrden             = Convert.ToInt32(r["id_orden"]),
-                        Estado              = r["estado"].ToString()!,
-                        TipoServicio        = r["tipo_servicio"].ToString()!,
+                        IdOrden = Convert.ToInt32(r["id_orden"]),
+                        Estado = r["estado"].ToString()!,
+                        TipoServicio = r["tipo_servicio"].ToString()!,
                         DescripcionProblema = r["descripcion_problema"].ToString()!,
-                        Diagnostico         = r["diagnostico"]?.ToString() ?? "",
-                        Observaciones       = r["observaciones"]?.ToString() ?? "",
-                        KmIngreso           = Convert.ToInt32(r["km_ingreso"]),
-                        FechaApertura       = Convert.ToDateTime(r["fecha_apertura"]),
-                        FechaCierre         = r["fecha_cierre"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_cierre"]),
-                        IdMecanicoActual    = r["id_mecanico"] == DBNull.Value ? null : (int?)Convert.ToInt32(r["id_mecanico"]),
-                        Placa               = r["placa"].ToString()!,
-                        MarcaModelo         = $"{r["marca"]} {r["modelo"]} {r["anio"]}",
-                        Color               = r["color"]?.ToString() ?? "",
-                        KmActuales          = Convert.ToInt32(r["km_actuales"]),
-                        Cliente             = r["cliente"].ToString()!,
-                        TelefonoCliente     = r["tel_cliente"].ToString()!,
-                        CorreoCliente       = r["correo_cliente"].ToString()!,
-                        Mecanico            = r["mecanico"].ToString()!
+                        Diagnostico = r["diagnostico"]?.ToString() ?? "",
+                        Observaciones = r["observaciones"]?.ToString() ?? "",
+                        KmIngreso = Convert.ToInt32(r["km_ingreso"]),
+                        FechaApertura = Convert.ToDateTime(r["fecha_apertura"]),
+                        FechaCierre = r["fecha_cierre"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_cierre"]),
+                        IdMecanicoActual = r["id_mecanico"] == DBNull.Value ? null : (int?)Convert.ToInt32(r["id_mecanico"]),
+                        Placa = r["placa"].ToString()!,
+                        MarcaModelo = $"{r["marca"]} {r["modelo"]} {r["anio"]}",
+                        Color = r["color"]?.ToString() ?? "",
+                        KmActuales = Convert.ToInt32(r["km_actuales"]),
+                        Cliente = r["cliente"].ToString()!,
+                        TelefonoCliente = r["tel_cliente"].ToString()!,
+                        CorreoCliente = r["correo_cliente"].ToString()!,
+                        Mecanico = r["mecanico"].ToString()!
                     };
                 }
             }
 
             if (vm == null) return NotFound();
 
-            // Repuestos usados
             using (var cmd2 = new SqlCommand(@"
                 SELECT rp.nombre, rp.referencia, orep.cantidad, orep.precio_usado
                 FROM OrdenRepuestos orep
@@ -212,14 +233,13 @@ namespace Optimus_byte.Controllers
                 while (r2.Read())
                     vm.Repuestos.Add(new RepuestoUsadoViewModel
                     {
-                        Nombre      = r2["nombre"].ToString()!,
-                        Referencia  = r2["referencia"].ToString()!,
-                        Cantidad    = Convert.ToInt32(r2["cantidad"]),
+                        Nombre = r2["nombre"].ToString()!,
+                        Referencia = r2["referencia"].ToString()!,
+                        Cantidad = Convert.ToInt32(r2["cantidad"]),
                         PrecioUsado = Convert.ToDecimal(r2["precio_usado"])
                     });
             }
 
-            // Historial de estados
             using (var cmd3 = new SqlCommand(@"
                 SELECT e.estado_nuevo, e.observacion, e.fecha_cambio, u.nombre_completo
                 FROM EstadosOrden e
@@ -232,10 +252,10 @@ namespace Optimus_byte.Controllers
                 while (r3.Read())
                     vm.Historial.Add(new EstadoHistorialViewModel
                     {
-                        EstadoNuevo  = r3["estado_nuevo"].ToString()!,
-                        Observacion  = r3["observacion"]?.ToString() ?? "",
-                        FechaCambio  = Convert.ToDateTime(r3["fecha_cambio"]),
-                        Usuario      = r3["nombre_completo"].ToString()!
+                        EstadoNuevo = r3["estado_nuevo"].ToString()!,
+                        Observacion = r3["observacion"]?.ToString() ?? "",
+                        FechaCambio = Convert.ToDateTime(r3["fecha_cambio"]),
+                        Usuario = r3["nombre_completo"].ToString()!
                     });
             }
 
@@ -262,16 +282,15 @@ namespace Optimus_byte.Controllers
                 OUTPUT INSERTED.id_orden
                 VALUES (@veh, @mec, @adm, @tipo, @desc, @km)", conn))
             {
-                cmd.Parameters.AddWithValue("@veh",  idVehiculo);
-                cmd.Parameters.AddWithValue("@mec",  (object?)idMecanico ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@adm",  idAdmin);
+                cmd.Parameters.AddWithValue("@veh", idVehiculo);
+                cmd.Parameters.AddWithValue("@mec", (object?)idMecanico ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@adm", idAdmin);
                 cmd.Parameters.AddWithValue("@tipo", tipoServicio);
                 cmd.Parameters.AddWithValue("@desc", descripcionProblema);
-                cmd.Parameters.AddWithValue("@km",   kmIngreso);
+                cmd.Parameters.AddWithValue("@km", kmIngreso);
                 idOrden = (int)cmd.ExecuteScalar();
             }
 
-            // Registrar estado inicial
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada");
 
             TempData["Exito"] = $"Orden #{idOrden} creada correctamente.";
@@ -299,7 +318,7 @@ namespace Optimus_byte.Controllers
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.AddWithValue("@estado", nuevoEstado);
-                cmd.Parameters.AddWithValue("@id",     idOrden);
+                cmd.Parameters.AddWithValue("@id", idOrden);
                 if (idMecanico.HasValue)
                     cmd.Parameters.AddWithValue("@mec", idMecanico.Value);
                 cmd.ExecuteNonQuery();
@@ -319,13 +338,13 @@ namespace Optimus_byte.Controllers
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
             using var conn = _db.GetConnection();
-            using var cmd  = new SqlCommand(@"
+            using var cmd = new SqlCommand(@"
                 UPDATE OrdenesTrabajo
                 SET diagnostico = @diag, observaciones = @obs
                 WHERE id_orden = @id", conn);
             cmd.Parameters.AddWithValue("@diag", (object?)diagnostico ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@obs",  (object?)observaciones ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@id",   idOrden);
+            cmd.Parameters.AddWithValue("@obs", (object?)observaciones ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@id", idOrden);
             cmd.ExecuteNonQuery();
 
             TempData["Exito"] = "Diagnóstico guardado.";
@@ -343,9 +362,9 @@ namespace Optimus_byte.Controllers
 
             string where = "WHERE activo = 1";
             if (!string.IsNullOrWhiteSpace(buscar))
-                where += $" AND (nombre LIKE '%{buscar.Replace("'","''")}%' OR referencia LIKE '%{buscar.Replace("'","''")}%')";
+                where += $" AND (nombre LIKE '%{buscar.Replace("'", "''")}%' OR referencia LIKE '%{buscar.Replace("'", "''")}%')";
             if (!string.IsNullOrWhiteSpace(categoria))
-                where += $" AND categoria = '{categoria.Replace("'","''")}'";
+                where += $" AND categoria = '{categoria.Replace("'", "''")}'";
 
             using var conn = _db.GetConnection();
 
@@ -360,19 +379,18 @@ namespace Optimus_byte.Controllers
                 while (r.Read())
                     lista.Add(new RepuestoViewModel
                     {
-                        IdRepuesto    = Convert.ToInt32(r["id_repuesto"]),
-                        Nombre        = r["nombre"].ToString()!,
-                        Referencia    = r["referencia"].ToString()!,
-                        Descripcion   = r["descripcion"]?.ToString() ?? "",
-                        Categoria     = r["categoria"].ToString()!,
-                        PrecioUnitario= Convert.ToDecimal(r["precio_unitario"]),
-                        StockActual   = Convert.ToInt32(r["stock_actual"]),
-                        StockMinimo   = Convert.ToInt32(r["stock_minimo"]),
+                        IdRepuesto = Convert.ToInt32(r["id_repuesto"]),
+                        Nombre = r["nombre"].ToString()!,
+                        Referencia = r["referencia"].ToString()!,
+                        Descripcion = r["descripcion"]?.ToString() ?? "",
+                        Categoria = r["categoria"].ToString()!,
+                        PrecioUnitario = Convert.ToDecimal(r["precio_unitario"]),
+                        StockActual = Convert.ToInt32(r["stock_actual"]),
+                        StockMinimo = Convert.ToInt32(r["stock_minimo"]),
                         FechaRegistro = Convert.ToDateTime(r["fecha_registro"])
                     });
             }
 
-            // Categorías únicas para filtro
             var cats = new List<string>();
             using (var cmd2 = new SqlCommand(
                 "SELECT DISTINCT categoria FROM Repuestos WHERE activo = 1 ORDER BY categoria", conn))
@@ -381,9 +399,9 @@ namespace Optimus_byte.Controllers
                 while (r2.Read()) cats.Add(r2[0].ToString()!);
             }
 
-            ViewBag.Categorias    = cats;
-            ViewBag.BuscarFiltro  = buscar ?? "";
-            ViewBag.CatFiltro     = categoria ?? "";
+            ViewBag.Categorias = cats;
+            ViewBag.BuscarFiltro = buscar ?? "";
+            ViewBag.CatFiltro = categoria ?? "";
             return View("~/Views/Admin/Inventario.cshtml", lista);
         }
 
@@ -401,23 +419,21 @@ namespace Optimus_byte.Controllers
 
             if (idRepuesto == null || idRepuesto == 0)
             {
-                // Crear
                 using var cmd = new SqlCommand(@"
                     INSERT INTO Repuestos
                         (nombre, referencia, descripcion, categoria,
                          precio_unitario, stock_actual, stock_minimo)
                     OUTPUT INSERTED.id_repuesto
                     VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min)", conn);
-                cmd.Parameters.AddWithValue("@nom",    nombre);
-                cmd.Parameters.AddWithValue("@ref",    referencia);
-                cmd.Parameters.AddWithValue("@desc",   (object?)descripcion ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@cat",    categoria);
+                cmd.Parameters.AddWithValue("@nom", nombre);
+                cmd.Parameters.AddWithValue("@ref", referencia);
+                cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@cat", categoria);
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
-                cmd.Parameters.AddWithValue("@stock",  stockActual);
-                cmd.Parameters.AddWithValue("@min",    stockMinimo);
+                cmd.Parameters.AddWithValue("@stock", stockActual);
+                cmd.Parameters.AddWithValue("@min", stockMinimo);
                 int newId = (int)cmd.ExecuteScalar();
 
-                // Registrar movimiento de entrada inicial
                 RegistrarMovimiento(conn, newId, idAdmin, null, "Entrada",
                     stockActual, 0, "Stock inicial");
 
@@ -425,7 +441,6 @@ namespace Optimus_byte.Controllers
             }
             else
             {
-                // Obtener stock anterior
                 int stockAnterior = EjecutarScalar<int>(conn,
                     $"SELECT stock_actual FROM Repuestos WHERE id_repuesto = {idRepuesto}");
 
@@ -435,14 +450,14 @@ namespace Optimus_byte.Controllers
                         categoria = @cat, precio_unitario = @precio,
                         stock_actual = @stock, stock_minimo = @min
                     WHERE id_repuesto = @id", conn);
-                cmd.Parameters.AddWithValue("@nom",    nombre);
-                cmd.Parameters.AddWithValue("@ref",    referencia);
-                cmd.Parameters.AddWithValue("@desc",   (object?)descripcion ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@cat",    categoria);
+                cmd.Parameters.AddWithValue("@nom", nombre);
+                cmd.Parameters.AddWithValue("@ref", referencia);
+                cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@cat", categoria);
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
-                cmd.Parameters.AddWithValue("@stock",  stockActual);
-                cmd.Parameters.AddWithValue("@min",    stockMinimo);
-                cmd.Parameters.AddWithValue("@id",     idRepuesto);
+                cmd.Parameters.AddWithValue("@stock", stockActual);
+                cmd.Parameters.AddWithValue("@min", stockMinimo);
+                cmd.Parameters.AddWithValue("@id", idRepuesto);
                 cmd.ExecuteNonQuery();
 
                 if (stockActual != stockAnterior)
@@ -467,7 +482,7 @@ namespace Optimus_byte.Controllers
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
             using var conn = _db.GetConnection();
-            using var cmd  = new SqlCommand(
+            using var cmd = new SqlCommand(
                 "UPDATE Repuestos SET activo = 0 WHERE id_repuesto = @id", conn);
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
@@ -487,11 +502,11 @@ namespace Optimus_byte.Controllers
 
             string where = "WHERE 1=1";
             if (!string.IsNullOrWhiteSpace(estado))
-                where += $" AND f.estado_pago = '{estado.Replace("'","''")}'";
+                where += $" AND f.estado_pago = '{estado.Replace("'", "''")}'";
             if (!string.IsNullOrWhiteSpace(buscar))
-                where += $@" AND (c.nombre_completo LIKE '%{buscar.Replace("'","''")}%'
-                              OR v.placa LIKE '%{buscar.Replace("'","''")}%'
-                              OR CAST(f.id_factura AS VARCHAR) LIKE '%{buscar.Replace("'","''")}%')";
+                where += $@" AND (c.nombre_completo LIKE '%{buscar.Replace("'", "''")}%'
+                              OR v.placa LIKE '%{buscar.Replace("'", "''")}%'
+                              OR CAST(f.id_factura AS VARCHAR) LIKE '%{buscar.Replace("'", "''")}%')";
 
             using var conn = _db.GetConnection();
 
@@ -511,18 +526,18 @@ namespace Optimus_byte.Controllers
                 while (r.Read())
                     lista.Add(new FacturaViewModel
                     {
-                        IdFactura    = Convert.ToInt32(r["id_factura"]),
-                        IdOrden      = Convert.ToInt32(r["id_orden"]),
-                        Subtotal     = Convert.ToDecimal(r["subtotal"]),
-                        Iva          = Convert.ToDecimal(r["iva"]),
-                        Total        = Convert.ToDecimal(r["total"]),
-                        EstadoPago   = r["estado_pago"].ToString()!,
-                        MetodoPago   = r["metodo_pago"]?.ToString() ?? "",
+                        IdFactura = Convert.ToInt32(r["id_factura"]),
+                        IdOrden = Convert.ToInt32(r["id_orden"]),
+                        Subtotal = Convert.ToDecimal(r["subtotal"]),
+                        Iva = Convert.ToDecimal(r["iva"]),
+                        Total = Convert.ToDecimal(r["total"]),
+                        EstadoPago = r["estado_pago"].ToString()!,
+                        MetodoPago = r["metodo_pago"]?.ToString() ?? "",
                         FechaEmision = Convert.ToDateTime(r["fecha_emision"]),
-                        FechaPago    = r["fecha_pago"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_pago"]),
-                        Placa        = r["placa"].ToString()!,
-                        MarcaModelo  = $"{r["marca"]} {r["modelo"]}",
-                        Cliente      = r["cliente"].ToString()!
+                        FechaPago = r["fecha_pago"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_pago"]),
+                        Placa = r["placa"].ToString()!,
+                        MarcaModelo = $"{r["marca"]} {r["modelo"]}",
+                        Cliente = r["cliente"].ToString()!
                     });
             }
 
@@ -541,7 +556,6 @@ namespace Optimus_byte.Controllers
 
             using var conn = _db.GetConnection();
 
-            // Verificar que no exista factura para esta orden
             int existe = EjecutarScalar<int>(conn,
                 $"SELECT COUNT(1) FROM Facturas WHERE id_orden = {idOrden}");
             if (existe > 0)
@@ -579,22 +593,21 @@ namespace Optimus_byte.Controllers
                 INSERT INTO Pagos (id_factura, monto, metodo, referencia_transaccion, observaciones)
                 VALUES (@fac, @monto, @met, @ref, @obs)", conn))
             {
-                cmd.Parameters.AddWithValue("@fac",   idFactura);
+                cmd.Parameters.AddWithValue("@fac", idFactura);
                 cmd.Parameters.AddWithValue("@monto", monto);
-                cmd.Parameters.AddWithValue("@met",   metodo);
-                cmd.Parameters.AddWithValue("@ref",   (object?)referencia ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@obs",   (object?)observaciones ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@met", metodo);
+                cmd.Parameters.AddWithValue("@ref", (object?)referencia ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@obs", (object?)observaciones ?? DBNull.Value);
                 cmd.ExecuteNonQuery();
             }
 
-            // Marcar factura como pagada
             using (var cmd2 = new SqlCommand(@"
                 UPDATE Facturas
                 SET estado_pago = 'Pagado', metodo_pago = @met, fecha_pago = GETDATE()
                 WHERE id_factura = @id", conn))
             {
                 cmd2.Parameters.AddWithValue("@met", metodo);
-                cmd2.Parameters.AddWithValue("@id",  idFactura);
+                cmd2.Parameters.AddWithValue("@id", idFactura);
                 cmd2.ExecuteNonQuery();
             }
 
@@ -610,12 +623,12 @@ namespace Optimus_byte.Controllers
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
             using var conn = _db.GetConnection();
-            using var cmd  = new SqlCommand(@"
+            using var cmd = new SqlCommand(@"
                 UPDATE Facturas
                 SET estado_pago = 'Anulado', motivo_anulacion = @motivo
                 WHERE id_factura = @id", conn);
             cmd.Parameters.AddWithValue("@motivo", motivo);
-            cmd.Parameters.AddWithValue("@id",     idFactura);
+            cmd.Parameters.AddWithValue("@id", idFactura);
             cmd.ExecuteNonQuery();
 
             TempData["Exito"] = "Factura anulada.";
@@ -673,14 +686,14 @@ namespace Optimus_byte.Controllers
                     (id_repuesto, id_usuario, id_orden, tipo_movimiento,
                      cantidad, stock_anterior, stock_nuevo, motivo)
                 VALUES (@rep, @usr, @ord, @tipo, @cant, @ant, @nuevo, @mot)", conn);
-            cmd.Parameters.AddWithValue("@rep",   idRepuesto);
-            cmd.Parameters.AddWithValue("@usr",   idUsuario);
-            cmd.Parameters.AddWithValue("@ord",   (object?)idOrden ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@tipo",  tipo);
-            cmd.Parameters.AddWithValue("@cant",  cantidad);
-            cmd.Parameters.AddWithValue("@ant",   stockAnterior);
+            cmd.Parameters.AddWithValue("@rep", idRepuesto);
+            cmd.Parameters.AddWithValue("@usr", idUsuario);
+            cmd.Parameters.AddWithValue("@ord", (object?)idOrden ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@tipo", tipo);
+            cmd.Parameters.AddWithValue("@cant", cantidad);
+            cmd.Parameters.AddWithValue("@ant", stockAnterior);
             cmd.Parameters.AddWithValue("@nuevo", stockNuevo);
-            cmd.Parameters.AddWithValue("@mot",   motivo);
+            cmd.Parameters.AddWithValue("@mot", motivo);
             cmd.ExecuteNonQuery();
         }
     }

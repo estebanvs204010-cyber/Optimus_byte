@@ -3,6 +3,7 @@
     ViewData["Title"] = "Panel de Mecanico";
     Layout = null;
     var inicial = Model.NombreMecanico.Length > 0 ? Model.NombreMecanico[0].ToString().ToUpper() : "M";
+    string[] estadosDisponibles = { "Pendiente", "En proceso", "Esperando repuesto", "Listo para entrega", "Entregado", "Cancelado" };
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -13,7 +14,587 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
     <link href="~/css/usuarios.css" rel="stylesheet" />
-    <link href="~/css/mecanico.css" rel="stylesheet" />
+    <style>
+        /* ── Modales ── */
+        .modal-mecanico .modal-content {
+            background: #1e2235;
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 16px;
+            color: #e2e8f0;
+        }
+
+        .modal-mecanico .modal-header {
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 1.25rem 1.5rem;
+        }
+
+        .modal-mecanico .modal-title {
+            font-size: .85rem;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .modal-mecanico .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-mecanico .modal-footer {
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding: 1rem 1.5rem;
+        }
+
+        .modal-mecanico label {
+            color: #94a3b8;
+        }
+
+        .modal-mecanico .modal-label {
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #94a3b8;
+            display: block;
+            margin-bottom: .4rem;
+        }
+
+        .modal-mecanico .modal-input {
+            width: 100%;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 8px;
+            color: #e2e8f0;
+            padding: .55rem .85rem;
+            font-size: .88rem;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+            .modal-mecanico .modal-input:focus {
+                border-color: #3b82f6;
+            }
+
+        .modal-mecanico textarea.modal-input {
+            resize: vertical;
+        }
+
+        /* ── Botones accion cards ── */
+        .card-actions {
+            display: flex;
+            gap: .5rem;
+            margin-top: .85rem;
+            flex-wrap: wrap;
+        }
+
+            .card-actions .btn-accion {
+                width: auto !important;
+                height: auto !important;
+                font-size: .68rem !important;
+                letter-spacing: .06em !important;
+                text-transform: uppercase !important;
+                font-weight: 600 !important;
+                padding: .38rem .9rem !important;
+                border-radius: 8px !important;
+                border: none !important;
+                cursor: pointer !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: .3rem !important;
+                white-space: nowrap !important;
+                transition: opacity .15s !important;
+            }
+
+                .card-actions .btn-accion:hover {
+                    opacity: .82 !important;
+                }
+
+        .btn-estado {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .btn-tiempo {
+            background: #7c3aed;
+            color: #fff;
+        }
+
+        /* ── Estado options ── */
+        .estado-option {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            padding: .55rem .85rem;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color .15s, background .15s;
+            margin-bottom: .4rem;
+            color: #e2e8f0;
+        }
+
+            .estado-option:hover {
+                background: rgba(255,255,255,.05);
+            }
+
+            .estado-option input[type=radio] {
+                accent-color: #2563eb;
+                width: 1rem;
+                height: 1rem;
+            }
+
+            .estado-option.selected {
+                border-color: #2563eb;
+                background: rgba(37,99,235,.15);
+            }
+
+        .dot-estado {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Tiempo estimado toggle ── */
+        .tiempo-toggle {
+            display: flex;
+            gap: .5rem;
+            margin-bottom: 1rem;
+        }
+
+            .tiempo-toggle button {
+                flex: 1;
+                padding: .45rem;
+                border-radius: 8px;
+                border: 2px solid rgba(255,255,255,.12);
+                background: transparent;
+                color: #94a3b8;
+                font-size: .75rem;
+                font-weight: 600;
+                letter-spacing: .06em;
+                text-transform: uppercase;
+                cursor: pointer;
+                transition: all .15s;
+            }
+
+                .tiempo-toggle button.active {
+                    border-color: #7c3aed;
+                    background: rgba(124,58,237,.15);
+                    color: #a78bfa;
+                }
+
+        /* ── Cuenta regresiva en card ── */
+        .countdown-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            background: rgba(124,58,237,.13);
+            border: 1px solid rgba(124,58,237,.3);
+            border-radius: 20px;
+            padding: .28rem .75rem;
+            font-size: .72rem;
+            font-weight: 600;
+            color: #a78bfa;
+            margin-top: .5rem;
+        }
+
+            .countdown-pill.urgente {
+                background: rgba(239,68,68,.13);
+                border-color: rgba(239,68,68,.3);
+                color: #f87171;
+            }
+
+            .countdown-pill.ok {
+                background: rgba(34,197,94,.1);
+                border-color: rgba(34,197,94,.25);
+                color: #4ade80;
+            }
+
+        /* ── Secciones mecanico (copiadas de lo que tenias) ── */
+        .mecanico-content {
+        }
+
+        .mechanic-hero {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .mechanic-avatar {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: var(--dorado-suave);
+            border: 2px solid var(--borde);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dorado);
+            flex-shrink: 0;
+        }
+
+        .mechanic-stats {
+            margin-bottom: 1.5rem;
+        }
+
+        .panel-section {
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-mini-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+        }
+
+            .section-mini-header h2 {
+                font-size: 1rem;
+                margin: 0 0 .2rem;
+                font-weight: 600;
+            }
+
+            .section-mini-header p {
+                font-size: .78rem;
+                color: var(--texto-suave);
+                margin: 0;
+            }
+
+            .section-mini-header.compact {
+                margin-bottom: .9rem;
+            }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @@media (max-width: 900px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+            .two-column
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        }
+
+        .agenda-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+
+        .appointment-card {
+            background: #f8faff;
+            border: 1px solid var(--borde-input);
+            border-radius: 10px;
+            display: flex;
+            overflow: visible;
+        }
+
+        .appointment-time {
+            background: var(--dorado-suave);
+            border-right: 1px solid var(--borde);
+            padding: 1rem .75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 64px;
+            border-radius: 10px 0 0 10px;
+            font-size: .72rem;
+            color: var(--dorado);
+            text-align: center;
+            gap: .2rem;
+        }
+
+            .appointment-time strong {
+                font-size: .85rem;
+            }
+
+        .appointment-body {
+            padding: .9rem 1rem;
+            flex: 1;
+            overflow: visible;
+        }
+
+            .appointment-body h3 {
+                font-size: .92rem;
+                margin: 0 0 .3rem;
+                font-weight: 700;
+            }
+
+        .vehicle-line, .client-line, .service-line {
+            font-size: .78rem;
+            color: var(--texto-suave);
+            margin: 0 0 .25rem;
+        }
+
+        .estimate-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            font-size: .7rem;
+            background: var(--dorado-suave);
+            color: var(--dorado);
+            border-radius: 20px;
+            padding: .2rem .65rem;
+            margin-top: .4rem;
+        }
+
+        .mechanic-table {
+            margin-top: 1rem;
+        }
+
+        /* historial / timeline */
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: .85rem;
+        }
+
+        .timeline-item {
+            border-left: 2px solid var(--borde);
+            padding-left: 1rem;
+            font-size: .82rem;
+        }
+
+        .timeline-date {
+            font-size: .7rem;
+            color: var(--texto-suave);
+        }
+
+        .timeline-item h3 {
+            font-size: .88rem;
+            margin: .2rem 0;
+        }
+
+        .timeline-item p {
+            margin: 0 0 .2rem;
+            color: var(--texto-suave);
+        }
+
+        .parts-line {
+            font-size: .75rem;
+            color: var(--dorado);
+        }
+
+        /* checklists */
+        .checklist-box {
+            margin-bottom: 1rem;
+        }
+
+        .checklist-title {
+            display: flex;
+            justify-content: space-between;
+            font-size: .82rem;
+            margin-bottom: .5rem;
+        }
+
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            font-size: .82rem;
+            margin-bottom: .3rem;
+            cursor: pointer;
+        }
+
+        .slim-progress {
+            height: 4px;
+            border-radius: 2px;
+            background: var(--grafito-med);
+            margin-top: .5rem;
+        }
+
+        /* evidencias */
+        .mechanic-form {
+            display: flex;
+            flex-direction: column;
+            gap: .65rem;
+        }
+
+        .form-grid-small {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .65rem;
+        }
+
+        .textarea-custom {
+            width: 100%;
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 4px;
+            padding: .55rem .85rem;
+            font-size: .85rem;
+            font-family: inherit;
+            outline: none;
+            resize: vertical;
+            transition: border-color .15s;
+        }
+
+            .textarea-custom:focus {
+                border-color: var(--dorado);
+            }
+
+        .file-custom {
+            font-size: .82rem;
+        }
+
+        .evidence-list {
+            margin-top: .85rem;
+            display: flex;
+            flex-direction: column;
+            gap: .6rem;
+        }
+
+        .evidence-item {
+            display: flex;
+            gap: .75rem;
+            font-size: .82rem;
+            align-items: flex-start;
+        }
+
+            .evidence-item i {
+                font-size: 1.3rem;
+                color: var(--dorado);
+                margin-top: .1rem;
+            }
+
+            .evidence-item p {
+                margin: 0;
+                color: var(--texto-suave);
+                font-size: .75rem;
+            }
+
+        /* mensajes */
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: .65rem;
+            margin-bottom: .75rem;
+        }
+
+        .message-item {
+            font-size: .82rem;
+            border-bottom: 1px solid var(--borde-input);
+            padding-bottom: .65rem;
+        }
+
+            .message-item div {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: .2rem;
+            }
+
+        .message-priority {
+            font-size: .68rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--dorado-suave);
+            color: var(--dorado);
+        }
+
+        .message-item p {
+            margin: 0 0 .2rem;
+            color: var(--texto-suave);
+        }
+
+        /* manuales */
+        .manual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+            gap: .75rem;
+        }
+
+        .manual-card {
+            display: flex;
+            flex-direction: column;
+            gap: .3rem;
+            background: var(--grafito-med);
+            border: 1px solid var(--borde-input);
+            border-radius: 8px;
+            padding: .85rem;
+            text-decoration: none;
+            color: var(--texto-claro);
+            font-size: .78rem;
+            transition: border-color .15s;
+        }
+
+            .manual-card:hover {
+                border-color: var(--dorado);
+            }
+
+            .manual-card i {
+                font-size: 1.4rem;
+                color: var(--dorado);
+            }
+
+            .manual-card span {
+                font-size: .68rem;
+                color: var(--texto-suave);
+            }
+
+        /* herramientas */
+        .tool-list {
+            display: flex;
+            flex-direction: column;
+            gap: .6rem;
+        }
+
+        .tool-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: .82rem;
+        }
+
+            .tool-item div span {
+                display: block;
+                font-size: .72rem;
+                color: var(--texto-suave);
+            }
+
+        /* tiempo real */
+        .time-form {
+            display: flex;
+            gap: .65rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+            .time-form .input-custom {
+                flex: 1;
+                min-width: 140px;
+            }
+
+        .bg-blue-soft {
+            background: rgba(37,99,235,.08);
+        }
+
+        .bg-green-soft {
+            background: rgba(22,163,74,.08);
+        }
+
+        .bg-cyan-soft {
+            background: rgba(6,182,212,.08);
+        }
+
+        .bg-red-soft {
+            background: rgba(220,38,38,.08);
+        }
+    </style>
 </head>
 <body>
     <div class="admin-topbar">
@@ -22,12 +603,8 @@
             <span class="badge-admin">Mecanico</span>
         </div>
         <div class="d-flex align-items-center gap-3">
-            <span class="admin-name">
-                <i class="bi bi-person-circle me-1"></i>@Model.NombreMecanico
-            </span>
-            <a href="/Login/Logout" class="btn-salir">
-                <i class="bi bi-box-arrow-right me-1"></i>Salir
-            </a>
+            <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@Model.NombreMecanico</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
         </div>
     </div>
 
@@ -54,15 +631,11 @@
 
         @if (TempData["Exito"] != null)
         {
-            <div class="alerta alerta-ok">
-                <i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]
-            </div>
+            <div class="alerta alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
         }
         @if (TempData["Error"] != null)
         {
-            <div class="alerta alerta-err">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
-            </div>
+            <div class="alerta alerta-err"><i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]</div>
         }
 
         <section class="stats-row mechanic-stats">
@@ -123,9 +696,33 @@
                             <p class="vehicle-line">@cita.Vehiculo · @cita.Placa</p>
                             <p class="client-line"><i class="bi bi-person me-1"></i>@cita.Cliente</p>
                             <p class="service-line">@cita.Servicio</p>
-                            <div class="estimate-pill">
-                                <i class="bi bi-stopwatch"></i>
-                                Estimado: @cita.TiempoEstimadoMinutos min
+                            @if (!string.IsNullOrWhiteSpace(cita.Diagnostico))
+                            {
+                                <p class="service-line" style="color:var(--texto-suave);font-size:.75rem;">
+                                    <i class="bi bi-clipboard2-pulse me-1"></i>@cita.Diagnostico
+                                </p>
+                            }
+
+                            @* Cuenta regresiva si hay fecha estimada *@
+                            @if (cita.FechaEntregaEstimada.HasValue)
+                            {
+                                <div class="countdown-pill">
+                                    <i class="bi bi-clock"></i>
+                                    <span data-entrega="@cita.FechaEntregaEstimada.Value.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                        Calculando...
+                                    </span>
+                                </div>
+                            }
+
+                            <div class="card-actions">
+                                <button type="button" class="btn-accion btn-estado"
+                                        onclick="abrirModalEstado(@cita.Id, '@Html.Raw(cita.Estado)')">
+                                    <i class="bi bi-arrow-repeat"></i> Cambiar estado
+                                </button>
+                                <button type="button" class="btn-accion btn-tiempo"
+                                        onclick="abrirModalTiempo(@cita.Id)">
+                                    <i class="bi bi-clock"></i> Tiempo estimado
+                                </button>
                             </div>
                         </div>
                     </article>
@@ -141,7 +738,9 @@
                             <th>Cliente</th>
                             <th>Vehiculo</th>
                             <th>Servicio</th>
-                            <th>Estimado</th>
+                            <th>Estado</th>
+                            <th>Entrega estimada</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -153,7 +752,32 @@
                                 <td>@cita.Cliente</td>
                                 <td>@cita.Vehiculo - @cita.Placa</td>
                                 <td>@cita.Servicio</td>
-                                <td>@cita.TiempoEstimadoMinutos min</td>
+                                <td><span class="estado-badge estado-activo">@cita.Estado</span></td>
+                                <td>
+                                    @if (cita.FechaEntregaEstimada.HasValue)
+                                    {
+                                        <span data-entrega="@cita.FechaEntregaEstimada.Value.ToString("yyyy-MM-ddTHH:mm:ss")"
+                                              style="font-size:.78rem;color:#7c3aed;font-weight:600">
+                                            Calculando...
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size:.75rem;color:#94a3b8">Sin definir</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                                        <button type="button" class="btn-accion btn-estado"
+                                                onclick="abrirModalEstado(@cita.Id, '@Html.Raw(cita.Estado)')">
+                                            <i class="bi bi-arrow-repeat"></i> Estado
+                                        </button>
+                                        <button type="button" class="btn-accion btn-tiempo"
+                                                onclick="abrirModalTiempo(@cita.Id)">
+                                            <i class="bi bi-clock"></i> Tiempo
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -164,10 +788,7 @@
         <section class="two-column">
             <div id="historial" class="panel-section">
                 <div class="section-mini-header compact">
-                    <div>
-                        <h2>Historial de servicios</h2>
-                        <p>Contexto tecnico del vehiculo antes de intervenir.</p>
-                    </div>
+                    <div><h2>Historial de servicios</h2><p>Contexto tecnico del vehiculo antes de intervenir.</p></div>
                 </div>
                 <div class="timeline-list">
                     @foreach (var servicio in Model.HistorialServicios)
@@ -176,30 +797,20 @@
                             <span class="timeline-date">@servicio.Fecha.ToString("dd/MM/yyyy")</span>
                             <h3>@servicio.Vehiculo</h3>
                             <p>@servicio.Diagnostico</p>
-                            <div class="parts-line">
-                                <i class="bi bi-nut-fill"></i>
-                                @servicio.PartesReemplazadas
-                            </div>
+                            <div class="parts-line"><i class="bi bi-nut-fill"></i> @servicio.PartesReemplazadas</div>
                             <small>Tecnico anterior: @servicio.Tecnico</small>
                         </article>
                     }
                 </div>
             </div>
-
             <div id="checklists" class="panel-section">
                 <div class="section-mini-header compact">
-                    <div>
-                        <h2>Checklists digitales</h2>
-                        <p>Marca pasos de inspeccion y mantenimiento.</p>
-                    </div>
+                    <div><h2>Checklists digitales</h2><p>Marca pasos de inspeccion y mantenimiento.</p></div>
                 </div>
                 @foreach (var checklist in Model.Checklists)
                 {
                     <article class="checklist-box">
-                        <div class="checklist-title">
-                            <strong>@checklist.Nombre</strong>
-                            <span>@checklist.Orden</span>
-                        </div>
+                        <div class="checklist-title"><strong>@checklist.Nombre</strong><span>@checklist.Orden</span></div>
                         @foreach (var paso in checklist.Pasos)
                         {
                             <label class="check-row">
@@ -207,9 +818,7 @@
                                 <span>@paso</span>
                             </label>
                         }
-                        <div class="progress slim-progress">
-                            <div class="progress-bar" style="width:0%"></div>
-                        </div>
+                        <div class="progress slim-progress"><div class="progress-bar" style="width:0%"></div></div>
                     </article>
                 }
             </div>
@@ -218,10 +827,7 @@
         <section class="two-column">
             <div id="evidencias" class="panel-section">
                 <div class="section-mini-header compact">
-                    <div>
-                        <h2>Carga de evidencias</h2>
-                        <p>Fotos y notas del antes y despues de la reparacion.</p>
-                    </div>
+                    <div><h2>Carga de evidencias</h2><p>Fotos y notas del antes y despues de la reparacion.</p></div>
                 </div>
                 <form asp-controller="Mecanico" asp-action="CargarEvidencia" method="post" enctype="multipart/form-data" class="mechanic-form">
                     @Html.AntiForgeryToken()
@@ -240,11 +846,8 @@
                     </div>
                     <textarea name="nota" class="textarea-custom" rows="3" placeholder="Describe la evidencia o el estado del vehiculo"></textarea>
                     <input name="archivos" type="file" multiple class="file-custom" accept="image/*" />
-                    <button type="submit" class="btn-guardar">
-                        <i class="bi bi-cloud-arrow-up me-2"></i><span>Subir evidencia</span>
-                    </button>
+                    <button type="submit" class="btn-guardar"><i class="bi bi-cloud-arrow-up me-2"></i><span>Subir evidencia</span></button>
                 </form>
-
                 <div class="evidence-list">
                     @foreach (var evidencia in Model.Evidencias)
                     {
@@ -262,19 +865,13 @@
 
             <div id="mensajes" class="panel-section">
                 <div class="section-mini-header compact">
-                    <div>
-                        <h2>Chat interno</h2>
-                        <p>Comunicate con administracion o recepcion.</p>
-                    </div>
+                    <div><h2>Chat interno</h2><p>Comunicate con administracion o recepcion.</p></div>
                 </div>
                 <div class="message-list">
                     @foreach (var mensaje in Model.Mensajes)
                     {
                         <article class="message-item">
-                            <div>
-                                <strong>@mensaje.De</strong>
-                                <span class="message-priority">@mensaje.Prioridad</span>
-                            </div>
+                            <div><strong>@mensaje.De</strong><span class="message-priority">@mensaje.Prioridad</span></div>
                             <p>@mensaje.Mensaje</p>
                             <small>@mensaje.FechaHora.ToString("hh:mm tt")</small>
                         </article>
@@ -288,9 +885,7 @@
                         <option>Inventario</option>
                     </select>
                     <textarea name="mensaje" class="textarea-custom" rows="3" placeholder="Escribe una consulta sobre la orden o repuestos"></textarea>
-                    <button type="submit" class="btn-guardar">
-                        <i class="bi bi-send-fill me-2"></i><span>Enviar</span>
-                    </button>
+                    <button type="submit" class="btn-guardar"><i class="bi bi-send-fill me-2"></i><span>Enviar</span></button>
                 </form>
             </div>
         </section>
@@ -298,10 +893,7 @@
         <section class="two-column">
             <div id="manuales" class="panel-section">
                 <div class="section-mini-header compact">
-                    <div>
-                        <h2>Manuales y guias tecnicas</h2>
-                        <p>Accesos rapidos para diagnostico y mantenimiento.</p>
-                    </div>
+                    <div><h2>Manuales y guias tecnicas</h2><p>Accesos rapidos para diagnostico y mantenimiento.</p></div>
                 </div>
                 <div class="manual-grid">
                     @foreach (var manual in Model.Manuales)
@@ -314,13 +906,9 @@
                     }
                 </div>
             </div>
-
             <div id="herramientas" class="panel-section">
                 <div class="section-mini-header compact">
-                    <div>
-                        <h2>Gestion de herramientas</h2>
-                        <p>Control de uso y alertas de mantenimiento.</p>
-                    </div>
+                    <div><h2>Gestion de herramientas</h2><p>Control de uso y alertas de mantenimiento.</p></div>
                 </div>
                 <div class="tool-list">
                     @foreach (var herramienta in Model.Herramientas)
@@ -340,10 +928,7 @@
 
         <section class="panel-section">
             <div class="section-mini-header compact">
-                <div>
-                    <h2>Tiempo real de reparacion</h2>
-                    <p>Registra la duracion para medir productividad y planificar mejor.</p>
-                </div>
+                <div><h2>Tiempo real de reparacion</h2><p>Registra la duracion para medir productividad y planificar mejor.</p></div>
             </div>
             <form asp-controller="Mecanico" asp-action="RegistrarTiempo" method="post" class="time-form">
                 @Html.AntiForgeryToken()
@@ -355,27 +940,201 @@
                 </select>
                 <input name="minutos" type="number" min="1" class="input-custom" placeholder="Minutos usados" />
                 <input name="observacion" class="input-custom" placeholder="Observacion del trabajo realizado" />
-                <button type="submit" class="btn-guardar">
-                    <i class="bi bi-stopwatch-fill me-2"></i><span>Registrar tiempo</span>
-                </button>
+                <button type="submit" class="btn-guardar"><i class="bi bi-stopwatch-fill me-2"></i><span>Registrar tiempo</span></button>
             </form>
         </section>
     </main>
 
+    @* MODAL: Cambiar estado *@
+    <div class="modal fade modal-mecanico" id="modalEstado" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-arrow-repeat me-2"></i>Cambiar estado · <span id="modalEstadoOT"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Mecanico" asp-action="CambiarEstado" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ordenId" id="estadoOrdenId" />
+                    <div class="modal-body">
+                        <p class="modal-label" style="margin-bottom:1rem">Selecciona el nuevo estado</p>
+                        @{
+                            var coloresEstado = new Dictionary<string, string> {
+                                                { "Pendiente", "#f59e0b" }, { "En proceso", "#3b82f6" },
+                                                { "Esperando repuesto", "#ef4444" }, { "Listo para entrega", "#8b5cf6" },
+                                                { "Entregado", "#22c55e" }, { "Cancelado", "#6b7280" }
+                                                };
+                        }
+                        @foreach (var est in estadosDisponibles)
+                        {
+                            var color = coloresEstado.ContainsKey(est) ? coloresEstado[est] : "#6b7280";
+                            <label class="estado-option" onclick="seleccionarEstado(this)">
+                                <input type="radio" name="nuevoEstado" value="@est" />
+                                <span class="dot-estado" style="background:@color"></span>
+                                <span>@est</span>
+                            </label>
+                        }
+                        <div style="margin-top:1rem">
+                            <label class="modal-label">Observacion (opcional)</label>
+                            <textarea name="observacion" class="modal-input" rows="2"
+                                      placeholder="Ej: esperando llegada de filtro de aceite..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-salir" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="bi bi-check-lg me-1"></i> Guardar estado</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @* MODAL: Tiempo estimado de entrega *@
+    <div class="modal fade modal-mecanico" id="modalTiempo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-clock me-2"></i>Tiempo estimado · <span id="modalTiempoOT"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Mecanico" asp-action="GuardarTiempoEstimado" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ordenId" id="tiempoOrdenId" />
+                    <div class="modal-body">
+                        <p class="modal-label" style="margin-bottom:.75rem">¿Como quieres definir el tiempo?</p>
+                        <div class="tiempo-toggle">
+                            <button type="button" id="btnModoHoras" class="active" onclick="cambiarModoTiempo('horas')">
+                                <i class="bi bi-hourglass-split me-1"></i> En horas
+                            </button>
+                            <button type="button" id="btnModoDias" onclick="cambiarModoTiempo('dias')">
+                                <i class="bi bi-calendar3 me-1"></i> Por fecha
+                            </button>
+                        </div>
+
+                        @* Modo horas *@
+                        <div id="panelHoras">
+                            <label class="modal-label">Cuantas horas aproximadamente</label>
+                            <input type="number" id="inputHoras" name="horas" min="1" max="999"
+                                   class="modal-input" placeholder="Ej: 3" style="margin-bottom:.5rem" />
+                            <p style="font-size:.72rem;color:#64748b;margin:0">
+                                Se calculara la fecha de entrega desde ahora.
+                            </p>
+                        </div>
+
+                        @* Modo fecha *@
+                        <div id="panelFecha" style="display:none">
+                            <label class="modal-label">Fecha y hora de entrega estimada</label>
+                            <input type="datetime-local" id="inputFecha" name="fechaEntrega"
+                                   class="modal-input" style="color-scheme:dark" />
+                            <p style="font-size:.72rem;color:#64748b;margin-top:.4rem;margin-bottom:0">
+                                El cliente vera una cuenta regresiva hasta esta fecha.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-salir" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-guardar"><i class="bi bi-floppy me-1"></i> Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ── Agenda ────────────────────────────────────────────────────
         function alternarAgenda() {
             document.getElementById('agendaCards').classList.toggle('d-none');
             document.getElementById('agendaTabla').classList.toggle('d-none');
         }
 
+        // ── Checklists ────────────────────────────────────────────────
         function actualizarProgreso(checkbox) {
             const box = checkbox.closest('.checklist-box');
-            const checks = box.querySelectorAll('input[type="checkbox"]');
+            const checks  = box.querySelectorAll('input[type="checkbox"]');
             const marcados = box.querySelectorAll('input[type="checkbox"]:checked');
-            const porcentaje = Math.round((marcados.length / checks.length) * 100);
-            box.querySelector('.progress-bar').style.width = porcentaje + '%';
+            box.querySelector('.progress-bar').style.width =
+                Math.round((marcados.length / checks.length) * 100) + '%';
         }
+
+        // ── Modal estado ──────────────────────────────────────────────
+        function abrirModalEstado(ordenId, estadoActual) {
+            document.getElementById('estadoOrdenId').value = ordenId;
+            document.getElementById('modalEstadoOT').textContent = 'OT-' + ordenId;
+            document.querySelectorAll('#modalEstado input[type=radio]').forEach(r => {
+                const opt = r.closest('.estado-option');
+                r.checked = (r.value === estadoActual);
+                opt.classList.toggle('selected', r.checked);
+            });
+            new bootstrap.Modal(document.getElementById('modalEstado')).show();
+        }
+
+        function seleccionarEstado(label) {
+            document.querySelectorAll('#modalEstado .estado-option').forEach(o => o.classList.remove('selected'));
+            label.classList.add('selected');
+            label.querySelector('input[type=radio]').checked = true;
+        }
+
+        // ── Modal tiempo estimado ─────────────────────────────────────
+        function abrirModalTiempo(ordenId) {
+            document.getElementById('tiempoOrdenId').value = ordenId;
+            document.getElementById('modalTiempoOT').textContent = 'OT-' + ordenId;
+            // Poner minimo de fecha = ahora
+            const ahora = new Date();
+            ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
+            document.getElementById('inputFecha').min = ahora.toISOString().slice(0,16);
+            document.getElementById('inputFecha').value = '';
+            document.getElementById('inputHoras').value = '';
+            cambiarModoTiempo('horas');
+            new bootstrap.Modal(document.getElementById('modalTiempo')).show();
+        }
+
+        function cambiarModoTiempo(modo) {
+            const esHoras = modo === 'horas';
+            document.getElementById('panelHoras').style.display  = esHoras ? '' : 'none';
+            document.getElementById('panelFecha').style.display  = esHoras ? 'none' : '';
+            document.getElementById('btnModoHoras').classList.toggle('active', esHoras);
+            document.getElementById('btnModoDias').classList.toggle('active', !esHoras);
+            // Limpiar el campo que no se usa para no enviarlo
+            if (esHoras) {
+                document.getElementById('inputFecha').value = '';
+            } else {
+                document.getElementById('inputHoras').value = '';
+            }
+        }
+
+        // ── Cuentas regresivas ────────────────────────────────────────
+        function actualizarCuentas() {
+            document.querySelectorAll('[data-entrega]').forEach(el => {
+                const fechaEntrega = new Date(el.dataset.entrega);
+                const ahora = new Date();
+                const diff = fechaEntrega - ahora;
+
+                if (diff <= 0) {
+                    el.textContent = 'Tiempo vencido';
+                    el.closest('.countdown-pill').classList.add('urgente');
+                    return;
+                }
+
+                const dias  = Math.floor(diff / 86400000);
+                const horas = Math.floor((diff % 86400000) / 3600000);
+                const mins  = Math.floor((diff % 3600000)  / 60000);
+
+                let texto = '';
+                if (dias > 0)       texto = `${dias}d ${horas}h restantes`;
+                else if (horas > 0) texto = `${horas}h ${mins}m restantes`;
+                else                texto = `${mins} min restantes`;
+
+                el.textContent = texto;
+
+                const pill = el.closest('.countdown-pill');
+                if (diff < 3600000)       pill.classList.add('urgente');
+                else if (diff > 86400000) pill.classList.add('ok');
+            });
+        }
+
+        actualizarCuentas();
+        setInterval(actualizarCuentas, 30000);
     </script>
 </body>
 </html>
