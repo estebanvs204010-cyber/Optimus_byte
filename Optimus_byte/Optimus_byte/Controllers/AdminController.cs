@@ -34,6 +34,10 @@ namespace Optimus_byte.Controllers
                 "SELECT COUNT(1) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
             vm.OrdenesHoy      = EjecutarScalar<int>(conn,
                 "SELECT COUNT(1) FROM OrdenesTrabajo WHERE CAST(fecha_apertura AS DATE) = CAST(GETDATE() AS DATE)");
+            vm.CitasHoy = CitasController.ContarCitasHoy(conn);
+            vm.ProximasCitas = CitasController.ContarProximasCitas(conn);
+            vm.VehiculosMantenimiento = EjecutarScalar<int>(conn,
+                "SELECT COUNT(DISTINCT id_vehiculo) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
             vm.RepuestosBajoStock = EjecutarScalar<int>(conn,
                 "SELECT COUNT(1) FROM Repuestos WHERE stock_actual <= stock_minimo AND activo = 1");
             vm.IngresosMes     = EjecutarScalar<decimal>(conn,
@@ -69,6 +73,8 @@ namespace Optimus_byte.Controllers
                         Mecanico      = r["mecanico"].ToString()!
                     });
             }
+
+            vm.CitasRecientes = CitasController.ObtenerCitasGenerales(conn, 8);
 
             // Repuestos con bajo stock
             using (var cmd2 = new SqlCommand(@"

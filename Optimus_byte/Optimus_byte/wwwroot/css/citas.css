@@ -1,0 +1,315 @@
+:root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --ink: #172033;
+    --muted: #64748b;
+    --line: #dbe3ec;
+    --blue: #2563eb;
+    --blue-soft: rgba(37, 99, 235, 0.09);
+    --green: #15803d;
+    --red: #b91c1c;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", sans-serif;
+}
+
+a {
+    text-decoration: none;
+}
+
+.citas-page {
+    width: min(1180px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 22px 0 42px;
+}
+
+.citas-topbar {
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--ink);
+    font-weight: 800;
+}
+
+.brand-link img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+}
+
+.btn-main,
+.btn-outline-soft {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 42px;
+    border-radius: 6px;
+    padding: 0 16px;
+    font-weight: 700;
+}
+
+.btn-main {
+    border: 0;
+    background: var(--blue);
+    color: #fff;
+}
+
+.btn-main:hover {
+    color: #fff;
+    background: #1d4ed8;
+}
+
+.btn-outline-soft {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+}
+
+.login-required,
+.citas-hero,
+.citas-panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+}
+
+.login-required {
+    min-height: 470px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    text-align: center;
+    padding: 42px;
+}
+
+.login-icon {
+    width: 76px;
+    height: 76px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-size: 2rem;
+    margin-bottom: 18px;
+}
+
+.login-required h1,
+.citas-hero h1,
+.panel-heading h2 {
+    margin: 0;
+    font-weight: 800;
+}
+
+.login-required p,
+.citas-hero p,
+.empty-state p,
+.cita-item p,
+.cita-item small {
+    color: var(--muted);
+}
+
+.login-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.citas-hero {
+    padding: 30px;
+    margin: 12px 0 22px;
+}
+
+.eyebrow {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--blue);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.alert-msg {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.alert-msg.ok {
+    background: rgba(21, 128, 61, 0.09);
+    color: var(--green);
+    border: 1px solid rgba(21, 128, 61, 0.18);
+}
+
+.alert-msg.err {
+    background: rgba(185, 28, 28, 0.08);
+    color: var(--red);
+    border: 1px solid rgba(185, 28, 28, 0.18);
+}
+
+.citas-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.92fr) minmax(420px, 1.08fr);
+    gap: 22px;
+}
+
+.citas-panel {
+    padding: 24px;
+}
+
+.panel-heading {
+    margin-bottom: 18px;
+}
+
+.cita-form,
+.empty-state {
+    display: grid;
+    gap: 14px;
+}
+
+.cita-form label {
+    display: grid;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.cita-form input,
+.cita-form select,
+.cita-form textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 11px 12px;
+    color: var(--ink);
+    font: inherit;
+    outline: none;
+}
+
+.cita-form input:focus,
+.cita-form select:focus,
+.cita-form textarea:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.empty-state {
+    justify-items: start;
+    background: #f8fafc;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 22px;
+}
+
+.empty-state i {
+    color: var(--blue);
+    font-size: 1.8rem;
+}
+
+.empty-state h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.empty-state.compact {
+    justify-items: center;
+    text-align: center;
+}
+
+.citas-list {
+    display: grid;
+    gap: 12px;
+}
+
+.cita-item {
+    display: grid;
+    grid-template-columns: 94px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.date-box {
+    display: grid;
+    place-items: center;
+    min-height: 72px;
+    border-radius: 8px;
+    background: var(--blue-soft);
+    color: var(--blue);
+}
+
+.date-box span {
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.date-box strong {
+    font-size: 0.92rem;
+}
+
+.cita-item h3,
+.cita-item p {
+    margin: 0;
+}
+
+.cita-item small {
+    display: block;
+    margin-top: 4px;
+}
+
+.status-pill {
+    border-radius: 999px;
+    background: var(--blue-soft);
+    color: var(--blue);
+    padding: 6px 10px;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+@media (max-width: 860px) {
+    .citas-grid,
+    .form-row,
+    .cita-item {
+        grid-template-columns: 1fr;
+    }
+
+    .status-pill {
+        width: fit-content;
+    }
+}

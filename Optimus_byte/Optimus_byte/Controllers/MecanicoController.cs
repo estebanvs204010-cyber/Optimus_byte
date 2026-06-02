@@ -50,6 +50,7 @@ namespace Optimus_byte.Controllers
                     Estado = orden.Estado,
                     TiempoEstimadoMinutos = EstimarMinutos(orden.TipoServicio)
                 }).ToList(),
+                CitasClientes = CitasController.ObtenerCitasGenerales(conn, 12),
                 HistorialServicios = historialBase.Select(orden => new ServicioVehiculoViewModel
                 {
                     Fecha = orden.FechaCierre ?? orden.FechaApertura,
