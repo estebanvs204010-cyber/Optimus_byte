@@ -39,5 +39,8 @@ namespace Optimus_byte.Models.ViewModels
         [Compare("Contrasena", ErrorMessage = "Las contraseñas no coinciden")]
         [Display(Name = "Confirmar contraseña")]
         public string ConfirmarContrasena { get; set; } = "";
+
+        public string? Error { get; set; }
+
     }
 }
