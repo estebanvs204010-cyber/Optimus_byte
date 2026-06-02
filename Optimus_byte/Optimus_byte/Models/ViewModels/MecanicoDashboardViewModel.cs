@@ -4,6 +4,7 @@ namespace Optimus_byte.Models.ViewModels
     {
         public string NombreMecanico { get; set; } = string.Empty;
         public List<CitaAsignadaViewModel> CitasAsignadas { get; set; } = new();
+        public List<CitaClienteViewModel> CitasClientes { get; set; } = new();
         public List<ServicioVehiculoViewModel> HistorialServicios { get; set; } = new();
         public List<ChecklistTecnicoViewModel> Checklists { get; set; } = new();
         public List<EvidenciaViewModel> Evidencias { get; set; } = new();

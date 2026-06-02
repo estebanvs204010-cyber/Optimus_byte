@@ -642,8 +642,8 @@
             <div class="stat-card">
                 <div class="stat-icon bg-blue-soft"><i class="bi bi-calendar-check text-primary"></i></div>
                 <div>
-                    <div class="stat-num">@Model.CitasAsignadas.Count</div>
-                    <div class="stat-label">Citas asignadas</div>
+                    <div class="stat-num">@Model.CitasClientes.Count</div>
+                    <div class="stat-label">Citas de clientes</div>
                 </div>
             </div>
             <div class="stat-card">
@@ -666,6 +666,49 @@
                     <div class="stat-num">@Model.Herramientas.Count(h => h.Estado.Contains("revision", StringComparison.OrdinalIgnoreCase))</div>
                     <div class="stat-label">Herramientas por revisar</div>
                 </div>
+            </div>
+        </section>
+
+        <section class="panel-section">
+            <div class="section-mini-header">
+                <div>
+                    <h2>Citas solicitadas por clientes</h2>
+                    <p>Reservas que entran desde el botón de citas de la página principal.</p>
+                </div>
+            </div>
+
+            <div class="tabla-wrapper mechanic-table">
+                <table class="tabla-usuarios">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Vehículo</th>
+                            <th>Servicio</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cita in Model.CitasClientes)
+                        {
+                            <tr>
+                                <td>@cita.FechaHora.ToString("dd/MM/yyyy hh:mm tt")</td>
+                                <td>@cita.Cliente</td>
+                                <td>@cita.Vehiculo - @cita.Placa</td>
+                                <td>@cita.Servicio</td>
+                                <td><span class="estado-badge estado-activo">@cita.Estado</span></td>
+                            </tr>
+                        }
+                        @if (!Model.CitasClientes.Any())
+                        {
+                            <tr>
+                                <td colspan="5" style="text-align:center;padding:24px;color:var(--texto-suave)">
+                                    Aún no hay citas solicitadas por clientes.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </section>
 

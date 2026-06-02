@@ -38,6 +38,11 @@
         .stock-bar { height: 6px; background: var(--grafito-med); border-radius: 3px; overflow: hidden; margin-top: 4px; }
         .stock-fill { height: 100%; border-radius: 3px; background: var(--dorado); }
         .stock-fill.critico { background: #dc2626; }
+        .citas-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .cita-chip { background: #fff; border: 1px solid var(--borde-input); border-radius: 6px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+        .cita-chip i { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: rgba(37,99,235,.08); color: var(--dorado); }
+        .cita-chip strong { display:block; font-size:1.35rem; color:var(--marfil); line-height:1; }
+        .cita-chip span { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--texto-suave); }
     </style>
 </head>
 <body>
@@ -70,6 +75,56 @@
             <div>
                 <h1 class="section-title">Dashboard</h1>
                 <p class="section-sub">Resumen general del sistema · @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("es-CO"))</p>
+            </div>
+        </div>
+
+        <div class="citas-strip">
+            <div class="cita-chip">
+                <i class="bi bi-calendar-day-fill"></i>
+                <div><strong>@Model.CitasHoy</strong><span>Total de citas del día</span></div>
+            </div>
+            <div class="cita-chip">
+                <i class="bi bi-car-front-fill"></i>
+                <div><strong>@Model.VehiculosMantenimiento</strong><span>Vehículos en mantenimiento</span></div>
+            </div>
+            <div class="cita-chip">
+                <i class="bi bi-calendar2-week-fill"></i>
+                <div><strong>@Model.ProximasCitas</strong><span>Próximas citas</span></div>
+            </div>
+            <div class="cita-chip">
+                <i class="bi bi-graph-up-arrow"></i>
+                <div><strong>@Model.OrdenesHoy</strong><span>Estadísticas rápidas</span></div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:20px">
+            <div class="panel-header">
+                <span class="panel-title"><i class="bi bi-calendar-check me-2"></i>Citas solicitadas por clientes</span>
+            </div>
+            <div class="panel-body">
+                <table class="mini-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th><th>Cliente</th><th>Vehículo</th><th>Servicio</th><th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cita in Model.CitasRecientes)
+                        {
+                            <tr>
+                                <td>@cita.FechaHora.ToString("dd/MM hh:mm tt")</td>
+                                <td>@cita.Cliente</td>
+                                <td><strong>@cita.Placa</strong> · @cita.Vehiculo</td>
+                                <td>@cita.Servicio</td>
+                                <td><span class="badge-estado estado-proceso">@cita.Estado</span></td>
+                            </tr>
+                        }
+                        @if (!Model.CitasRecientes.Any())
+                        {
+                            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--texto-suave)">Sin citas solicitadas</td></tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
 

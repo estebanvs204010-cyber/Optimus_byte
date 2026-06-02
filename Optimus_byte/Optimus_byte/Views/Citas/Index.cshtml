@@ -1,5 +1,182 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model Optimus_byte.Models.ViewModels.CitasClientePageViewModel
 @{
+    Layout = null;
+    ViewData["Title"] = "Agendar cita";
 }
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPTIMUS-BYTE - Agendar cita</title>
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/citas.css" rel="stylesheet" />
+</head>
+<body>
+    <main class="citas-page">
+        <nav class="citas-topbar">
+            <a asp-controller="Home" asp-action="Index" class="brand-link">
+                <img src="~/img/putin.png" alt="Optimus-Byte" />
+                <span>OPTIMUS-BYTE</span>
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn-outline-soft">
+                <i class="bi bi-house-door-fill"></i>
+                Inicio
+            </a>
+        </nav>
+
+        @if (Model.RequiereLogin)
+        {
+            <section class="login-required">
+                <div class="login-icon">
+                    <i class="bi bi-person-lock"></i>
+                </div>
+                <h1>Inicia sesión para agendar tu cita</h1>
+                <p>Para reservar una atención en el taller necesitamos saber quién eres y qué vehículo vas a traer.</p>
+                <div class="login-actions">
+                    <a asp-controller="Login" asp-action="Index" class="btn-main">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        Iniciar sesión
+                    </a>
+                    <a asp-controller="Registro" asp-action="Index" class="btn-outline-soft">
+                        Crear cuenta
+                    </a>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="citas-hero">
+                <div>
+                    <span class="eyebrow">Citas del cliente</span>
+                    <h1>Agenda tu cita, @Model.NombreCliente</h1>
+                    <p>Selecciona tu vehículo, el servicio que necesitas y el horario en el que quieres llevarlo al taller.</p>
+                </div>
+            </section>
+
+            @if (TempData["Exito"] != null)
+            {
+                <div class="alert-msg ok"><i class="bi bi-check-circle-fill"></i>@TempData["Exito"]</div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert-msg err"><i class="bi bi-exclamation-triangle-fill"></i>@TempData["Error"]</div>
+            }
+
+            <section class="citas-grid">
+                <article class="citas-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="eyebrow">Nueva reserva</span>
+                            <h2>Agendar cita</h2>
+                        </div>
+                    </div>
+
+                    @if (!Model.Vehiculos.Any())
+                    {
+                        <div class="empty-state">
+                            <i class="bi bi-car-front-fill"></i>
+                            <h3>Primero registra un vehículo</h3>
+                            <p>Necesitas tener un vehículo activo para poder solicitar una cita.</p>
+                            <a asp-controller="Cliente" asp-action="AgregarVehiculo" class="btn-main">
+                                Registrar vehículo
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-controller="Citas" asp-action="Agendar" method="post" class="cita-form">
+                            @Html.AntiForgeryToken()
+                            <label>
+                                Vehículo
+                                <select name="idVehiculo" required>
+                                    <option value="">Selecciona tu vehículo</option>
+                                    @foreach (var vehiculo in Model.Vehiculos)
+                                    {
+                                        <option value="@vehiculo.IdVehiculo">@vehiculo.Placa - @vehiculo.MarcaModelo</option>
+                                    }
+                                </select>
+                            </label>
+
+                            <label>
+                                Servicio
+                                <select name="servicio" required>
+                                    <option value="">Selecciona el servicio</option>
+                                    <option>Cambio de aceite</option>
+                                    <option>Alineación</option>
+                                    <option>Balanceo</option>
+                                    <option>Frenos</option>
+                                    <option>Mecánica general</option>
+                                </select>
+                            </label>
+
+                            <div class="form-row">
+                                <label>
+                                    Fecha
+                                    <input type="date" name="fecha" required />
+                                </label>
+                                <label>
+                                    Hora
+                                    <input type="time" name="hora" required />
+                                </label>
+                            </div>
+
+                            <label>
+                                Observaciones
+                                <textarea name="observaciones" rows="4" placeholder="Cuéntanos qué necesita tu vehículo"></textarea>
+                            </label>
+
+                            <button type="submit" class="btn-main">
+                                <i class="bi bi-calendar-plus-fill"></i>
+                                Solicitar cita
+                            </button>
+                        </form>
+                    }
+                </article>
+
+                <article class="citas-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="eyebrow">Seguimiento</span>
+                            <h2>Mis citas</h2>
+                        </div>
+                    </div>
+
+                    @if (!Model.MisCitas.Any())
+                    {
+                        <div class="empty-state compact">
+                            <i class="bi bi-calendar2-check"></i>
+                            <p>Aún no tienes citas solicitadas.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="citas-list">
+                            @foreach (var cita in Model.MisCitas)
+                            {
+                                <article class="cita-item">
+                                    <div class="date-box">
+                                        <span>@cita.FechaHora.ToString("dd MMM")</span>
+                                        <strong>@cita.FechaHora.ToString("hh:mm tt")</strong>
+                                    </div>
+                                    <div>
+                                        <h3>@cita.Servicio</h3>
+                                        <p>@cita.Vehiculo - @cita.Placa</p>
+                                        @if (!string.IsNullOrWhiteSpace(cita.Observaciones))
+                                        {
+                                            <small>@cita.Observaciones</small>
+                                        }
+                                    </div>
+                                    <span class="status-pill">@cita.Estado</span>
+                                </article>
+                            }
+                        </div>
+                    }
+                </article>
+            </section>
+        }
+    </main>
+</body>
+</html>

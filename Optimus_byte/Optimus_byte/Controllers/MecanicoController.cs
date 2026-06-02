@@ -52,6 +52,7 @@ namespace Optimus_byte.Controllers
                     Diagnostico = orden.Diagnostico,
                     FechaEntregaEstimada = orden.FechaEntregaEstimada
                 }).ToList(),
+                CitasClientes = CitasController.ObtenerCitasGenerales(conn, 12),
                 HistorialServicios = historialBase.Select(orden => new ServicioVehiculoViewModel
                 {
                     Fecha = orden.FechaCierre ?? orden.FechaApertura,
