@@ -1,6 +1,917 @@
 ﻿@{
-    ViewData["Title"] = "Privacy Policy";
+    ViewBag.Title = "Nuestros Servicios - Optimus-Byte";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<style>
+    :root {
+        --primary-color: #0052CC;
+        --primary-dark: #003FA0;
+        --primary-light: #F0F4FF;
+        --bg-primary: #FFFFFF;
+        --bg-secondary: #F5F5F5;
+        --text-primary: #1A1A1A;
+        --text-secondary: #666666;
+        --text-light: #999999;
+        --border-color: #E0E0E0;
+        --border-radius-md: 8px;
+        --border-radius-lg: 12px;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .servicios-header {
+        background: var(--bg-primary);
+        border-bottom: 0.5px solid var(--border-color);
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .logo {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .header-right {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .user-badge {
+        background: var(--bg-secondary);
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--border-radius-md);
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.625rem 1.25rem;
+        border-radius: var(--border-radius-md);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+    .btn-secondary {
+        background: white;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        padding: 0.625rem 1.25rem;
+        border-radius: var(--border-radius-md);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        .btn-secondary:hover {
+            background: var(--primary-light);
+        }
+
+    .btn-outline {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--border-radius-md);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        .btn-outline:hover {
+            background: var(--primary-light);
+        }
+
+    .section {
+        padding: 0 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .section-title {
+        font-size: 22px;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .section-desc {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+    }
+
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .service-card {
+        background: var(--bg-primary);
+        border: 0.5px solid var(--border-color);
+        border-radius: var(--border-radius-lg);
+        padding: 1.25rem;
+        cursor: pointer;
+    }
+
+        .service-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.1);
+        }
+
+    .service-icon {
+        font-size: 28px;
+        margin-bottom: 0.75rem;
+        display: block;
+    }
+
+    .service-card h3 {
+        font-size: 15px;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .service-card p {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .service-price {
+        margin-top: 0.75rem;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .detail-card {
+        background: var(--bg-primary);
+        border: 0.5px solid var(--border-color);
+        border-radius: var(--border-radius-lg);
+        padding: 1.25rem;
+    }
+
+        .detail-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-card ul {
+            list-style: none;
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .detail-card li::before {
+            content: "✓ ";
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+    .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .gallery-item {
+        background: linear-gradient(135deg, #E6F1FB 0%, #B5D4F4 100%);
+        border-radius: var(--border-radius-lg);
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        cursor: pointer;
+        border: 0.5px solid rgba(0, 82, 204, 0.2);
+    }
+
+        .gallery-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.15);
+        }
+
+    .reviews-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .review-card {
+        background: var(--bg-primary);
+        border: 0.5px solid var(--border-color);
+        border-radius: var(--border-radius-lg);
+        padding: 1rem;
+    }
+
+        .review-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0, 82, 204, 0.08);
+        }
+
+    .stars {
+        color: #FFA500;
+        font-size: 12px;
+        margin-bottom: 0.5rem;
+    }
+
+    .review-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+        line-height: 1.6;
+    }
+
+    .review-author {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .promo-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        border-radius: var(--border-radius-lg);
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 82, 204, 0.2);
+    }
+
+        .promo-card:hover {
+            box-shadow: 0 6px 16px rgba(0, 82, 204, 0.25);
+        }
+
+    .promo-content h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .promo-content p {
+        font-size: 12px;
+        opacity: 0.95;
+    }
+
+    .faq-container {
+        display: grid;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .faq-item {
+        background: var(--bg-primary);
+        border: 0.5px solid var(--border-color);
+        border-radius: var(--border-radius-lg);
+        padding: 1rem;
+        cursor: pointer;
+    }
+
+        .faq-item:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .faq-item.open {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0, 82, 204, 0.1);
+        }
+
+    .faq-question {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .faq-toggle {
+        font-size: 12px;
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+
+    .faq-answer {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 0.75rem;
+        line-height: 1.6;
+        display: none;
+    }
+
+    .faq-item.open .faq-answer {
+        display: block;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background-color: var(--bg-primary);
+        margin: 10% auto;
+        padding: 2rem;
+        border-radius: var(--border-radius-lg);
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .close {
+        color: var(--text-secondary);
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+        .close:hover {
+            color: var(--primary-color);
+        }
+
+    .modal-content h2 {
+        margin-bottom: 1.5rem;
+        color: var(--text-primary);
+        font-size: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 0.5px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+            .form-group input:focus,
+            .form-group select:focus,
+            .form-group textarea:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+            }
+
+    @@media (max-width: 768px) {
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .promo-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .servicios-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .services-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .gallery {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .reviews-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .servicios-header {
+            padding: 1rem;
+        }
+
+        .section {
+            padding: 0 1rem;
+        }
+
+        .modal-content {
+            width: 95%;
+            margin: 20% auto;
+            padding: 1.5rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-outline {
+            width: 100%;
+        }
+
+        .gallery {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .gallery-item {
+            font-size: 24px;
+        }
+    }
+</style>
+
+<!-- Header -->
+<header class="servicios-header">
+    <div class="logo">
+        <span style="font-size: 20px;">⚙️</span>
+        <span>OPTIMUS-BYTE</span>
+    </div>
+    <div class="header-right">
+        <span class="user-badge">👤 @User.Identity.Name</span>
+    </div>
+</header>
+
+<!-- Introducción -->
+<div style="padding: 0 1.5rem; margin-bottom: 2rem;">
+    <div style="background: var(--bg-primary); border-left: 3px solid #0052CC; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; padding: 1.5rem; margin-bottom: 1rem;">
+        <h2 style="font-size: 20px; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-primary);">Nuestros Servicios</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">Contamos con un equipo especializado para mantener tu vehículo en perfecto estado. Explora nuestro catálogo completo de servicios de calidad.</p>
+    </div>
+</div>
+
+<!-- Catálogo de Servicios -->
+<div class="section">
+    <h3 class="section-title">Catálogo de Servicios</h3>
+    <p class="section-desc">Servicios profesionales para tu vehículo</p>
+
+    <div class="services-grid">
+        <div class="service-card">
+            <span class="service-icon">🔍</span>
+            <h3>Diagnóstico Computarizado</h3>
+            <p>Escaneo avanzado del sistema electrónico para detectar fallas</p>
+            <div class="service-price">$85.000 - $150.000</div>
+        </div>
+
+        <div class="service-card">
+            <span class="service-icon">🔧</span>
+            <h3>Mantenimiento Preventivo</h3>
+            <p>Revisión completa y cambio de fluidos recomendados</p>
+            <div class="service-price">$200.000 - $400.000</div>
+        </div>
+
+        <div class="service-card">
+            <span class="service-icon">⚡</span>
+            <h3>Servicios Eléctricos</h3>
+            <p>Reparación de sistema eléctrico, batería y alternador</p>
+            <div class="service-price">$150.000 - $350.000</div>
+        </div>
+
+        <div class="service-card">
+            <span class="service-icon">🔩</span>
+            <h3>Reparaciones Mecánicas</h3>
+            <p>Reparación de motor, transmisión y componentes</p>
+            <div class="service-price">$300.000+</div>
+        </div>
+
+        <div class="service-card">
+            <span class="service-icon">✅</span>
+            <h3>Inspecciones Técnicas</h3>
+            <p>Certificación de revisión técnica y documentación</p>
+            <div class="service-price">$120.000 - $180.000</div>
+        </div>
+
+        <div class="service-card">
+            <span class="service-icon">🛞</span>
+            <h3>Alineación y Balanceo</h3>
+            <p>Alineación de dirección y balanceo de llantas</p>
+            <div class="service-price">$80.000 - $180.000</div>
+        </div>
+    </div>
+</div>
+
+<!-- Detalles de Servicios -->
+<div class="section">
+    <h3 class="section-title">Detalles de Servicios</h3>
+    <p class="section-desc">Información detallada sobre cada servicio</p>
+
+    <div class="details-grid">
+        <div class="detail-card">
+            <h4>🔍 Diagnóstico Computarizado</h4>
+            <ul>
+                <li>Lectura de códigos de error</li>
+                <li>Análisis del sistema OBD-II</li>
+                <li>Reporte detallado escrito</li>
+                <li>Tiempo: 45 minutos</li>
+                <li>Garantía: 1 mes</li>
+            </ul>
+        </div>
+
+        <div class="detail-card">
+            <h4>🔧 Mantenimiento Preventivo</h4>
+            <ul>
+                <li>Cambio de aceite y filtro</li>
+                <li>Revisión de fluidos</li>
+                <li>Limpieza de motor</li>
+                <li>Tiempo: 2-3 horas</li>
+                <li>Garantía: 3 meses</li>
+            </ul>
+        </div>
+
+        <div class="detail-card">
+            <h4>⚡ Servicios Eléctricos</h4>
+            <ul>
+                <li>Diagnóstico del sistema</li>
+                <li>Reparación de cableado</li>
+                <li>Cambio de batería o alternador</li>
+                <li>Tiempo: 1-4 horas</li>
+                <li>Garantía: 6 meses</li>
+            </ul>
+        </div>
+
+        <div class="detail-card">
+            <h4>🔩 Reparaciones Mecánicas</h4>
+            <ul>
+                <li>Diagnóstico completo</li>
+                <li>Reparación o reemplazo</li>
+                <li>Prueba de funcionamiento</li>
+                <li>Tiempo: Variable</li>
+                <li>Garantía: 1 año</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Promociones Especiales -->
+<div class="section">
+    <h3 class="section-title">Promociones Especiales</h3>
+    <p class="section-desc">Aproveche nuestras ofertas limitadas</p>
+
+    <div class="promo-card">
+        <div class="promo-content">
+            <h3>🎁 Paquete Mantenimiento Completo</h3>
+            <p>Cambio de aceite + Revisión general + Diagnóstico con 25% de descuento</p>
+        </div>
+        <button class="btn-secondary" onclick="abrirFormulario('promo1')">Solicitar</button>
+    </div>
+
+    <div class="promo-card" style="background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);">
+        <div class="promo-content">
+            <h3>🏆 Clientes Frecuentes</h3>
+            <p>Acumula puntos en cada servicio y canjéalos por descuentos</p>
+        </div>
+        <button class="btn-secondary" style="color: #16A34A;" onclick="mostrarDetalles()">Detalles</button>
+    </div>
+</div>
+
+<!-- Galería del Taller -->
+<div class="section">
+    <h3 class="section-title">Galería del Taller</h3>
+    <p class="section-desc">Conoce nuestras instalaciones</p>
+
+    <div class="gallery">
+        <div class="gallery-item">🏭</div>
+        <div class="gallery-item">👨‍🔧</div>
+        <div class="gallery-item">🚗</div>
+        <div class="gallery-item">🛠️</div>
+        <div class="gallery-item">💻</div>
+        <div class="gallery-item">🔍</div>
+    </div>
+</div>
+
+<!-- Opiniones de Clientes -->
+<div class="section">
+    <h3 class="section-title">Opiniones de Clientes</h3>
+    <p class="section-desc">Lo que dicen nuestros clientes</p>
+
+    <div class="reviews-container">
+        <div class="review-card">
+            <div class="stars">★★★★★</div>
+            <p class="review-text">"Excelente servicio, muy profesionales. Mi vehículo quedó como nuevo. Recomendado."</p>
+            <p class="review-author">- Juan García</p>
+        </div>
+
+        <div class="review-card">
+            <div class="stars">★★★★★</div>
+            <p class="review-text">"Puntual, eficiente y con precios justos. Volveré sin dudarlo."</p>
+            <p class="review-author">- María López</p>
+        </div>
+
+        <div class="review-card">
+            <div class="stars">★★★★☆</div>
+            <p class="review-text">"Buen diagnóstico y reparación. El taller muy limpio y organizado."</p>
+            <p class="review-author">- Carlos Méndez</p>
+        </div>
+
+        <div class="review-card">
+            <div class="stars">★★★★★</div>
+            <p class="review-text">"Profesionales con experiencia. Presupuesto claro sin sorpresas."</p>
+            <p class="review-author">- Ana Rodríguez</p>
+        </div>
+    </div>
+</div>
+
+<!-- Preguntas Frecuentes -->
+<div class="section">
+    <h3 class="section-title">Preguntas Frecuentes</h3>
+    <p class="section-desc">Respuestas rápidas sobre nuestros servicios</p>
+
+    <div class="faq-container">
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                ¿Cuál es el tiempo de garantía en los servicios?
+                <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+                La mayoría de nuestros servicios incluyen garantía de 1 a 6 meses dependiendo del tipo de reparación. Los repuestos utilizados tienen garantía de 1 año. Consulta detalles específicos con nuestro equipo.
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                ¿Qué métodos de pago aceptan?
+                <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+                Aceptamos efectivo, transferencia bancaria, tarjetas de crédito/débito y financiamiento en cuotas sin interés. Contáctanos para más detalles sobre nuestros planes de pago.
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                ¿Necesito agendar cita con anticipación?
+                <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+                Recomendamos agendar con 24-48 horas de anticipación para garantizar disponibilidad. Atendemos emergencias el mismo día según la capacidad. Llama a nuestro teléfono o usa el formulario en línea.
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                ¿Utilizan repuestos originales?
+                <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+                Sí, utilizamos repuestos originales y de marcas certificadas de confianza. Todos los repuestos incluyen garantía. Podemos utilizar repuestos compatibles si lo prefieres, con descuento.
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                ¿Cómo solicitar una cotización?
+                <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+                Puedes solicitar una cotización directamente desde nuestra página, llamar al teléfono del taller, o enviarnos un correo con los detalles de tu vehículo. La respuesta llega en máximo 24 horas.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botones de Acción -->
+<div class="section" style="padding-bottom: 2rem;">
+    <h3 class="section-title">¿Necesitas Nuestros Servicios?</h3>
+    <p class="section-desc">Contáctanos o agenda tu cita ahora mismo</p>
+
+    <div class="action-buttons">
+        <button class="btn-primary" onclick="abrirAgendamiento()">📅 Agendar Cita</button>
+        <button class="btn-outline" onclick="abrirCotizacion()">📧 Solicitar Cotización</button>
+        <button class="btn-outline" onclick="llamarTaller()">📞 Llamar al Taller</button>
+    </div>
+</div>
+
+<!-- Footer -->
+<div style="background: var(--bg-secondary); padding: 1.5rem; margin-top: 2rem; border-top: 0.5px solid var(--border-color);">
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 1.5rem; max-width: 1000px; margin: 0 auto;">
+        <div style="text-align: center;">
+            <p style="font-size: 18px; margin-bottom: 0.5rem;">📞</p>
+            <p style="font-size: 13px; font-weight: 600; color: var(--text-primary);">TELÉFONO</p>
+            <p style="font-size: 12px; color: var(--text-secondary);">+57 318 500 4530</p>
+        </div>
+        <div style="text-align: center;">
+            <p style="font-size: 18px; margin-bottom: 0.5rem;">📧</p>
+            <p style="font-size: 13px; font-weight: 600; color: var(--text-primary);">CORREO</p>
+            <p style="font-size: 12px; color: var(--text-secondary);">info@optimusbyte.com</p>
+        </div>
+        <div style="text-align: center;">
+            <p style="font-size: 18px; margin-bottom: 0.5rem;">⏰</p>
+            <p style="font-size: 13px; font-weight: 600; color: var(--text-primary);">HORARIO</p>
+            <p style="font-size: 12px; color: var(--text-secondary);">Lun-Sáb: 8:00 am - 6:00 pm</p>
+        </div>
+        <div style="text-align: center;">
+            <p style="font-size: 18px; margin-bottom: 0.5rem;">📍</p>
+            <p style="font-size: 13px; font-weight: 600; color: var(--text-primary);">UBICACIÓN</p>
+            <p style="font-size: 12px; color: var(--text-secondary);">Bogotá, Colombia</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agendar Cita -->
+<div id="modalAgendamiento" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="cerrarModal('modalAgendamiento')">&times;</span>
+        <h2>📅 Agendar Cita</h2>
+        <form id="formAgendamiento">
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" id="nombre" name="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono:</label>
+                <input type="tel" id="telefono" name="telefono" required>
+            </div>
+            <div class="form-group">
+                <label for="servicio">Servicio Requerido:</label>
+                <select id="servicio" name="servicio" required>
+                    <option>Selecciona un servicio</option>
+                    <option>Diagnóstico Computarizado</option>
+                    <option>Mantenimiento Preventivo</option>
+                    <option>Servicios Eléctricos</option>
+                    <option>Reparaciones Mecánicas</option>
+                    <option>Inspecciones Técnicas</option>
+                    <option>Alineación y Balanceo</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="fechaDeseada">Fecha Deseada:</label>
+                <input type="date" id="fechaDeseada" name="fechaDeseada" required>
+            </div>
+            <button type="submit" class="btn-primary">Agendar Cita</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Solicitar Cotización -->
+<div id="modalCotizacion" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="cerrarModal('modalCotizacion')">&times;</span>
+        <h2>📧 Solicitar Cotización</h2>
+        <form id="formCotizacion">
+            <div class="form-group">
+                <label for="nombreCot">Nombre:</label>
+                <input type="text" id="nombreCot" name="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="emailCot">Correo Electrónico:</label>
+                <input type="email" id="emailCot" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="telefonoCot">Teléfono:</label>
+                <input type="tel" id="telefonoCot" name="telefono" required>
+            </div>
+            <div class="form-group">
+                <label for="descripcion">Descripción del Trabajo:</label>
+                <textarea id="descripcion" name="descripcion" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Solicitar Cotización</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function abrirAgendamiento() {
+        document.getElementById('modalAgendamiento').style.display = 'block';
+    }
+
+    function abrirCotizacion() {
+        document.getElementById('modalCotizacion').style.display = 'block';
+    }
+
+    function abrirFormulario(tipo) {
+        if (tipo === 'promo1') {
+            abrirCotizacion();
+        }
+    }
+
+    function cerrarModal(idModal) {
+        document.getElementById(idModal).style.display = 'none';
+    }
+
+    function mostrarDetalles() {
+        alert('Bienvenido al programa de Clientes Frecuentes. Acumula puntos en cada servicio y canjéalos por descuentos especiales.');
+    }
+
+    function llamarTaller() {
+        window.location.href = 'tel:+573185004530';
+    }
+
+    function toggleFaq(element) {
+        element.classList.toggle('open');
+        const toggle = element.querySelector('.faq-toggle');
+        toggle.textContent = element.classList.contains('open') ? '−' : '+';
+    }
+
+    window.onclick = function (event) {
+        let modales = document.querySelectorAll('.modal');
+        modales.forEach(function (modal) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const formAgendamiento = document.getElementById('formAgendamiento');
+        if (formAgendamiento) {
+            formAgendamiento.addEventListener('submit', function (e) {
+                e.preventDefault();
+                alert('¡Cita agendada exitosamente! Nos pondremos en contacto pronto.');
+                formAgendamiento.reset();
+                cerrarModal('modalAgendamiento');
+            });
+        }
+
+        const formCotizacion = document.getElementById('formCotizacion');
+        if (formCotizacion) {
+            formCotizacion.addEventListener('submit', function (e) {
+                e.preventDefault();
+                alert('¡Cotización solicitada! Responderemos en 24 horas.');
+                formCotizacion.reset();
+                cerrarModal('modalCotizacion');
+            });
+        }
+
+        const inputFecha = document.getElementById('fechaDeseada');
+        if (inputFecha) {
+            const hoy = new Date();
+            hoy.setDate(hoy.getDate() + 1);
+            const minDate = hoy.toISOString().split('T')[0];
+            inputFecha.min = minDate;
+        }
+    });
+</script>
+
