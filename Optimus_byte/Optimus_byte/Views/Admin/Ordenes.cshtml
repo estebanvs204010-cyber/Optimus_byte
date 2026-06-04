@@ -3,6 +3,9 @@
     ViewData["Title"] = "Órdenes de Trabajo";
     Layout = null;
     string[] estados = { "Pendiente", "En proceso", "Esperando repuesto", "Listo para entrega", "Entregado", "Cancelado" };
+    var solicitudes = ViewBag.SolicitudesPendientes as List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>
+                      ?? new List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>();
+    int totalSolicitudes = solicitudes.Count;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -57,6 +60,143 @@
             border: 1px solid rgba(220,38,38,.2);
             color: #b91c1c;
         }
+
+        /* Campanita */
+        .bell-btn {
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            color: var(--texto-suave);
+            font-size: 1.25rem;
+            transition: color .2s;
+        }
+
+            .bell-btn:hover {
+                color: var(--dorado);
+            }
+
+        .bell-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ef4444;
+            color: #fff;
+            font-size: .6rem;
+            font-weight: 700;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            line-height: 1;
+        }
+        /* Panel notificaciones */
+        .notif-panel {
+            display: none;
+            position: fixed;
+            top: 54px;
+            right: 18px;
+            width: 340px;
+            max-height: 420px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.12);
+            z-index: 9999;
+        }
+
+            .notif-panel.open {
+                display: block;
+            }
+
+        .notif-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--borde-input);
+            font-size: .75rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--dorado);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notif-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(0,0,0,.04);
+            font-size: .82rem;
+        }
+
+            .notif-item:last-child {
+                border-bottom: none;
+            }
+
+        .notif-titulo {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .notif-sub {
+            color: #64748b;
+            font-size: .76rem;
+        }
+
+        .notif-hora {
+            color: #94a3b8;
+            font-size: .7rem;
+            margin-top: 4px;
+        }
+
+        .notif-empty {
+            padding: 24px 16px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: .82rem;
+        }
+
+        /* Temporizador en tabla */
+        .timer-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .68rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .tc-ok {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .tc-medio {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde68a;
+        }
+
+        .tc-urgente {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .tc-vencido {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
     </style>
 </head>
 <body>
@@ -67,9 +207,79 @@
             <span class="badge-admin">Admin</span>
         </div>
         <div class="d-flex align-items-center gap-3">
-            <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")</span>
+
+            @* ── CAMPANITA ── *@
+            <button class="bell-btn" id="btnCampana" title="Solicitudes de repuesto pendientes"
+                    onclick="toggleNotif()">
+                <i class="bi bi-bell-fill"></i>
+                @if (totalSolicitudes > 0)
+                {
+                    <span class="bell-badge" id="bellBadge">@totalSolicitudes</span>
+                }
+            </button>
+
+            <span class="admin-name">
+                <i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")
+            </span>
             <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
         </div>
+    </div>
+
+    @* ── Panel de notificaciones ── *@
+    <div class="notif-panel" id="notifPanel">
+        <div class="notif-header">
+            <span><i class="bi bi-bell me-1"></i>Solicitudes de repuesto</span>
+            @if (totalSolicitudes > 0)
+            {
+                <span style="background:#ef4444;color:#fff;font-size:.65rem;padding:2px 7px;border-radius:10px">
+                    @totalSolicitudes pendiente(s)
+                </span>
+            }
+        </div>
+
+        @if (!solicitudes.Any())
+        {
+            <div class="notif-empty">
+                <i class="bi bi-check-circle" style="font-size:1.8rem;display:block;margin-bottom:8px;color:#22c55e"></i>
+                Sin solicitudes pendientes
+            </div>
+        }
+        else
+        {
+            @foreach (var s in solicitudes)
+            {
+                <div class="notif-item">
+                    <div class="notif-titulo">
+                        <i class="bi bi-box-seam me-1" style="color:#f97316"></i>
+                        @s.NombreRepuesto
+                        <span style="color:#94a3b8;font-weight:400"> × @s.Cantidad</span>
+                    </div>
+                    <div class="notif-sub">
+                        OT-@s.IdOrden &nbsp;·&nbsp; @s.MecanicoNombre
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(s.Motivo))
+                    {
+                        <div class="notif-sub" style="margin-top:2px;font-style:italic">@s.Motivo</div>
+                    }
+                    <div class="notif-hora">@s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")</div>
+                    <form asp-controller="Admin" asp-action="AtenderSolicitud" method="post"
+                          style="margin-top:6px">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="idSolicitud" value="@s.IdSolicitud" />
+                        <button type="submit"
+                                style="font-size:.68rem;padding:3px 10px;background:#22c55e;color:#fff;border:none;border-radius:4px;cursor:pointer">
+                            <i class="bi bi-check2 me-1"></i>Marcar atendida
+                        </button>
+                    </form>
+                </div>
+            }
+            <div style="padding:10px 16px;text-align:right">
+                <a href="/Admin/SolicitudesRepuesto"
+                   style="font-size:.76rem;color:var(--dorado);text-decoration:none">
+                    Ver todas <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        }
     </div>
 
     <div class="admin-sidebar">
@@ -122,7 +332,8 @@
             <button type="submit" class="btn-nuevo" style="white-space:nowrap">
                 <i class="bi bi-funnel me-1"></i>Filtrar
             </button>
-            @if (!string.IsNullOrEmpty(ViewBag.EstadoFiltro) || !string.IsNullOrEmpty(ViewBag.BuscarFiltro))
+            @if (!string.IsNullOrEmpty(ViewBag.EstadoFiltro as string) ||
+                        !string.IsNullOrEmpty(ViewBag.BuscarFiltro as string))
             {
                 <a href="/Admin/Ordenes" class="btn-cancelar">Limpiar</a>
             }
@@ -139,6 +350,7 @@
                         <th>Mecánico</th>
                         <th>Tipo</th>
                         <th>Estado</th>
+                        <th>Entrega estimada</th>
                         <th>Fecha apertura</th>
                         <th>Acción</th>
                     </tr>
@@ -157,9 +369,33 @@
                             <td style="font-size:.8rem">@o.Mecanico</td>
                             <td style="font-size:.78rem">@o.TipoServicio</td>
                             <td><span class="badge-estado @estadoCss">@o.Estado</span></td>
-                            <td style="font-size:.78rem;color:var(--texto-suave)">@o.FechaApertura.ToString("dd/MM/yyyy")</td>
                             <td>
-                                <a href="/Admin/OrdenDetalle/@o.IdOrden" class="btn-accion btn-editar" title="Ver detalle">
+                                @if (o.FechaEntregaEstimada.HasValue
+                                                            && o.Estado != "Entregado"
+                                                            && o.Estado != "Cancelado")
+                                {
+                                    <span class="timer-chip tc-ok"
+                                          data-entrega="@o.FechaEntregaEstimada.Value.ToString("yyyy-MM-ddTHH:mm:ss")"
+                                          id="tc-@o.IdOrden">
+                                        <i class="bi bi-clock"></i>
+                                        <span class="tc-txt">...</span>
+                                    </span>
+                                }
+                                else if (o.Estado == "Entregado")
+                                {
+                                    <span style="font-size:.72rem;color:#64748b">Entregado</span>
+                                }
+                                else
+                                {
+                                    <span style="font-size:.72rem;color:#94a3b8">—</span>
+                                }
+                            </td>
+                            <td style="font-size:.78rem;color:var(--texto-suave)">
+                                @o.FechaApertura.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                <a href="/Admin/OrdenDetalle/@o.IdOrden"
+                                   class="btn-accion btn-editar" title="Ver detalle">
                                     <i class="bi bi-eye-fill"></i>
                                 </a>
                             </td>
@@ -180,9 +416,11 @@
     <!-- Modal Nueva Orden -->
     <div class="modal fade" id="modalCrearOrden" tabindex="-1">
         <div class="modal-dialog">
-            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:6px">
+            <div class="modal-content"
+                 style="background:#fff;border:1px solid var(--borde-input);border-radius:6px">
                 <div class="modal-header" style="border-bottom:1px solid var(--borde-input)">
-                    <h5 class="modal-title" style="font-size:.9rem;letter-spacing:.06em;color:var(--dorado)">
+                    <h5 class="modal-title"
+                        style="font-size:.9rem;letter-spacing:.06em;color:var(--dorado)">
                         <i class="bi bi-plus-circle me-2"></i>Nueva Orden de Trabajo
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -191,23 +429,34 @@
                     @Html.AntiForgeryToken()
                     <div class="modal-body" style="padding:24px">
 
-                        <!-- DROPDOWN DE VEHÍCULOS -->
                         <div class="mb-3">
-                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Vehículo *</label>
-                            <select name="idVehiculo" class="input-custom select-custom" style="padding-left:14px" required>
+                            <label class="form-label"
+                                   style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">
+                                Vehículo *
+                            </label>
+                            <select name="idVehiculo" class="input-custom select-custom"
+                                    style="padding-left:14px" required>
                                 <option value="">— Selecciona un vehículo —</option>
-                                @foreach (var veh in (ViewBag.VehiculosLista as IEnumerable<dynamic> ?? new List<dynamic>()))
+                                @foreach (var veh in (ViewBag.VehiculosLista as IEnumerable<dynamic>
+                                                                ?? new List<dynamic>()))
                                 {
-                                    <option value="@veh.IdVehiculo">@veh.Placa — @veh.Marca @veh.Modelo (@veh.ClienteNombre)</option>
+                                    <option value="@veh.IdVehiculo">
+                                        @veh.Placa — @veh.Marca @veh.Modelo (@veh.ClienteNombre)
+                                    </option>
                                 }
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Mecánico asignado</label>
-                            <select name="idMecanico" class="input-custom select-custom" style="padding-left:14px">
+                            <label class="form-label"
+                                   style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">
+                                Mecánico asignado
+                            </label>
+                            <select name="idMecanico" class="input-custom select-custom"
+                                    style="padding-left:14px">
                                 <option value="">— Sin asignar aún —</option>
-                                @foreach (var m in (List<(int Id, string Nombre)>)(ViewBag.Mecanicos ?? new List<(int, string)>()))
+                                @foreach (var m in (List<(int Id, string Nombre)>)(ViewBag.Mecanicos
+                                                                ?? new List<(int, string)>()))
                                 {
                                     <option value="@m.Id">@m.Nombre</option>
                                 }
@@ -215,27 +464,44 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Tipo de servicio *</label>
-                            <select name="tipoServicio" class="input-custom select-custom" style="padding-left:14px" required>
+                            <label class="form-label"
+                                   style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">
+                                Tipo de servicio *
+                            </label>
+                            <select name="tipoServicio" class="input-custom select-custom"
+                                    style="padding-left:14px" required>
                                 <option value="Correctivo">Correctivo</option>
                                 <option value="Preventivo">Preventivo</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Descripción del problema *</label>
-                            <textarea name="descripcionProblema" class="input-custom" style="padding:10px 14px;height:90px;resize:none" required placeholder="Describe el problema del vehículo..."></textarea>
+                            <label class="form-label"
+                                   style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">
+                                Descripción del problema *
+                            </label>
+                            <textarea name="descripcionProblema" class="input-custom"
+                                      style="padding:10px 14px;height:90px;resize:none"
+                                      required placeholder="Describe el problema..."></textarea>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Kilometraje de ingreso *</label>
-                            <input type="number" name="kmIngreso" class="input-custom" style="padding-left:14px" required min="0" placeholder="Ej: 45000" />
+                            <label class="form-label"
+                                   style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">
+                                Kilometraje de ingreso *
+                            </label>
+                            <input type="number" name="kmIngreso" class="input-custom"
+                                   style="padding-left:14px" required min="0" placeholder="Ej: 45000" />
                         </div>
-
                     </div>
-                    <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
-                        <button type="submit" class="btn-guardar"><i class="bi bi-clipboard2-plus-fill me-2"></i>Crear orden</button>
-                        <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
+                    <div class="modal-footer"
+                         style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
+                        <button type="submit" class="btn-guardar">
+                            <i class="bi bi-clipboard2-plus-fill me-2"></i>Crear orden
+                        </button>
+                        <button type="button" class="btn-cancelar" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
                     </div>
                 </form>
             </div>
@@ -243,5 +509,94 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ── Campanita ────────────────────────────────────────────
+        function toggleNotif() {
+            document.getElementById('notifPanel').classList.toggle('open');
+        }
+        document.addEventListener('click', function (e) {
+            const panel = document.getElementById('notifPanel');
+            const btn   = document.getElementById('btnCampana');
+            if (!panel.contains(e.target) && !btn.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+        });
+
+        // Sonido al cargar si hay solicitudes
+        @if (totalSolicitudes > 0)
+        {
+                <text>
+                (function () {
+                    try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        [523, 659, 784].forEach((freq, i) => {
+                            const o = ctx.createOscillator();
+                            const g = ctx.createGain();
+                            o.connect(g); g.connect(ctx.destination);
+                            o.frequency.value = freq;
+                            o.type = 'sine';
+                            g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12);
+                            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
+                            o.start(ctx.currentTime + i * 0.12);
+                            o.stop(ctx.currentTime + i * 0.12 + 0.3);
+                        });
+                    } catch (e) { /* sin audio */ }
+                })();
+                </text>
+        }
+
+        // Polling cada 30 seg para actualizar el badge sin recargar
+        setInterval(async () => {
+            try {
+                const res  = await fetch('/Admin/SolicitudesPendientesCount');
+                const data = await res.json();
+                const badge = document.getElementById('bellBadge');
+                if (data.count > 0) {
+                    if (!badge) {
+                        const b = document.createElement('span');
+                        b.id = 'bellBadge';
+                        b.className = 'bell-badge';
+                        b.textContent = data.count;
+                        document.getElementById('btnCampana').appendChild(b);
+                    } else {
+                        badge.textContent = data.count;
+                    }
+                } else if (badge) {
+                    badge.remove();
+                }
+            } catch (e) { /* sin conexion */ }
+        }, 30000);
+
+        // ── Temporizadores ───────────────────────────────────────
+        function actualizarTimers() {
+            document.querySelectorAll('[data-entrega]').forEach(chip => {
+                const diff = new Date(chip.dataset.entrega) - new Date();
+                const txt  = chip.querySelector('.tc-txt');
+                chip.classList.remove('tc-ok', 'tc-medio', 'tc-urgente', 'tc-vencido');
+
+                if (diff <= 0) {
+                    txt.textContent = 'Vencido';
+                    chip.classList.add('tc-vencido');
+                    return;
+                }
+                const dias  = Math.floor(diff / 86400000);
+                const horas = Math.floor((diff % 86400000) / 3600000);
+                const mins  = Math.floor((diff % 3600000) / 60000);
+
+                if (dias > 0) {
+                    txt.textContent = dias + 'd ' + horas + 'h';
+                    chip.classList.add(dias > 1 ? 'tc-ok' : 'tc-medio');
+                } else if (horas > 0) {
+                    txt.textContent = horas + 'h ' + mins + 'm';
+                    chip.classList.add(horas > 2 ? 'tc-medio' : 'tc-urgente');
+                } else {
+                    txt.textContent = mins + ' min';
+                    chip.classList.add('tc-urgente');
+                }
+            });
+        }
+        actualizarTimers();
+        setInterval(actualizarTimers, 30000);
+    </script>
 </body>
 </html>
