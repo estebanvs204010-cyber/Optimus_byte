@@ -69,40 +69,54 @@
 }
 
 .cat-sb-header {
-    background: var(--dorado);
-    padding: 14px 16px;
+    background: #ffffff !important;
+    padding: 14px 16px !important;
+    border-bottom: 1px solid rgba(0,0,0,0.12) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    min-height: 80px !important;
+    display: block !important;
 }
 
 .cat-sb-header-txt {
-    font-size: .72rem;
-    font-weight: 600;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: #ffffff;
+    font-size: .72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: .1em !important;
+    text-transform: uppercase !important;
+    color: #1a2332 !important;
+    display: block !important;
 }
 
 .cat-sb-carrito-btn {
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.25);
-    color: #ffffff;
-    padding: 9px 14px;
-    border-radius: var(--radio);
-    font-size: .68rem;
-    font-weight: 600;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin-top: 10px;
-    width: 100%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: var(--transicion);
-    font-family: var(--fuente-cuerpo);
+    background: #ffffff !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
+    color: #1a2332 !important;
+    padding: 9px 14px !important;
+    border-radius: 4px !important;
+    font-size: .68rem !important;
+    font-weight: 600 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+    margin-top: 10px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
 }
 
     .cat-sb-carrito-btn:hover {
-        background: rgba(255,255,255,0.35);
+        background: #f5f7ff !important;
+        border-color: #2563eb !important;
+        color: #2563eb !important;
+    }
+
+    .cat-sb-carrito-btn span {
+        background: rgba(37,99,235,0.1) !important;
+        color: #2563eb !important;
+        border-radius: 10px !important;
+        padding: 1px 7px !important;
+        font-size: .65rem !important;
     }
 
 .cat-sb-cat-title {
@@ -421,7 +435,7 @@
     font-weight: 600;
     letter-spacing: .1em;
     text-transform: uppercase;
-    color: #ffffff;
+    color: #000000;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -485,7 +499,7 @@
     margin: 0 14px 14px;
     background: var(--dorado);
     border: none;
-    color: #ffffff;
+    color: #000000;
     padding: 10px;
     border-radius: var(--radio);
     font-size: .72rem;

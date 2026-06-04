@@ -15,7 +15,6 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/catalogo.css" asp-append-version="true" />
     <style>
-        /* Correcciones garantizadas — sobreescriben cualquier conflicto */
         .logo-img {
             height: 48px !important;
             width: auto !important;
@@ -60,39 +59,48 @@
             gap: 12px !important;
         }
 
-        .boton-ingresar,
-        .boton-registro {
-            text-decoration: none !important;
-            padding: 10px 26px !important;
-            border-radius: 4px !important;
-            font-family: 'Jost', sans-serif !important;
-            font-size: 0.82rem !important;
-            letter-spacing: 0.12em !important;
-            text-transform: uppercase !important;
-            transition: all 0.3s ease !important;
+        .ob-btn-ingresar {
+            color: #1e3a8a;
+            text-decoration: none;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 9px 22px;
+            border: 1.5px solid #1e3a8a;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            background: transparent;
         }
 
-        .boton-ingresar {
-            background: transparent !important;
-            color: #2563eb !important;
-            border: 1px solid #2563eb !important;
+            .ob-btn-ingresar:hover {
+                background: #1e3a8a;
+                color: #ffffff;
+                box-shadow: 0 2px 12px rgba(30,58,138,0.07);
+            }
+
+        .ob-btn-registro {
+            color: #ffffff;
+            text-decoration: none;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 9px 22px;
+            background: #1e3a8a;
+            border: 1.5px solid #1e3a8a;
+            border-radius: 6px;
+            transition: all 0.2s ease;
         }
 
-        .boton-ingresar:hover {
-            background: #2563eb !important;
-            color: #fff !important;
-        }
-
-        .boton-registro {
-            background: #2563eb !important;
-            color: #fff !important;
-            border: 1px solid #2563eb !important;
-        }
-
-        .boton-registro:hover {
-            background: #3b82f6 !important;
-            color: #fff !important;
-        }
+            .ob-btn-registro:hover {
+                background: #1a2332;
+                border-color: #1a2332;
+                color: #ffffff;
+                box-shadow: 0 8px 32px rgba(30,58,138,0.11);
+            }
 
         .nb-cotizacion {
             display: flex !important;
@@ -183,8 +191,8 @@
         </button>
 
         <div class="nav-acciones">
-            <a class="boton-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
-            <a class="boton-registro" asp-controller="Registro" asp-action="Index">Registrar</a>
+            <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
+            <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrar</a>
         </div>
     </header>
 
@@ -236,7 +244,7 @@
             <div class="cat-carrito-panel" id="carritoPanel" style="display:none;">
                 <div class="cat-carrito-panel-hdr">
                     <span>Mi cotización</span>
-                    <span style="cursor:pointer;" onclick="toggleCarrito()">✕ cerrar</span>
+                    <span style="cursor:pointer;" onclick="toggleCarrito()" >✕ cerrar</span>
                 </div>
                 <div id="carritoItems"></div>
                 <div class="cat-carrito-total">
