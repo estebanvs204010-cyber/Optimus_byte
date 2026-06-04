@@ -14,10 +14,7 @@ namespace Optimus_byte.Controllers
         private bool EsMecanico() =>
             HttpContext.Session.GetString("UsuarioRol") == "Mecanico";
 
-        public IActionResult Index()
-        {
-            return RedirectToAction("MisOrdenes");
-        }
+        public IActionResult Index() => RedirectToAction("MisOrdenes");
 
         public IActionResult MisOrdenes()
         {
@@ -30,15 +27,25 @@ namespace Optimus_byte.Controllers
             using var conn = _db.GetConnection();
 
             var ordenesAsignadas = ObtenerOrdenesAsignadas(conn, idMecanico);
-            var ordenesAsignadasIds = ordenesAsignadas.Select(o => o.IdOrden).ToList();
+            var ordenesIds = ordenesAsignadas.Select(o => o.IdOrden).ToList();
             var historialBase = ObtenerHistorial(conn, idMecanico);
             var historialIds = historialBase.Select(o => o.IdOrden).ToList();
             var partesHistorial = ObtenerPartesPorOrden(conn, historialIds);
-            var cambiosOrden = ObtenerCambiosOrden(conn, ordenesAsignadasIds);
+            var cambiosOrden = ObtenerCambiosOrden(conn, ordenesIds);
+
+            // ── Cargar repuestos disponibles del inventario real ──────────
+            var repuestosDisponibles = ObtenerRepuestosDisponibles(conn);
+
+            // ── Alerta de stock bajo (visible para el mecánico) ───────────
+            var repsBajoStock = repuestosDisponibles
+                .Where(r => r.StockActual < r.StockMinimo)
+                .ToList();
+            ViewBag.RepuetosBajoStock = repsBajoStock;
 
             var modelo = new MecanicoDashboardViewModel
             {
                 NombreMecanico = nombre,
+                RepuestosDisponibles = repuestosDisponibles,
                 CitasAsignadas = ordenesAsignadas.Select(orden => new CitaAsignadaViewModel
                 {
                     Id = orden.IdOrden,
@@ -57,11 +64,11 @@ namespace Optimus_byte.Controllers
                     Fecha = orden.FechaCierre ?? orden.FechaApertura,
                     Vehiculo = $"{FormatearVehiculo(orden)} - {(string.IsNullOrWhiteSpace(orden.Placa) ? "Sin placa" : orden.Placa)}",
                     Diagnostico = string.IsNullOrWhiteSpace(orden.Diagnostico)
-                        ? Recortar(orden.DescripcionProblema, 100)
-                        : orden.Diagnostico,
+                                            ? Recortar(orden.DescripcionProblema, 100)
+                                            : orden.Diagnostico,
                     PartesReemplazadas = partesHistorial.TryGetValue(orden.IdOrden, out var partes)
-                        ? partes
-                        : "Sin repuestos registrados",
+                                            ? partes
+                                            : "Sin repuestos registrados",
                     Tecnico = string.IsNullOrWhiteSpace(orden.Mecanico) ? "Sin mecanico asignado" : orden.Mecanico
                 }).ToList(),
                 Checklists = CrearChecklists(ordenesAsignadas),
@@ -69,9 +76,9 @@ namespace Optimus_byte.Controllers
                 {
                     new()
                     {
-                        Orden = ordenesAsignadas.FirstOrDefault() is { } ordenEvidencia ? $"OT-{ordenEvidencia.IdOrden}" : "OT",
-                        Tipo = "Antes",
-                        Nota = "Pendiente de cargar evidencia fotografica inicial.",
+                        Orden         = ordenesAsignadas.FirstOrDefault() is { } oe ? $"OT-{oe.IdOrden}" : "OT",
+                        Tipo          = "Antes",
+                        Nota          = "Pendiente de cargar evidencia fotografica inicial.",
                         FechaRegistro = hoy.AddHours(8).AddMinutes(20)
                     }
                 },
@@ -79,31 +86,32 @@ namespace Optimus_byte.Controllers
                     ? cambiosOrden.Select(cambio => new MensajeInternoViewModel
                     {
                         De = string.IsNullOrWhiteSpace(cambio.Usuario) ? "Sistema" : cambio.Usuario,
-                        Mensaje = $"OT-{cambio.IdOrden}: cambio a {cambio.EstadoNuevo}. {cambio.Observacion}",
+                        Mensaje = $"OT-{cambio.IdOrden}: {cambio.Observacion}".Trim(),
                         FechaHora = cambio.FechaCambio,
-                        Prioridad = cambio.EstadoNuevo.Equals("Esperando repuesto", StringComparison.OrdinalIgnoreCase) ? "Alta" : "Media"
+                        Prioridad = cambio.EstadoNuevo.Equals("Esperando repuesto", StringComparison.OrdinalIgnoreCase)
+                                        ? "Alta" : "Media"
                     }).ToList()
                     : new List<MensajeInternoViewModel>
                     {
                         new()
                         {
-                            De = "Sistema",
-                            Mensaje = "No hay notificaciones registradas para tus ordenes asignadas.",
+                            De        = "Sistema",
+                            Mensaje   = "No hay notificaciones registradas para tus ordenes asignadas.",
                             FechaHora = DateTime.Now,
                             Prioridad = "Baja"
                         }
                     },
                 Manuales = new List<ManualTecnicoViewModel>
                 {
-                    new() { Titulo = "Torque de ruedas y frenos", Categoria = "Frenos", Url = "https://www.autodata-group.com/" },
-                    new() { Titulo = "Guia interna de inspeccion", Categoria = "Taller", Url = "#" },
+                    new() { Titulo = "Torque de ruedas y frenos",   Categoria = "Frenos",        Url = "https://www.autodata-group.com/" },
+                    new() { Titulo = "Guia interna de inspeccion",  Categoria = "Taller",        Url = "#" },
                     new() { Titulo = "Intervalos de mantenimiento", Categoria = "Mantenimiento", Url = "https://www.boschaftermarket.com/" }
                 },
                 Herramientas = new List<HerramientaViewModel>
                 {
-                    new() { Nombre = "Escaner OBD2", Codigo = "HER-014", Estado = "Disponible", UltimoUso = ordenesAsignadas.ElementAtOrDefault(0) is { } a ? $"OT-{a.IdOrden}" : "Sin uso" },
-                    new() { Nombre = "Torquimetro 1/2", Codigo = "HER-022", Estado = "En uso", UltimoUso = ordenesAsignadas.ElementAtOrDefault(1) is { } b ? $"OT-{b.IdOrden}" : "Sin uso" },
-                    new() { Nombre = "Elevador 2", Codigo = "EQ-002", Estado = "Requiere revision", UltimoUso = ordenesAsignadas.ElementAtOrDefault(2) is { } c ? $"OT-{c.IdOrden}" : "Sin uso" }
+                    new() { Nombre = "Escaner OBD2",     Codigo = "HER-014", Estado = "Disponible",       UltimoUso = ordenesIds.ElementAtOrDefault(0) > 0 ? $"OT-{ordenesIds[0]}" : "Sin uso" },
+                    new() { Nombre = "Torquimetro 1/2",  Codigo = "HER-022", Estado = "En uso",           UltimoUso = ordenesIds.ElementAtOrDefault(1) > 0 ? $"OT-{ordenesIds[1]}" : "Sin uso" },
+                    new() { Nombre = "Elevador 2",       Codigo = "EQ-002",  Estado = "Requiere revision",UltimoUso = ordenesIds.ElementAtOrDefault(2) > 0 ? $"OT-{ordenesIds[2]}" : "Sin uso" }
                 }
             };
 
@@ -205,7 +213,7 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisOrdenes");
         }
 
-        // ─── Guardar tiempo estimado de entrega ───────────────────────────────────
+        // ─── Guardar tiempo estimado ──────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult GuardarTiempoEstimado(int ordenId, int? horas, DateTime? fechaEntrega)
@@ -243,6 +251,114 @@ namespace Optimus_byte.Controllers
             RegistrarAuditoria(conn, idMecanico,
                 $"Tiempo estimado OT-{ordenId}: entrega {fechaFinal:dd/MM/yyyy HH:mm}");
             TempData["Exito"] = $"Entrega estimada para OT-{ordenId}: {fechaFinal:dd/MM/yyyy HH:mm}.";
+            return RedirectToAction("MisOrdenes");
+        }
+
+        // ─── Solicitar repuesto — inventario real + texto libre ───────────────────
+        // El mecánico puede escoger del inventario O escribir un nombre libre
+        // si el repuesto no existe todavía en el sistema.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SolicitarRepuesto(int ordenId, int? repuestoId,
+            string? nombreLibre, int cantidad, string? motivo)
+        {
+            if (!EsMecanico()) return RedirectToAction("Index", "Login");
+
+            if (ordenId <= 0)
+            {
+                TempData["Error"] = "Selecciona una orden válida.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            // Debe venir uno de los dos: repuesto del inventario O nombre libre
+            bool usaInventario = repuestoId.HasValue && repuestoId > 0;
+            bool usaLibre = !string.IsNullOrWhiteSpace(nombreLibre);
+
+            if (!usaInventario && !usaLibre)
+            {
+                TempData["Error"] = "Selecciona un repuesto del inventario o escribe el nombre del repuesto.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            var idMecanico = ObtenerIdUsuarioActual();
+            using var conn = _db.GetConnection();
+
+            if (!OrdenPerteneceAlMecanico(conn, ordenId, idMecanico))
+            {
+                TempData["Error"] = "La orden no está asignada a tu usuario.";
+                return RedirectToAction("MisOrdenes");
+            }
+
+            string nombreRepuesto;
+
+            if (usaInventario)
+            {
+                // Buscar nombre real en el inventario
+                using var cmdRep = new SqlCommand(@"
+                    SELECT nombre FROM Repuestos
+                    WHERE id_repuesto = @id AND activo = 1", conn);
+                cmdRep.Parameters.AddWithValue("@id", repuestoId!.Value);
+                var resultado = cmdRep.ExecuteScalar();
+
+                if (resultado == null || resultado == DBNull.Value)
+                {
+                    TempData["Error"] = "El repuesto seleccionado no existe en el inventario.";
+                    return RedirectToAction("MisOrdenes");
+                }
+                nombreRepuesto = resultado.ToString()!;
+            }
+            else
+            {
+                // Texto libre — se marca con prefijo para que el admin lo identifique fácilmente
+                nombreRepuesto = $"[Sin inventario] {nombreLibre!.Trim()}";
+            }
+
+            int cantidadFinal = cantidad <= 0 ? 1 : cantidad;
+
+            // Insertar solicitud
+            using (var cmd = new SqlCommand(@"
+                INSERT INTO SolicitudesRepuesto
+                    (id_orden, id_mecanico, nombre_repuesto, cantidad, motivo)
+                VALUES (@ord, @mec, @nombre, @cant, @motivo)", conn))
+            {
+                cmd.Parameters.AddWithValue("@ord", ordenId);
+                cmd.Parameters.AddWithValue("@mec", idMecanico);
+                cmd.Parameters.AddWithValue("@nombre", nombreRepuesto);
+                cmd.Parameters.AddWithValue("@cant", cantidadFinal);
+                cmd.Parameters.AddWithValue("@motivo", (object?)motivo?.Trim() ?? DBNull.Value);
+                cmd.ExecuteNonQuery();
+            }
+
+            // Cambiar estado de la orden a "Esperando repuesto"
+            using (var cmdEstado = new SqlCommand(@"
+                UPDATE OrdenesTrabajo
+                SET estado = 'Esperando repuesto'
+                WHERE id_orden = @ord AND id_mecanico = @mec", conn))
+            {
+                cmdEstado.Parameters.AddWithValue("@ord", ordenId);
+                cmdEstado.Parameters.AddWithValue("@mec", idMecanico);
+                cmdEstado.ExecuteNonQuery();
+            }
+
+            // Registrar en EstadosOrden → esto alimenta la campana del Admin
+            if (TieneColumnas(conn, "EstadosOrden",
+                "id_orden", "id_usuario", "estado_nuevo", "observacion", "fecha_cambio"))
+            {
+                using var cmdLog = new SqlCommand(@"
+                    INSERT INTO EstadosOrden
+                        (id_orden, id_usuario, estado_nuevo, observacion, fecha_cambio)
+                    VALUES (@ord, @usr, 'Esperando repuesto', @obs, GETDATE())", conn);
+                cmdLog.Parameters.AddWithValue("@ord", ordenId);
+                cmdLog.Parameters.AddWithValue("@usr", idMecanico);
+                cmdLog.Parameters.AddWithValue("@obs",
+                    $"Mecánico solicitó '{nombreRepuesto}' × {cantidadFinal}. {motivo}".Trim());
+                cmdLog.ExecuteNonQuery();
+            }
+
+            RegistrarAuditoria(conn, idMecanico,
+                $"Solicitud de repuesto '{nombreRepuesto}' x{cantidadFinal} para OT-{ordenId}");
+
+            TempData["Exito"] = $"Solicitud enviada al administrador: {nombreRepuesto} × {cantidadFinal}.";
             return RedirectToAction("MisOrdenes");
         }
 
@@ -329,14 +445,41 @@ namespace Optimus_byte.Controllers
         }
 
         // ═════════════════════════════════════════════════════════════════════════
-        // PRIVADOS
+        // PRIVADOS — DATOS
         // ═════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Carga todos los repuestos activos del inventario para el selector del modal.
+        /// </summary>
+        private List<RepuestoDisponibleViewModel> ObtenerRepuestosDisponibles(SqlConnection conn)
+        {
+            var lista = new List<RepuestoDisponibleViewModel>();
+            using var cmd = new SqlCommand(@"
+                SELECT id_repuesto, nombre, referencia, categoria,
+                       precio_unitario, stock_actual, stock_minimo
+                FROM Repuestos
+                WHERE activo = 1 AND stock_actual > 0
+                ORDER BY nombre ASC", conn);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                lista.Add(new RepuestoDisponibleViewModel
+                {
+                    IdRepuesto = Convert.ToInt32(r["id_repuesto"]),
+                    Nombre = r["nombre"].ToString()!,
+                    Referencia = r["referencia"].ToString()!,
+                    Categoria = r["categoria"].ToString()!,
+                    PrecioUnitario = Convert.ToDecimal(r["precio_unitario"]),
+                    StockActual = Convert.ToInt32(r["stock_actual"]),
+                    StockMinimo = Convert.ToInt32(r["stock_minimo"])
+                });
+            return lista;
+        }
 
         private List<OrdenMecanicoData> ObtenerOrdenesAsignadas(SqlConnection conn, int idMecanico)
         {
             var ordenes = new List<OrdenMecanicoData>();
             using var cmd = new SqlCommand(@"
-                SELECT TOP (12)
+                SELECT TOP 12
                        o.id_orden, o.id_vehiculo, o.estado, o.tipo_servicio,
                        o.descripcion_problema, o.diagnostico, o.fecha_apertura, o.fecha_cierre,
                        o.fecha_entrega_estimada,
@@ -345,10 +488,10 @@ namespace Optimus_byte.Controllers
                        m.nombre_completo AS mecanico_nombre
                 FROM OrdenesTrabajo o
                 LEFT JOIN Vehiculos v ON v.id_vehiculo = o.id_vehiculo
-                LEFT JOIN Clientes c ON c.id_cliente = v.id_cliente
-                LEFT JOIN Usuarios m ON m.id_usuario = o.id_mecanico
+                LEFT JOIN Clientes  c ON c.id_cliente  = v.id_cliente
+                LEFT JOIN Usuarios  m ON m.id_usuario  = o.id_mecanico
                 WHERE o.id_mecanico = @idMecanico
-                  AND COALESCE(o.estado, '') NOT IN ('Entregado', 'Cancelado')
+                  AND COALESCE(o.estado,'') NOT IN ('Entregado','Cancelado')
                 ORDER BY o.fecha_apertura", conn);
 
             cmd.Parameters.AddWithValue("@idMecanico", idMecanico);
@@ -371,7 +514,7 @@ namespace Optimus_byte.Controllers
                     WHERE id_mecanico = @idMecanico
                       AND COALESCE(estado,'') NOT IN ('Entregado','Cancelado')
                 )
-                SELECT TOP (10)
+                SELECT TOP 10
                        o.id_orden, o.id_vehiculo, o.estado, o.tipo_servicio,
                        o.descripcion_problema, o.diagnostico, o.fecha_apertura, o.fecha_cierre,
                        o.fecha_entrega_estimada,
@@ -380,8 +523,8 @@ namespace Optimus_byte.Controllers
                        m.nombre_completo AS mecanico_nombre
                 FROM OrdenesTrabajo o
                 LEFT JOIN Vehiculos v ON v.id_vehiculo = o.id_vehiculo
-                LEFT JOIN Clientes c ON c.id_cliente = v.id_cliente
-                LEFT JOIN Usuarios m ON m.id_usuario = o.id_mecanico
+                LEFT JOIN Clientes  c ON c.id_cliente  = v.id_cliente
+                LEFT JOIN Usuarios  m ON m.id_usuario  = o.id_mecanico
                 WHERE (o.id_mecanico = @idMecanico
                        OR o.id_vehiculo IN (SELECT id_vehiculo FROM VehiculosAsignados))
                   AND o.id_orden NOT IN (SELECT id_orden FROM OrdenesActivas)
@@ -430,7 +573,7 @@ namespace Optimus_byte.Controllers
 
             var parametros = ordenesIds.Select((_, i) => $"@id{i}").ToList();
             using var cmd = new SqlCommand($@"
-                SELECT TOP (6)
+                SELECT TOP 6
                        e.id_orden, e.estado_nuevo, e.observacion, e.fecha_cambio,
                        u.nombre_completo AS usuario_nombre
                 FROM EstadosOrden e
@@ -443,7 +586,6 @@ namespace Optimus_byte.Controllers
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
-            {
                 cambios.Add(new CambioOrdenData
                 {
                     IdOrden = Convert.ToInt32(reader["id_orden"]),
@@ -452,7 +594,6 @@ namespace Optimus_byte.Controllers
                     FechaCambio = ObtenerDateTime(reader, "fecha_cambio", DateTime.Now),
                     Usuario = ObtenerString(reader, "usuario_nombre", "Sistema")
                 });
-            }
             return cambios;
         }
 
@@ -500,37 +641,33 @@ namespace Optimus_byte.Controllers
             return int.TryParse(valor, out var idOrden) ? idOrden : 0;
         }
 
-        private static OrdenMecanicoData MapearOrden(SqlDataReader reader)
+        private static OrdenMecanicoData MapearOrden(SqlDataReader reader) => new()
         {
-            return new OrdenMecanicoData
-            {
-                IdOrden = Convert.ToInt32(reader["id_orden"]),
-                IdVehiculo = Convert.ToInt32(reader["id_vehiculo"]),
-                Estado = ObtenerString(reader, "estado", "Sin estado"),
-                TipoServicio = ObtenerString(reader, "tipo_servicio", "Servicio"),
-                DescripcionProblema = ObtenerString(reader, "descripcion_problema", "Sin descripcion"),
-                Diagnostico = ObtenerString(reader, "diagnostico", string.Empty),
-                FechaApertura = ObtenerDateTime(reader, "fecha_apertura", DateTime.Now),
-                FechaCierre = ObtenerDateTimeNullable(reader, "fecha_cierre"),
-                FechaEntregaEstimada = ObtenerDateTimeNullable(reader, "fecha_entrega_estimada"),
-                Placa = ObtenerString(reader, "placa", string.Empty),
-                Marca = ObtenerString(reader, "marca", string.Empty),
-                Modelo = ObtenerString(reader, "modelo", string.Empty),
-                Anio = ObtenerInt(reader, "anio"),
-                Cliente = ObtenerString(reader, "cliente_nombre", string.Empty),
-                Mecanico = ObtenerString(reader, "mecanico_nombre", string.Empty)
-            };
-        }
+            IdOrden = Convert.ToInt32(reader["id_orden"]),
+            IdVehiculo = Convert.ToInt32(reader["id_vehiculo"]),
+            Estado = ObtenerString(reader, "estado", "Sin estado"),
+            TipoServicio = ObtenerString(reader, "tipo_servicio", "Servicio"),
+            DescripcionProblema = ObtenerString(reader, "descripcion_problema", "Sin descripcion"),
+            Diagnostico = ObtenerString(reader, "diagnostico", string.Empty),
+            FechaApertura = ObtenerDateTime(reader, "fecha_apertura", DateTime.Now),
+            FechaCierre = ObtenerDateTimeNullable(reader, "fecha_cierre"),
+            FechaEntregaEstimada = ObtenerDateTimeNullable(reader, "fecha_entrega_estimada"),
+            Placa = ObtenerString(reader, "placa", string.Empty),
+            Marca = ObtenerString(reader, "marca", string.Empty),
+            Modelo = ObtenerString(reader, "modelo", string.Empty),
+            Anio = ObtenerInt(reader, "anio"),
+            Cliente = ObtenerString(reader, "cliente_nombre", string.Empty),
+            Mecanico = ObtenerString(reader, "mecanico_nombre", string.Empty)
+        };
 
-        private static List<ChecklistTecnicoViewModel> CrearChecklists(List<OrdenMecanicoData> ordenesAsignadas)
-        {
-            return new List<ChecklistTecnicoViewModel>
+        private static List<ChecklistTecnicoViewModel> CrearChecklists(List<OrdenMecanicoData> ordenes) =>
+            new()
             {
                 new()
                 {
                     Nombre = "Inspeccion inicial",
-                    Orden  = ordenesAsignadas.FirstOrDefault() is { } p ? $"OT-{p.IdOrden}" : "OT",
-                    Pasos  = new List<string>
+                    Orden  = ordenes.FirstOrDefault() is { } p ? $"OT-{p.IdOrden}" : "OT",
+                    Pasos  = new()
                     {
                         "Verificar kilometraje y nivel de combustible",
                         "Registrar estado exterior del vehiculo",
@@ -542,8 +679,8 @@ namespace Optimus_byte.Controllers
                 new()
                 {
                     Nombre = "Mantenimiento preventivo",
-                    Orden  = ordenesAsignadas.Skip(1).FirstOrDefault() is { } s ? $"OT-{s.IdOrden}" : "OT",
-                    Pasos  = new List<string>
+                    Orden  = ordenes.Skip(1).FirstOrDefault() is { } s ? $"OT-{s.IdOrden}" : "OT",
+                    Pasos  = new()
                     {
                         "Drenar aceite usado",
                         "Cambiar filtros",
@@ -553,47 +690,47 @@ namespace Optimus_byte.Controllers
                     }
                 }
             };
-        }
 
         private static int EstimarMinutos(string tipoServicio) =>
             tipoServicio.Equals("Preventivo", StringComparison.OrdinalIgnoreCase) ? 120 : 90;
 
-        private static string FormatearVehiculo(OrdenMecanicoData orden)
+        private static string FormatearVehiculo(OrdenMecanicoData o)
         {
-            var v = $"{orden.Marca} {orden.Modelo} {(orden.Anio > 0 ? orden.Anio.ToString() : string.Empty)}".Trim();
+            var v = $"{o.Marca} {o.Modelo} {(o.Anio > 0 ? o.Anio.ToString() : string.Empty)}".Trim();
             return string.IsNullOrWhiteSpace(v) ? "Vehiculo sin registrar" : v;
         }
 
-        private static string Recortar(string? texto, int maximo)
+        private static string Recortar(string? texto, int max)
         {
             if (string.IsNullOrWhiteSpace(texto)) return "Sin descripcion";
-            return texto.Length <= maximo ? texto : texto[..maximo] + "...";
+            return texto.Length <= max ? texto : texto[..max] + "...";
         }
 
-        private static string ObtenerString(SqlDataReader reader, string columna, string valorPorDefecto)
+        private static string ObtenerString(SqlDataReader r, string col, string def)
         {
-            var ordinal = reader.GetOrdinal(columna);
-            return reader.IsDBNull(ordinal) ? valorPorDefecto : reader.GetValue(ordinal).ToString() ?? valorPorDefecto;
+            var ord = r.GetOrdinal(col);
+            return r.IsDBNull(ord) ? def : r.GetValue(ord).ToString() ?? def;
         }
 
-        private static int ObtenerInt(SqlDataReader reader, string columna)
+        private static int ObtenerInt(SqlDataReader r, string col)
         {
-            var ordinal = reader.GetOrdinal(columna);
-            return reader.IsDBNull(ordinal) ? 0 : Convert.ToInt32(reader.GetValue(ordinal));
+            var ord = r.GetOrdinal(col);
+            return r.IsDBNull(ord) ? 0 : Convert.ToInt32(r.GetValue(ord));
         }
 
-        private static DateTime ObtenerDateTime(SqlDataReader reader, string columna, DateTime valorPorDefecto)
+        private static DateTime ObtenerDateTime(SqlDataReader r, string col, DateTime def)
         {
-            var ordinal = reader.GetOrdinal(columna);
-            return reader.IsDBNull(ordinal) ? valorPorDefecto : Convert.ToDateTime(reader.GetValue(ordinal));
+            var ord = r.GetOrdinal(col);
+            return r.IsDBNull(ord) ? def : Convert.ToDateTime(r.GetValue(ord));
         }
 
-        private static DateTime? ObtenerDateTimeNullable(SqlDataReader reader, string columna)
+        private static DateTime? ObtenerDateTimeNullable(SqlDataReader r, string col)
         {
-            var ordinal = reader.GetOrdinal(columna);
-            return reader.IsDBNull(ordinal) ? null : Convert.ToDateTime(reader.GetValue(ordinal));
+            var ord = r.GetOrdinal(col);
+            return r.IsDBNull(ord) ? null : Convert.ToDateTime(r.GetValue(ord));
         }
 
+        // ── Clases internas de datos ──────────────────────────────────────────────
         private sealed class OrdenMecanicoData
         {
             public int IdOrden { get; set; }
