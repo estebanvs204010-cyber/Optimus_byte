@@ -231,6 +231,16 @@
                                         </button>
                                     </form>
                                 }
+
+                                <!-- ✦ BOTÓN ELIMINAR -->
+                                <form asp-controller="Usuarios" asp-action="Eliminar"
+                                      asp-route-id="@u.IdUsuario" method="post" class="d-inline"
+                                      onsubmit="return confirm('⚠️ ¿Eliminar PERMANENTEMENTE a @u.NombreCompleto?\n\nEsta acción no se puede deshacer.')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-accion btn-eliminar" title="Eliminar permanentemente">
+                                        <i class="bi bi-trash3-fill"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     }

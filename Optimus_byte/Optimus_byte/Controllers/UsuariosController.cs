@@ -299,6 +299,50 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("Index");
         }
 
+        [HttpPost, ValidateAntiForgeryToken]
+        public IActionResult Eliminar(int id)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+
+            var idActual = GetIdAdmin();
+            if (id == idActual)
+            {
+                TempData["Error"] = "No puedes eliminar tu propia cuenta.";
+                return RedirectToAction("Index");
+            }
+
+            string nombre = "";
+            try
+            {
+                using (var conn = _db.GetConnection())
+                using (var cmd = new SqlCommand(@"
+            SELECT nombre_completo FROM Usuarios WHERE id_usuario = @id", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    nombre = cmd.ExecuteScalar()?.ToString() ?? "";
+                }
+
+                using (var conn = _db.GetConnection())
+                using (var cmd = new SqlCommand(@"
+            DELETE FROM Clientes  WHERE id_usuario = @id;
+            DELETE FROM Usuarios  WHERE id_usuario = @id;", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+
+                RegistrarAuditoria($"Eliminó usuario ID {id}: {nombre}");
+                TempData["Exito"] = $"Usuario {nombre} eliminado permanentemente.";
+            }
+            catch (SqlException ex) when (ex.Number == 547) // FK violation
+            {
+                TempData["Error"] = "No se puede eliminar: el usuario tiene registros asociados (órdenes, facturas, etc.).";
+            }
+
+            return RedirectToAction("Index");
+
+        }
+
         // ── Helpers privados ──────────────────────────────────
         private List<Rol> ObtenerRoles()
         {
