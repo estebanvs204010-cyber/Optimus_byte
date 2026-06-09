@@ -366,22 +366,28 @@ namespace Optimus_byte.Controllers
         public IActionResult MisOrdenes()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
-
             var idUsuario = GetIdUsuario();
             var ordenes = new List<dynamic>();
 
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(@"
-                SELECT o.id_orden, v.placa, v.marca, v.modelo,
-                       o.tipo_servicio, o.descripcion_problema,
-                       o.diagnostico, o.observaciones, o.estado,
-                       o.fecha_apertura, o.fecha_cierre,
-                       o.fecha_entrega_estimada
-                FROM OrdenesTrabajo o
-                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
-                INNER JOIN Clientes c  ON v.id_cliente  = c.id_cliente
-                WHERE c.id_usuario = @idUsuario
-                ORDER BY o.fecha_apertura DESC", conn))
+        SELECT o.id_orden,
+               v.placa,
+               v.marca,
+               v.modelo,
+               o.tipo_servicio,
+               o.descripcion_problema,
+               o.diagnostico,
+               o.observaciones,
+               o.estado,
+               o.fecha_apertura,
+               o.fecha_cierre,
+               o.fecha_entrega_estimada
+        FROM OrdenesTrabajo o
+        INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+        INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+        WHERE c.id_usuario = @idUsuario
+        ORDER BY o.fecha_apertura DESC", conn))
             {
                 cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
                 using var reader = cmd.ExecuteReader();
@@ -400,11 +406,11 @@ namespace Optimus_byte.Controllers
                         Estado = reader["estado"].ToString()!,
                         FechaApertura = Convert.ToDateTime(reader["fecha_apertura"]),
                         FechaCierre = reader["fecha_cierre"] == DBNull.Value
-                                                ? (DateTime?)null
-                                                : Convert.ToDateTime(reader["fecha_cierre"]),
+                                                    ? (DateTime?)null
+                                                    : Convert.ToDateTime(reader["fecha_cierre"]),
                         FechaEntregaEstimada = reader["fecha_entrega_estimada"] == DBNull.Value
-                                                ? (DateTime?)null
-                                                : Convert.ToDateTime(reader["fecha_entrega_estimada"])
+                                                    ? (DateTime?)null
+                                                    : Convert.ToDateTime(reader["fecha_entrega_estimada"])
                     });
                 }
             }
@@ -413,6 +419,7 @@ namespace Optimus_byte.Controllers
             ViewBag.Ordenes = ordenes;
             return View("~/Views/Cliente/MisOrdenes.cshtml");
         }
+
 
         // Helper auditoría
         private void RegistrarAuditoria(string accion)

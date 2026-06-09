@@ -8,6 +8,7 @@ builder.Services.AddControllersWithViews();
 
 // Registrar DbHelper como servicio (reemplaza el DbContext de EF Core)
 builder.Services.AddScoped<DbHelper>();
+builder.Services.AddScoped<EmailService>();
 
 // Sesiones
 builder.Services.AddSession(options =>

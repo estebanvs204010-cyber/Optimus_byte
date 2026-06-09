@@ -1,0 +1,315 @@
+﻿@model Optimus_byte.Models.ViewModels.RecuperarViewModel
+@{ Layout = null; }
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar contraseña — Optimus Byte</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #f5f3ef;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Barlow', sans-serif;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid rgba(30,58,138,0.12);
+            border-radius: 12px;
+            padding: 48px 40px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(30,58,138,0.11);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-titulo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #1e3a8a;
+        }
+
+        .paso-titulo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #1a2332;
+            margin-bottom: 8px;
+        }
+
+        .paso-sub {
+            font-size: 0.85rem;
+            color: #4b5563;
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+
+        .correo-badge {
+            background: rgba(37,99,235,0.08);
+            border: 1px solid rgba(37,99,235,0.2);
+            color: #1e3a8a;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            display: inline-block;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .campo { margin-bottom: 18px; }
+
+        .campo label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #4b5563;
+            margin-bottom: 6px;
+            font-family: 'Barlow Condensed', sans-serif;
+        }
+
+        .campo input {
+            width: 100%;
+            background: #f9fafb;
+            border: 1.5px solid rgba(30,58,138,0.15);
+            color: #1a2332;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: 'Barlow', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .campo input:focus {
+            outline: none;
+            border-color: #1e3a8a;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(30,58,138,0.08);
+        }
+
+        .input-codigo {
+            font-size: 2rem !important;
+            letter-spacing: 14px !important;
+            text-align: center !important;
+            padding: 16px !important;
+        }
+
+        .btn-principal {
+            width: 100%;
+            background: #1e3a8a;
+            color: #ffffff;
+            border: 1.5px solid #1e3a8a;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+
+        .btn-principal:hover {
+            background: #1a2332;
+            border-color: #1a2332;
+        }
+
+        .error-msg {
+            background: rgba(220,38,38,0.06);
+            border: 1px solid rgba(220,38,38,0.2);
+            color: #dc2626;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 18px;
+            font-size: 0.83rem;
+        }
+
+        .temporizador {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            margin-top: 14px;
+        }
+
+        .temporizador span {
+            color: #1e3a8a;
+            font-weight: 600;
+        }
+
+        .link-volver {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #4b5563;
+            font-size: 0.82rem;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .link-volver:hover { color: #1e3a8a; }
+
+        /* Indicador de pasos */
+        .pasos {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+        }
+
+        .paso-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(30,58,138,0.15);
+            transition: all 0.3s ease;
+        }
+
+        .paso-dot.activo {
+            background: #1e3a8a;
+            width: 28px;
+            border-radius: 5px;
+        }
+
+        .paso-linea {
+            width: 32px;
+            height: 1px;
+            background: rgba(30,58,138,0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+
+        <div class="logo">
+            <div class="logo-titulo">Optimus Byte</div>
+        </div>
+
+        <!-- Indicador de pasos -->
+        <div class="pasos">
+            <div class="paso-dot @(Model.Paso == "correo" ? "activo" : "")"></div>
+            <div class="paso-linea"></div>
+            <div class="paso-dot @(Model.Paso == "codigo" ? "activo" : "")"></div>
+            <div class="paso-linea"></div>
+            <div class="paso-dot @(Model.Paso == "nueva" ? "activo" : "")"></div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="error-msg">@Model.Error</div>
+        }
+
+        @* ── PASO 1: Ingresar correo ── *@
+        @if (Model.Paso == "correo")
+        {
+            <div class="paso-titulo">¿Olvidaste tu contraseña?</div>
+            <p class="paso-sub">Ingresa tu correo y te enviaremos un código para restablecerla.</p>
+
+            <form asp-action="EnviarCodigo" method="post">
+                @Html.AntiForgeryToken()
+                <div class="campo">
+                    <label>Correo electrónico</label>
+                    <input type="email" name="Correo" placeholder="tucorreo@gmail.com"
+                           value="@Model.Correo" required autofocus />
+                </div>
+                <button type="submit" class="btn-principal">Enviar código →</button>
+            </form>
+        }
+
+        @* ── PASO 2: Ingresar código ── *@
+        @if (Model.Paso == "codigo")
+        {
+            <div class="paso-titulo">Revisa tu correo</div>
+            <p class="paso-sub">Enviamos un código de 6 dígitos a:</p>
+            <div class="correo-badge">@Model.Correo</div>
+
+            <form asp-action="ValidarCodigo" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Correo" value="@Model.Correo" />
+                <div class="campo">
+                    <label>Código de verificación</label>
+                    <input type="text" name="Codigo" class="input-codigo"
+                           maxlength="6" placeholder="000000"
+                           autocomplete="off" autofocus />
+                </div>
+                <button type="submit" class="btn-principal">Verificar código →</button>
+            </form>
+
+            <div class="temporizador">
+                El código expira en <span id="timer">10:00</span>
+            </div>
+        }
+
+        @* ── PASO 3: Nueva contraseña ── *@
+        @if (Model.Paso == "nueva")
+        {
+            <div class="paso-titulo">Nueva contraseña</div>
+            <p class="paso-sub">Ingresa tu nueva contraseña. Debe tener al menos 6 caracteres.</p>
+
+            <form asp-action="GuardarContrasena" method="post">
+                @Html.AntiForgeryToken()
+                <div class="campo">
+                    <label>Nueva contraseña</label>
+                    <input type="password" name="NuevaContrasena"
+                           placeholder="Mínimo 6 caracteres" required autofocus />
+                </div>
+                <div class="campo">
+                    <label>Confirmar contraseña</label>
+                    <input type="password" name="ConfirmarContrasena"
+                           placeholder="Repite la contraseña" required />
+                </div>
+                <button type="submit" class="btn-principal">Guardar contraseña →</button>
+            </form>
+        }
+
+        <a href="/Login" class="link-volver">← Volver al inicio de sesión</a>
+
+    </div>
+
+    <script>
+        // Temporizador solo en el paso del código
+        @if (Model.Paso == "codigo")
+        {
+            <text>
+            let segundos = 600;
+            const timer = document.getElementById('timer');
+            const iv = setInterval(() => {
+                segundos--;
+                const m = Math.floor(segundos / 60).toString().padStart(2, '0');
+                const s = (segundos % 60).toString().padStart(2, '0');
+                // timer.textContent = m + ':' + s;
+                if (segundos === 0) {
+    clearInterval(iv);
+    timer.textContent = 'Expirado';
+    timer.style.color = '#dc2626'; 1000);
+
+            // Solo números en el campo código
+            document.querySelector('.input-codigo')
+                .addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '')
+                });
+            </text>
+        }
+    </script>
+</body>
+</html>
