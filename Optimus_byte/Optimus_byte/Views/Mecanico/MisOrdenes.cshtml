@@ -118,6 +118,12 @@
             color: #fff;
         }
 
+        .btn-repuesto {
+            background: rgba(249,115,22,.15);
+            color: #c2410c;
+            border: 1px solid rgba(249,115,22,.35) !important;
+        }
+
         /* ── Estado options ── */
         .estado-option {
             display: flex;
@@ -209,7 +215,53 @@
                 color: #4ade80;
             }
 
-        /* ── Secciones mecanico (copiadas de lo que tenias) ── */
+        /* ── Info repuesto en modal ── */
+        .rep-info-box {
+            background: rgba(255,255,255,.05);
+            border-radius: 8px;
+            padding: .75rem;
+            margin-bottom: .85rem;
+            font-size: .78rem;
+        }
+
+        .rep-info-grid {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .rep-info-val {
+            color: #e2e8f0;
+            font-weight: 700;
+        }
+
+        .rep-info-lbl {
+            color: #94a3b8;
+            font-size: .7rem;
+            display: block;
+        }
+
+        /* ── Divisor del modal repuesto ── */
+        .rep-divisor {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin: .85rem 0;
+            color: #475569;
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+            .rep-divisor::before,
+            .rep-divisor::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: rgba(255,255,255,.1);
+            }
+
+        /* ── Secciones mecanico ── */
         .mecanico-content {
         }
 
@@ -280,13 +332,6 @@
             .two-column {
                 grid-template-columns: 1fr;
             }
-        }
-            .two-column
-
-        {
-            grid-template-columns: 1fr;
-        }
-
         }
 
         .agenda-grid {
@@ -638,6 +683,7 @@
             <div class="alerta alerta-err"><i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]</div>
         }
 
+        @* ── Stats ── *@
         <section class="stats-row mechanic-stats">
             <div class="stat-card">
                 <div class="stat-icon bg-blue-soft"><i class="bi bi-calendar-check text-primary"></i></div>
@@ -746,7 +792,6 @@
                                 </p>
                             }
 
-                            @* Cuenta regresiva si hay fecha estimada *@
                             @if (cita.FechaEntregaEstimada.HasValue)
                             {
                                 <div class="countdown-pill">
@@ -765,6 +810,10 @@
                                 <button type="button" class="btn-accion btn-tiempo"
                                         onclick="abrirModalTiempo(@cita.Id)">
                                     <i class="bi bi-clock"></i> Tiempo estimado
+                                </button>
+                                <button type="button" class="btn-accion btn-repuesto"
+                                        onclick="abrirModalRepuesto(@cita.Id)">
+                                    <i class="bi bi-box-seam"></i> Pedir repuesto
                                 </button>
                             </div>
                         </div>
@@ -819,6 +868,10 @@
                                                 onclick="abrirModalTiempo(@cita.Id)">
                                             <i class="bi bi-clock"></i> Tiempo
                                         </button>
+                                        <button type="button" class="btn-accion btn-repuesto"
+                                                onclick="abrirModalRepuesto(@cita.Id)">
+                                            <i class="bi bi-box-seam"></i> Repuesto
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -828,6 +881,7 @@
             </div>
         </section>
 
+        @* ════════════════ HISTORIAL + CHECKLISTS ════════════════ *@
         <section class="two-column">
             <div id="historial" class="panel-section">
                 <div class="section-mini-header compact">
@@ -867,6 +921,7 @@
             </div>
         </section>
 
+        @* ════════════════ EVIDENCIAS + MENSAJES ════════════════ *@
         <section class="two-column">
             <div id="evidencias" class="panel-section">
                 <div class="section-mini-header compact">
@@ -933,6 +988,7 @@
             </div>
         </section>
 
+        @* ════════════════ MANUALES + HERRAMIENTAS ════════════════ *@
         <section class="two-column">
             <div id="manuales" class="panel-section">
                 <div class="section-mini-header compact">
@@ -969,6 +1025,7 @@
             </div>
         </section>
 
+        @* ════════════════ TIEMPO REAL ════════════════ *@
         <section class="panel-section">
             <div class="section-mini-header compact">
                 <div><h2>Tiempo real de reparacion</h2><p>Registra la duracion para medir productividad y planificar mejor.</p></div>
@@ -988,7 +1045,7 @@
         </section>
     </main>
 
-    @* MODAL: Cambiar estado *@
+    @* ════════════════ MODAL: Cambiar estado ════════════════ *@
     <div class="modal fade modal-mecanico" id="modalEstado" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -1003,9 +1060,12 @@
                         <p class="modal-label" style="margin-bottom:1rem">Selecciona el nuevo estado</p>
                         @{
                             var coloresEstado = new Dictionary<string, string> {
-                                                { "Pendiente", "#f59e0b" }, { "En proceso", "#3b82f6" },
-                                                { "Esperando repuesto", "#ef4444" }, { "Listo para entrega", "#8b5cf6" },
-                                                { "Entregado", "#22c55e" }, { "Cancelado", "#6b7280" }
+                                                { "Pendiente",            "#f59e0b" },
+                                                { "En proceso",           "#3b82f6" },
+                                                { "Esperando repuesto",   "#ef4444" },
+                                                { "Listo para entrega",   "#8b5cf6" },
+                                                { "Entregado",            "#22c55e" },
+                                                { "Cancelado",            "#6b7280" }
                                                 };
                         }
                         @foreach (var est in estadosDisponibles)
@@ -1032,7 +1092,7 @@
         </div>
     </div>
 
-    @* MODAL: Tiempo estimado de entrega *@
+    @* ════════════════ MODAL: Tiempo estimado ════════════════ *@
     <div class="modal fade modal-mecanico" id="modalTiempo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -1054,7 +1114,6 @@
                             </button>
                         </div>
 
-                        @* Modo horas *@
                         <div id="panelHoras">
                             <label class="modal-label">Cuantas horas aproximadamente</label>
                             <input type="number" id="inputHoras" name="horas" min="1" max="999"
@@ -1064,7 +1123,6 @@
                             </p>
                         </div>
 
-                        @* Modo fecha *@
                         <div id="panelFecha" style="display:none">
                             <label class="modal-label">Fecha y hora de entrega estimada</label>
                             <input type="datetime-local" id="inputFecha" name="fechaEntrega"
@@ -1083,24 +1141,110 @@
         </div>
     </div>
 
+    @* ════════════════ MODAL: Pedir repuesto — inventario + texto libre ════════════════ *@
+    <div class="modal fade modal-mecanico" id="modalRepuesto" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-box-seam me-2"></i>Solicitar repuesto · <span id="modalRepuestoOT"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Mecanico" asp-action="SolicitarRepuesto" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ordenId" id="repOrdenId" />
+                    <div class="modal-body">
+
+                        @* ── OPCIÓN 1: Selector del inventario ── *@
+                        <div style="margin-bottom:.6rem">
+                            <label class="modal-label">
+                                <i class="bi bi-archive me-1"></i>Buscar en inventario
+                            </label>
+                            <select name="repuestoId" id="selectRepuesto"
+                                    class="modal-input" onchange="toggleCampoLibre(this)">
+                                <option value="">— No está en inventario, lo escribo abajo —</option>
+                                @foreach (var r in Model.RepuestosDisponibles)
+                                {
+                                    <option value="@r.IdRepuesto"
+                                            data-stock="@r.StockActual"
+                                            data-ref="@r.Referencia"
+                                            data-cat="@r.Categoria">
+                                        @r.Nombre (@r.Referencia) · Stock: @r.StockActual
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        @* Info del repuesto seleccionado — aparece dinámicamente *@
+                        <div id="repInfoBox" class="rep-info-box" style="display:none">
+                            <div class="rep-info-grid">
+                                <div><span class="rep-info-lbl">Referencia</span><span class="rep-info-val" id="repInfoRef">—</span></div>
+                                <div><span class="rep-info-lbl">Categoría</span><span class="rep-info-val" id="repInfoCat">—</span></div>
+                                <div><span class="rep-info-lbl">Stock disponible</span><span class="rep-info-val" id="repInfoStock">—</span></div>
+                            </div>
+                        </div>
+
+                        @* ── Divisor ── *@
+                        <div class="rep-divisor">o si no está en inventario</div>
+
+                        @* ── OPCIÓN 2: Texto libre ── *@
+                        <div id="campoNombreLibre" style="margin-bottom:.85rem">
+                            <label class="modal-label">
+                                <i class="bi bi-pencil me-1"></i>Escribe el nombre del repuesto
+                                <span style="color:#ef4444" id="repLibreAsterisco">*</span>
+                                <span id="repLibreHint" style="color:#64748b;font-size:.7rem;text-transform:none;letter-spacing:0">
+                                    — no está en el inventario
+                                </span>
+                            </label>
+                            <input type="text" name="nombreLibre" id="inputNombreLibre"
+                                   class="modal-input"
+                                   placeholder="Ej: Filtro de combustible Bosch 1457434310" />
+                        </div>
+
+                        @* ── Cantidad ── *@
+                        <div style="margin-bottom:.85rem">
+                            <label class="modal-label">Cantidad *</label>
+                            <input type="number" name="cantidad" id="repCantidad"
+                                   min="1" value="1" class="modal-input" required />
+                        </div>
+
+                        @* ── Motivo ── *@
+                        <div>
+                            <label class="modal-label">Motivo / especificacion tecnica</label>
+                            <textarea name="motivo" rows="2" class="modal-input"
+                                      placeholder="Ej: necesario para cambio de aceite en OT, llanta desgastada..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-salir" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn-guardar">
+                            <i class="bi bi-send me-1"></i> Enviar solicitud
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ── Agenda ────────────────────────────────────────────────────
+        // ── Agenda ────────────────────────────────────────────────
         function alternarAgenda() {
             document.getElementById('agendaCards').classList.toggle('d-none');
             document.getElementById('agendaTabla').classList.toggle('d-none');
         }
 
-        // ── Checklists ────────────────────────────────────────────────
+        // ── Checklists ────────────────────────────────────────────
         function actualizarProgreso(checkbox) {
-            const box = checkbox.closest('.checklist-box');
-            const checks  = box.querySelectorAll('input[type="checkbox"]');
+            const box      = checkbox.closest('.checklist-box');
+            const checks   = box.querySelectorAll('input[type="checkbox"]');
             const marcados = box.querySelectorAll('input[type="checkbox"]:checked');
             box.querySelector('.progress-bar').style.width =
                 Math.round((marcados.length / checks.length) * 100) + '%';
         }
 
-        // ── Modal estado ──────────────────────────────────────────────
+        // ── Modal estado ──────────────────────────────────────────
         function abrirModalEstado(ordenId, estadoActual) {
             document.getElementById('estadoOrdenId').value = ordenId;
             document.getElementById('modalEstadoOT').textContent = 'OT-' + ordenId;
@@ -1118,14 +1262,13 @@
             label.querySelector('input[type=radio]').checked = true;
         }
 
-        // ── Modal tiempo estimado ─────────────────────────────────────
+        // ── Modal tiempo estimado ─────────────────────────────────
         function abrirModalTiempo(ordenId) {
             document.getElementById('tiempoOrdenId').value = ordenId;
             document.getElementById('modalTiempoOT').textContent = 'OT-' + ordenId;
-            // Poner minimo de fecha = ahora
             const ahora = new Date();
             ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
-            document.getElementById('inputFecha').min = ahora.toISOString().slice(0,16);
+            document.getElementById('inputFecha').min = ahora.toISOString().slice(0, 16);
             document.getElementById('inputFecha').value = '';
             document.getElementById('inputHoras').value = '';
             cambiarModoTiempo('horas');
@@ -1134,41 +1277,76 @@
 
         function cambiarModoTiempo(modo) {
             const esHoras = modo === 'horas';
-            document.getElementById('panelHoras').style.display  = esHoras ? '' : 'none';
-            document.getElementById('panelFecha').style.display  = esHoras ? 'none' : '';
+            document.getElementById('panelHoras').style.display = esHoras ? '' : 'none';
+            document.getElementById('panelFecha').style.display = esHoras ? 'none' : '';
             document.getElementById('btnModoHoras').classList.toggle('active', esHoras);
             document.getElementById('btnModoDias').classList.toggle('active', !esHoras);
-            // Limpiar el campo que no se usa para no enviarlo
-            if (esHoras) {
-                document.getElementById('inputFecha').value = '';
+            if (esHoras) document.getElementById('inputFecha').value = '';
+            else         document.getElementById('inputHoras').value = '';
+        }
+
+        // ── Modal repuesto ────────────────────────────────────────
+        function abrirModalRepuesto(ordenId) {
+            document.getElementById('repOrdenId').value = ordenId;
+            document.getElementById('modalRepuestoOT').textContent = 'OT-' + ordenId;
+            // Resetear campos
+            document.getElementById('selectRepuesto').value = '';
+            document.getElementById('inputNombreLibre').value = '';
+            document.getElementById('repCantidad').value = 1;
+            toggleCampoLibre(document.getElementById('selectRepuesto'));
+            new bootstrap.Modal(document.getElementById('modalRepuesto')).show();
+        }
+
+        // Muestra/oculta campo libre según si escogió del inventario
+        function toggleCampoLibre(select) {
+            const tieneInventario = select.value !== '';
+            const campoLibre  = document.getElementById('campoNombreLibre');
+            const inputLibre  = document.getElementById('inputNombreLibre');
+            const infoBox     = document.getElementById('repInfoBox');
+            const asterisco   = document.getElementById('repLibreAsterisco');
+            const hint        = document.getElementById('repLibreHint');
+
+            if (tieneInventario) {
+                // Escogió del inventario → campo libre opcional, apagado visualmente
+                campoLibre.style.opacity  = '.45';
+                inputLibre.required       = false;
+                inputLibre.placeholder    = 'Opcional: agrega mas detalles si lo necesitas';
+                asterisco.style.display   = 'none';
+                hint.textContent          = '— opcional si ya escogiste del inventario';
+
+                // Mostrar info del repuesto seleccionado
+                const opt   = select.selectedOptions[0];
+                document.getElementById('repInfoRef').textContent   = opt.dataset.ref   || '—';
+                document.getElementById('repInfoCat').textContent   = opt.dataset.cat   || '—';
+                document.getElementById('repInfoStock').textContent = opt.dataset.stock || '—';
+                infoBox.style.display = '';
             } else {
-                document.getElementById('inputHoras').value = '';
+                // No escogió del inventario → campo libre obligatorio
+                campoLibre.style.opacity  = '1';
+                inputLibre.required       = true;
+                inputLibre.placeholder    = 'Ej: Filtro de combustible Bosch 1457434310';
+                asterisco.style.display   = '';
+                hint.textContent          = '— no está en el inventario';
+                infoBox.style.display     = 'none';
             }
         }
 
-        // ── Cuentas regresivas ────────────────────────────────────────
+        // ── Cuentas regresivas ────────────────────────────────────
         function actualizarCuentas() {
             document.querySelectorAll('[data-entrega]').forEach(el => {
-                const fechaEntrega = new Date(el.dataset.entrega);
-                const ahora = new Date();
-                const diff = fechaEntrega - ahora;
-
+                const diff = new Date(el.dataset.entrega) - new Date();
                 if (diff <= 0) {
                     el.textContent = 'Tiempo vencido';
                     el.closest('.countdown-pill').classList.add('urgente');
                     return;
                 }
-
                 const dias  = Math.floor(diff / 86400000);
                 const horas = Math.floor((diff % 86400000) / 3600000);
                 const mins  = Math.floor((diff % 3600000)  / 60000);
 
-                let texto = '';
-                if (dias > 0)       texto = `${dias}d ${horas}h restantes`;
-                else if (horas > 0) texto = `${horas}h ${mins}m restantes`;
-                else                texto = `${mins} min restantes`;
-
-                el.textContent = texto;
+                el.textContent = dias  > 0 ? `${dias}d ${horas}h restantes`
+                               : horas > 0 ? `${horas}h ${mins}m restantes`
+                                           : `${mins} min restantes`;
 
                 const pill = el.closest('.countdown-pill');
                 if (diff < 3600000)       pill.classList.add('urgente');

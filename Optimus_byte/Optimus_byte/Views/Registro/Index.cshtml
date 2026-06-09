@@ -107,7 +107,7 @@
                                 <span class="input-group-text">
                                     <i class="bi bi-geo-alt"></i>
                                 </span>
-                                <input asp-for="Direccion" class="form-control" placeholder="Dirección de residencia" />
+                                <input asp-for="Direccion" class="form-control" autocomplete="new-password" placeholder="Dirección de residencia" />
                             </div>
                             <span asp-validation-for="Direccion" class="text-danger" style="font-size:.8rem"></span>
                         </div>
@@ -118,7 +118,7 @@
                                 <span class="input-group-text">
                                     <i class="bi bi-lock"></i>
                                 </span>
-                                <input asp-for="Contrasena" type="password" class="form-control" placeholder="Mínimo 6 caracteres" />
+                                <input asp-for="Contrasena" type="password" class="form-control" autocomplete="new-password" placeholder="Mínimo 6 caracteres" />
                             </div>
                             <span asp-validation-for="Contrasena" class="text-danger d-block" style="font-size:.8rem"></span>
                         </div>
@@ -129,7 +129,7 @@
                                 <span class="input-group-text">
                                     <i class="bi bi-lock-fill"></i>
                                 </span>
-                                <input asp-for="ConfirmarContrasena" type="password" class="form-control" placeholder="Repite la contraseña" />
+                                <input asp-for="ConfirmarContrasena" type="password" class="form-control" autocomplete="new-password" placeholder="Repite la contraseña" />
                             </div>
                             <span asp-validation-for="ConfirmarContrasena" class="text-danger" style="font-size:.8rem"></span>
                         </div>
@@ -169,4 +169,3 @@
     @await Html.PartialAsync("_ValidationScriptsPartial")
 </body>
 </html>
-

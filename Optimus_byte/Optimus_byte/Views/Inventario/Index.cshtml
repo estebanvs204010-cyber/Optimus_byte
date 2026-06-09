@@ -1,4 +1,4 @@
-﻿@{
+@{
     Layout = null;
     ViewData["Title"] = "Catálogo de Repuestos";
 }
@@ -9,9 +9,170 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Optimus-Byte</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/catalogo.css" asp-append-version="true" />
+    <style>
+        .logo-img {
+            height: 48px !important;
+            width: auto !important;
+            max-width: 200px !important;
+            display: block !important;
+        }
+
+        .barra-superior {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 80px !important;
+            background-color: #ffffff !important;
+            border-bottom: 1px solid rgba(37,99,235,0.15) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px !important;
+            padding: 0 32px !important;
+            z-index: 1200 !important;
+            box-shadow: 0 1px 40px rgba(37,99,235,0.08) !important;
+        }
+
+        .boton-menu {
+            background: transparent !important;
+            color: #2563eb !important;
+            border: 1px solid rgba(37,99,235,0.15) !important;
+            width: 44px !important;
+            height: 44px !important;
+            font-size: 18px !important;
+            border-radius: 4px !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .nav-acciones {
+            margin-left: auto !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+        }
+
+        .ob-btn-ingresar {
+            color: #1e3a8a;
+            text-decoration: none;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 9px 22px;
+            border: 1.5px solid #1e3a8a;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            background: transparent;
+        }
+
+            .ob-btn-ingresar:hover {
+                background: #1e3a8a;
+                color: #ffffff;
+                box-shadow: 0 2px 12px rgba(30,58,138,0.07);
+            }
+
+        .ob-btn-registro {
+            color: #ffffff;
+            text-decoration: none;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 9px 22px;
+            background: #1e3a8a;
+            border: 1.5px solid #1e3a8a;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+            .ob-btn-registro:hover {
+                background: #1a2332;
+                border-color: #1a2332;
+                color: #ffffff;
+                box-shadow: 0 8px 32px rgba(30,58,138,0.11);
+            }
+
+        .nb-cotizacion {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            border: 1px solid #2563eb !important;
+            color: #2563eb !important;
+            padding: 7px 16px !important;
+            border-radius: 4px !important;
+            font-size: .75rem !important;
+            letter-spacing: .1em !important;
+            text-transform: uppercase !important;
+            cursor: pointer !important;
+            background: transparent !important;
+        }
+
+        .barra-lateral {
+            position: fixed !important;
+            top: 80px !important;
+            left: -280px !important;
+            width: 280px !important;
+            height: calc(100vh - 80px) !important;
+            background: #ffffff !important;
+            border-right: 1px solid rgba(37,99,235,0.15) !important;
+            padding: 36px 0 !important;
+            transition: left 0.3s ease !important;
+            z-index: 1000 !important;
+            overflow-y: auto !important;
+        }
+
+        .barra-lateral.activa {
+            left: 0 !important;
+            box-shadow: 4px 0 40px rgba(37,99,235,0.1) !important;
+        }
+
+        .barra-lateral h2 {
+            color: #2563eb !important;
+            font-size: 1.1rem !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+            padding: 0 28px 24px !important;
+            margin: 0 !important;
+            border-bottom: 1px solid rgba(37,99,235,0.15) !important;
+            margin-bottom: 12px !important;
+        }
+
+        .barra-lateral a {
+            display: flex !important;
+            align-items: center !important;
+            color: #64748b !important;
+            text-decoration: none !important;
+            padding: 13px 28px !important;
+            font-size: 0.82rem !important;
+            letter-spacing: 0.1em !important;
+            text-transform: uppercase !important;
+            transition: all 0.3s ease !important;
+            border-left: 2px solid transparent !important;
+        }
+
+        .barra-lateral a:hover,
+        .barra-lateral a.activo-sidebar {
+            color: #2563eb !important;
+            background: rgba(37,99,235,0.08) !important;
+            border-left-color: #2563eb !important;
+        }
+
+        .cat-layout {
+            padding-top: 80px !important;
+        }
+
+        body { margin: 0 !important; padding: 0 !important; }
+    </style>
 </head>
 
 <body>
@@ -24,14 +185,15 @@
             <img src="~/img/putin.png" alt="Optimus-Byte" class="logo-img" />
         </a>
 
-        <!-- Botón de cotización con badge dinámico -->
         <button class="nb-cotizacion" id="toggleCarrito">
             🛒 Mi cotización
             <span class="carrito-badge" id="badgeCount">0</span>
         </button>
 
-        <a class="boton-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
-        <a class="boton-registro" asp-controller="Registro" asp-action="Index">Registrar</a>
+        <div class="nav-acciones">
+            <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
+            <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrar</a>
+        </div>
     </header>
 
     <!-- ══ BARRA LATERAL ═══════════════════════════════════ -->
@@ -47,54 +209,29 @@
     <!-- ══ LAYOUT: SIDEBAR CATEGORÍAS + MAIN ══════════════ -->
     <div class="cat-layout" id="contenidoPrincipal">
 
-        <!-- Sidebar izquierdo: categorías + resumen cotización -->
         <aside class="cat-sb">
             <div class="cat-sb-header">
                 <div class="cat-sb-header-txt">Cotizador de Repuestos</div>
                 <button class="cat-sb-carrito-btn" onclick="toggleCarrito()">
                     🛒 Productos agregados
-                    <span id="sbCount"
-                          style="background:rgba(0,0,0,0.25);border-radius:10px;padding:1px 7px;font-size:.65rem;">
-                        0
-                    </span>
+                    <span id="sbCount" style="background:rgba(0,0,0,0.25);border-radius:10px;padding:1px 7px;font-size:.65rem;">0</span>
                 </button>
             </div>
-
             <div class="cat-sb-cat-title">Categorías</div>
-            <div class="cat-sb-cat on" onclick="filtrar('todos', this)">
-                Todos los productos <span class="arr">→</span>
-            </div>
-            <div class="cat-sb-cat" onclick="filtrar('Motor', this)">
-                Motor <span class="arr">→</span>
-            </div>
-            <div class="cat-sb-cat" onclick="filtrar('Frenos', this)">
-                Frenos <span class="arr">→</span>
-            </div>
-            <div class="cat-sb-cat" onclick="filtrar('Filtros', this)">
-                Filtros <span class="arr">→</span>
-            </div>
-            <div class="cat-sb-cat" onclick="filtrar('Eléctrico', this)">
-                Eléctrico <span class="arr">→</span>
-            </div>
-            <div class="cat-sb-cat" onclick="filtrar('Suspensión', this)">
-                Suspensión <span class="arr">→</span>
-            </div>
-            <div class="cat-sb-cat" onclick="filtrar('Lubricantes', this)">
-                Lubricantes <span class="arr">→</span>
-            </div>
+            <div class="cat-sb-cat on" onclick="filtrar('todos', this)">Todos los productos <span class="arr">→</span></div>
+            <div class="cat-sb-cat" onclick="filtrar('Motor', this)">Motor <span class="arr">→</span></div>
+            <div class="cat-sb-cat" onclick="filtrar('Frenos', this)">Frenos <span class="arr">→</span></div>
+            <div class="cat-sb-cat" onclick="filtrar('Filtros', this)">Filtros <span class="arr">→</span></div>
+            <div class="cat-sb-cat" onclick="filtrar('Eléctrico', this)">Eléctrico <span class="arr">→</span></div>
+            <div class="cat-sb-cat" onclick="filtrar('Suspensión', this)">Suspensión <span class="arr">→</span></div>
+            <div class="cat-sb-cat" onclick="filtrar('Lubricantes', this)">Lubricantes <span class="arr">→</span></div>
         </aside>
 
-        <!-- Área principal del catálogo -->
         <main class="cat-main">
-
-            <!-- Cabecera: título + buscador + orden -->
             <div class="cat-main-top">
                 <div class="cat-main-title">Todos los <em>productos</em></div>
                 <div class="cat-search-row">
-                    <input class="cat-search-inp"
-                           placeholder="Buscar repuesto..."
-                           id="searchInp"
-                           oninput="buscar()" />
+                    <input class="cat-search-inp" placeholder="Buscar repuesto..." id="searchInp" oninput="buscar()" />
                     <button class="cat-search-btn">🔍</button>
                     <select class="cat-sort-sel" onchange="ordenar(this.value)">
                         <option value="nombre">Nombre A–Z</option>
@@ -104,11 +241,10 @@
                 </div>
             </div>
 
-            <!-- Panel de cotización (se abre/cierra con el botón) -->
             <div class="cat-carrito-panel" id="carritoPanel" style="display:none;">
                 <div class="cat-carrito-panel-hdr">
                     <span>Mi cotización</span>
-                    <span style="cursor:pointer;" onclick="toggleCarrito()">✕ cerrar</span>
+                    <span style="cursor:pointer;" onclick="toggleCarrito()" >✕ cerrar</span>
                 </div>
                 <div id="carritoItems"></div>
                 <div class="cat-carrito-total">
@@ -118,13 +254,10 @@
                 <button class="cat-btn-cotizar">Enviar cotización →</button>
             </div>
 
-            <!-- Grid de tarjetas de productos (generado por JS) -->
             <div class="cat-grid" id="productosGrid"></div>
-
         </main>
     </div>
 
-    <!-- ══ JS DEL CATÁLOGO ═════════════════════════════════ -->
     <script src="~/js/catalogo.js" asp-append-version="true"></script>
     <script>
         function mostrarMenu() {

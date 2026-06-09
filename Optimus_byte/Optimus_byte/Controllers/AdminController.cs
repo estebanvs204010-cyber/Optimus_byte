@@ -10,7 +10,12 @@ namespace Optimus_byte.Controllers
     public class AdminController : Controller
     {
         private readonly DbHelper _db;
-        public AdminController(DbHelper db) => _db = db;
+        private readonly EmailService _email;
+        public AdminController(DbHelper db, EmailService email)
+        {
+            _db = db;
+            _email = email;
+        }
 
         private bool EsAdmin() =>
             HttpContext.Session.GetString("UsuarioRol") == "Admin";
@@ -23,38 +28,31 @@ namespace Optimus_byte.Controllers
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
             var vm = new DashboardViewModel();
-
             using var conn = _db.GetConnection();
 
             vm.TotalUsuarios = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Usuarios");
             vm.TotalClientes = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Clientes WHERE activo = 1");
             vm.TotalVehiculos = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Vehiculos WHERE activo = 1");
-            vm.OrdenesAbiertas = EjecutarScalar<int>(conn,
-                "SELECT COUNT(1) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
-            vm.OrdenesHoy = EjecutarScalar<int>(conn,
-                "SELECT COUNT(1) FROM OrdenesTrabajo WHERE CAST(fecha_apertura AS DATE) = CAST(GETDATE() AS DATE)");
-            vm.CitasHoy = CitasController.ContarCitasHoy(conn);
-            vm.ProximasCitas = CitasController.ContarProximasCitas(conn);
-            vm.VehiculosMantenimiento = EjecutarScalar<int>(conn,
-                "SELECT COUNT(DISTINCT id_vehiculo) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
-            vm.RepuestosBajoStock = EjecutarScalar<int>(conn,
-                "SELECT COUNT(1) FROM Repuestos WHERE stock_actual <= stock_minimo AND activo = 1");
+            vm.OrdenesAbiertas = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
+            vm.OrdenesHoy = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM OrdenesTrabajo WHERE CAST(fecha_apertura AS DATE) = CAST(GETDATE() AS DATE)");
+            vm.RepuestosBajoStock = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Repuestos WHERE stock_actual <= stock_minimo AND activo = 1");
             vm.IngresosMes = EjecutarScalar<decimal>(conn,
                 @"SELECT ISNULL(SUM(total),0) FROM Facturas
                   WHERE estado_pago = 'Pagado'
                   AND MONTH(fecha_emision) = MONTH(GETDATE())
-                  AND YEAR(fecha_emision) = YEAR(GETDATE())");
+                  AND YEAR(fecha_emision)  = YEAR(GETDATE())");
 
             using (var cmd = new SqlCommand(@"
                 SELECT TOP 8
                     o.id_orden, o.estado, o.tipo_servicio, o.fecha_apertura,
+                    o.fecha_entrega_estimada,
                     v.placa, v.marca, v.modelo,
                     c.nombre_completo AS cliente,
                     ISNULL(u.nombre_completo,'Sin asignar') AS mecanico
                 FROM OrdenesTrabajo o
                 INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
-                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
-                LEFT  JOIN Usuarios u ON o.id_mecanico = u.id_usuario
+                INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                LEFT  JOIN Usuarios  u ON o.id_mecanico = u.id_usuario
                 ORDER BY o.fecha_apertura DESC", conn))
             using (var r = cmd.ExecuteReader())
             {
@@ -65,6 +63,7 @@ namespace Optimus_byte.Controllers
                         Estado = r["estado"].ToString()!,
                         TipoServicio = r["tipo_servicio"].ToString()!,
                         FechaApertura = Convert.ToDateTime(r["fecha_apertura"]),
+                        FechaEntregaEstimada = r["fecha_entrega_estimada"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_entrega_estimada"]),
                         Placa = r["placa"].ToString()!,
                         MarcaModelo = $"{r["marca"]} {r["modelo"]}",
                         Cliente = r["cliente"].ToString()!,
@@ -92,6 +91,9 @@ namespace Optimus_byte.Controllers
                     });
             }
 
+            // Campanita en dashboard también
+            ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
+
             return View("~/Views/Admin/Dashboard.cshtml", vm);
         }
 
@@ -115,6 +117,7 @@ namespace Optimus_byte.Controllers
             using (var cmd = new SqlCommand($@"
                 SELECT o.id_orden, o.estado, o.tipo_servicio,
                        o.fecha_apertura, o.fecha_cierre,
+                       o.fecha_entrega_estimada,
                        v.placa, v.marca, v.modelo,
                        c.nombre_completo AS cliente,
                        ISNULL(u.nombre_completo,'Sin asignar') AS mecanico,
@@ -136,6 +139,7 @@ namespace Optimus_byte.Controllers
                         TipoServicio = r["tipo_servicio"].ToString()!,
                         FechaApertura = Convert.ToDateTime(r["fecha_apertura"]),
                         FechaCierre = r["fecha_cierre"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_cierre"]),
+                        FechaEntregaEstimada = r["fecha_entrega_estimada"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(r["fecha_entrega_estimada"]),
                         Placa = r["placa"].ToString()!,
                         MarcaModelo = $"{r["marca"]} {r["modelo"]}",
                         Cliente = r["cliente"].ToString()!,
@@ -147,8 +151,8 @@ namespace Optimus_byte.Controllers
             ViewBag.Mecanicos = ObtenerMecanicos(conn);
             ViewBag.EstadoFiltro = estado ?? "";
             ViewBag.BuscarFiltro = buscar ?? "";
+            ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
 
-            // Dropdown de vehículos para el modal de crear orden
             var vehiculosLista = new List<dynamic>();
             using (var cmdV = new SqlCommand(@"
                 SELECT v.id_vehiculo, v.placa, v.marca, v.modelo,
@@ -175,13 +179,212 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Admin/Ordenes.cshtml", lista);
         }
 
-        // GET: Detalle orden
+        // ════════════════════════════════════════════════
+        // NOTIFICACIONES — Solicitudes de repuesto
+        // ════════════════════════════════════════════════
+        public IActionResult SolicitudesRepuesto()
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+            using var conn = _db.GetConnection();
+            var lista = ObtenerSolicitudesPendientes(conn);
+            return View("~/Views/Admin/SolicitudesRepuesto.cshtml", lista);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AtenderSolicitud(int idSolicitud)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+            using var conn = _db.GetConnection();
+            using var cmd = new SqlCommand(
+                "UPDATE SolicitudesRepuesto SET atendida = 1 WHERE id_solicitud = @id", conn);
+            cmd.Parameters.AddWithValue("@id", idSolicitud);
+            cmd.ExecuteNonQuery();
+            TempData["Exito"] = "Solicitud marcada como atendida.";
+            return RedirectToAction("SolicitudesRepuesto");
+        }
+
+        public IActionResult SolicitudesPendientesCount()
+        {
+            if (!EsAdmin()) return Json(new { count = 0 });
+            using var conn = _db.GetConnection();
+            int count = EjecutarScalar<int>(conn,
+                "SELECT COUNT(1) FROM SolicitudesRepuesto WHERE atendida = 0");
+            return Json(new { count });
+        }
+
+        // ════════════════════════════════════════════════
+        // ACEPTAR SOLICITUD → descuenta stock + asigna repuesto a la orden
+        // ════════════════════════════════════════════════
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AceptarSolicitudRepuesto(int solicitudId, int ordenId,
+            string repuestoNombre, int cantidad)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+            int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
+
+            using var conn = _db.GetConnection();
+
+            // 1. Buscar el repuesto en inventario por nombre (puede no coincidir exacto, usamos LIKE)
+            int idRepuesto = 0;
+            int stockActual = 0;
+            decimal precioUnitario = 0;
+
+            using (var cmdBuscar = new SqlCommand(@"
+                SELECT TOP 1 id_repuesto, stock_actual, precio_unitario
+                FROM Repuestos
+                WHERE nombre = @nombre AND activo = 1
+                ORDER BY id_repuesto", conn))
+            {
+                cmdBuscar.Parameters.AddWithValue("@nombre", repuestoNombre);
+                using var rBuscar = cmdBuscar.ExecuteReader();
+                if (rBuscar.Read())
+                {
+                    idRepuesto = Convert.ToInt32(rBuscar["id_repuesto"]);
+                    stockActual = Convert.ToInt32(rBuscar["stock_actual"]);
+                    precioUnitario = Convert.ToDecimal(rBuscar["precio_unitario"]);
+                }
+            }
+
+            if (idRepuesto == 0)
+            {
+                TempData["Error"] = $"No se encontró '{repuestoNombre}' en inventario. Verifica el nombre.";
+                return RedirectToAction("Inventario");
+            }
+
+            if (stockActual < cantidad)
+            {
+                TempData["Error"] = $"Stock insuficiente para '{repuestoNombre}'. Disponible: {stockActual}, solicitado: {cantidad}.";
+                return RedirectToAction("Inventario");
+            }
+
+            // 2. Descontar stock
+            using (var cmdStock = new SqlCommand(@"
+                UPDATE Repuestos
+                SET stock_actual = stock_actual - @cantidad
+                WHERE id_repuesto = @idRep AND stock_actual >= @cantidad", conn))
+            {
+                cmdStock.Parameters.AddWithValue("@cantidad", cantidad);
+                cmdStock.Parameters.AddWithValue("@idRep", idRepuesto);
+                int filas = cmdStock.ExecuteNonQuery();
+                if (filas == 0)
+                {
+                    TempData["Error"] = "No se pudo descontar el stock. Inténtalo de nuevo.";
+                    return RedirectToAction("Inventario");
+                }
+            }
+
+            // 3. Registrar movimiento de inventario
+            RegistrarMovimiento(conn, idRepuesto, idAdmin, ordenId,
+                "Salida", cantidad, stockActual,
+                $"Asignado a OT-{ordenId} por solicitud de mecánico");
+
+            // 4. Insertar o actualizar en OrdenRepuestos
+            int yaExiste = EjecutarScalar<int>(conn,
+                $"SELECT COUNT(1) FROM OrdenRepuestos WHERE id_orden = {ordenId} AND id_repuesto = {idRepuesto}");
+
+            if (yaExiste > 0)
+            {
+                using var cmdUpd = new SqlCommand(@"
+                    UPDATE OrdenRepuestos
+                    SET cantidad = cantidad + @cant
+                    WHERE id_orden = @ord AND id_repuesto = @rep", conn);
+                cmdUpd.Parameters.AddWithValue("@cant", cantidad);
+                cmdUpd.Parameters.AddWithValue("@ord", ordenId);
+                cmdUpd.Parameters.AddWithValue("@rep", idRepuesto);
+                cmdUpd.ExecuteNonQuery();
+            }
+            else
+            {
+                using var cmdIns = new SqlCommand(@"
+                    INSERT INTO OrdenRepuestos (id_orden, id_repuesto, cantidad, precio_usado)
+                    VALUES (@ord, @rep, @cant, @precio)", conn);
+                cmdIns.Parameters.AddWithValue("@ord", ordenId);
+                cmdIns.Parameters.AddWithValue("@rep", idRepuesto);
+                cmdIns.Parameters.AddWithValue("@cant", cantidad);
+                cmdIns.Parameters.AddWithValue("@precio", precioUnitario);
+                cmdIns.ExecuteNonQuery();
+            }
+
+            // 5. Marcar solicitud como atendida
+            using (var cmdAten = new SqlCommand(@"
+                UPDATE SolicitudesRepuesto
+                SET atendida = 1
+                WHERE id_solicitud = @id", conn))
+            {
+                cmdAten.Parameters.AddWithValue("@id", solicitudId);
+                cmdAten.ExecuteNonQuery();
+            }
+
+            // 6. Registrar en EstadosOrden para que el mecánico lo vea en mensajes
+            RegistrarEstado(conn, ordenId, idAdmin,
+                "En proceso",
+                $"Repuesto '{repuestoNombre}' × {cantidad} asignado a esta orden por el administrador.");
+
+            TempData["Exito"] = $"Repuesto '{repuestoNombre}' × {cantidad} asignado a OT-{ordenId}. Stock actualizado.";
+            return RedirectToAction("Inventario");
+        }
+
+        // ════════════════════════════════════════════════
+        // RECHAZAR SOLICITUD
+        // ════════════════════════════════════════════════
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RechazarSolicitudRepuesto(int solicitudId)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+            int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
+
+            using var conn = _db.GetConnection();
+
+            // Obtener datos para registrar en EstadosOrden
+            int idOrden = 0;
+            string nombreRep = "";
+            using (var cmdGet = new SqlCommand(@"
+                SELECT id_orden, nombre_repuesto
+                FROM SolicitudesRepuesto
+                WHERE id_solicitud = @id", conn))
+            {
+                cmdGet.Parameters.AddWithValue("@id", solicitudId);
+                using var rGet = cmdGet.ExecuteReader();
+                if (rGet.Read())
+                {
+                    idOrden = Convert.ToInt32(rGet["id_orden"]);
+                    nombreRep = rGet["nombre_repuesto"].ToString()!;
+                }
+            }
+
+            // Marcar como atendida (rechazada = atendida también para limpiar la lista)
+            using (var cmdRech = new SqlCommand(@"
+                UPDATE SolicitudesRepuesto
+                SET atendida = 1
+                WHERE id_solicitud = @id", conn))
+            {
+                cmdRech.Parameters.AddWithValue("@id", solicitudId);
+                cmdRech.ExecuteNonQuery();
+            }
+
+            // Notificar al mecánico via EstadosOrden
+            if (idOrden > 0)
+            {
+                RegistrarEstado(conn, idOrden, idAdmin,
+                    "Esperando repuesto",
+                    $"Solicitud de '{nombreRep}' fue rechazada por el administrador. Por favor contactar para alternativa.");
+            }
+
+            TempData["Exito"] = "Solicitud rechazada. El mecánico fue notificado.";
+            return RedirectToAction("Inventario");
+        }
+
+        // ════════════════════════════════════════════════
+        // DETALLE ORDEN
+        // ════════════════════════════════════════════════
         public IActionResult OrdenDetalle(int id)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
             OrdenDetalleViewModel? vm = null;
-
             using var conn = _db.GetConnection();
 
             using (var cmd = new SqlCommand(@"
@@ -202,7 +405,6 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@id", id);
                 using var r = cmd.ExecuteReader();
                 if (r.Read())
-                {
                     vm = new OrdenDetalleViewModel
                     {
                         IdOrden = Convert.ToInt32(r["id_orden"]),
@@ -224,7 +426,6 @@ namespace Optimus_byte.Controllers
                         CorreoCliente = r["correo_cliente"].ToString()!,
                         Mecanico = r["mecanico"].ToString()!
                     };
-                }
             }
 
             if (vm == null) return NotFound();
@@ -267,13 +468,14 @@ namespace Optimus_byte.Controllers
             }
 
             ViewBag.Mecanicos = ObtenerMecanicos(conn);
+            ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
             return View("~/Views/Admin/OrdenDetalle.cshtml", vm);
         }
 
-        // POST: Crear orden
+        // POST: Crear orden  ← AQUÍ va el correo
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CrearOrden(int idVehiculo, int? idMecanico,
+        public async Task<IActionResult> CrearOrden(int idVehiculo, int? idMecanico,
             string tipoServicio, string descripcionProblema, int kmIngreso)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -300,14 +502,65 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada");
 
+            // ── Enviar correo al cliente ──────────────────────────────
+            string correoCliente = "";
+            string nombreCliente = "";
+            string placa = "";
+
+            using (var conEmail = _db.GetConnection())
+            {
+                conEmail.Open();
+                var cmdEmail = new SqlCommand(@"
+                    SELECT u.nombre_completo, u.correo, v.placa
+                    FROM OrdenesTrabajo o
+                    JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                    JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                    JOIN Usuarios  u ON c.id_usuario  = u.id_usuario
+                    WHERE o.id_orden = @id", conEmail);
+                cmdEmail.Parameters.AddWithValue("@id", idOrden);
+                using var reader = cmdEmail.ExecuteReader();
+                if (reader.Read())
+                {
+                    nombreCliente = reader["nombre_completo"].ToString()!;
+                    correoCliente = reader["correo"].ToString()!;
+                    placa = reader["placa"].ToString()!;
+                }
+            }
+
+            try
+            {
+                await _email.EnviarCorreoAsync(
+                    correoCliente,
+                    nombreCliente,
+                    "Nueva orden de trabajo — Taller Optimus Byte",
+                    $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                            background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
+                        <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
+                        <h2>Hola {nombreCliente},</h2>
+                        <p>Se ha creado una orden de trabajo para tu vehículo
+                           <strong style='color:#f0a500;'>{placa}</strong>.</p>
+                        <p>Puedes seguir el estado de tu orden desde tu portal.</p>
+                        <hr style='border-color:#f0a500;'>
+                        <p style='color:#aaaaaa;font-size:12px;'>
+                            Taller Optimus Byte — Sistema de gestión automotriz
+                        </p>
+                    </div>"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error correo orden: {ex.Message}");
+            }
+            // ─────────────────────────────────────────────────────────
+
             TempData["Exito"] = $"Orden #{idOrden} creada correctamente.";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
         }
 
-        // POST: Cambiar estado de orden
+        // POST: Cambiar estado de orden  ← AQUÍ también va correo de estado
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CambiarEstado(int idOrden, string nuevoEstado,
+        public async Task<IActionResult> CambiarEstado(int idOrden, string nuevoEstado,
             string? observacion, int? idMecanico)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -333,11 +586,63 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, nuevoEstado, observacion ?? "");
 
+            // ── Enviar correo al cliente sobre cambio de estado ───────
+            string correoCliente = "";
+            string nombreCliente = "";
+            string placa = "";
+
+            using (var conEmail = _db.GetConnection())
+            {
+                conEmail.Open();
+                var cmdEmail = new SqlCommand(@"
+                    SELECT u.nombre_completo, u.correo, v.placa
+                    FROM OrdenesTrabajo o
+                    JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                    JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                    JOIN Usuarios  u ON c.id_usuario  = u.id_usuario
+                    WHERE o.id_orden = @id", conEmail);
+                cmdEmail.Parameters.AddWithValue("@id", idOrden);
+                using var reader = cmdEmail.ExecuteReader();
+                if (reader.Read())
+                {
+                    nombreCliente = reader["nombre_completo"].ToString()!;
+                    correoCliente = reader["correo"].ToString()!;
+                    placa = reader["placa"].ToString()!;
+                }
+            }
+
+            try
+            {
+                await _email.EnviarCorreoAsync(
+                    correoCliente,
+                    nombreCliente,
+                    $"Estado actualizado: {nuevoEstado} — Taller Optimus Byte",
+                    $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                            background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
+                        <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
+                        <h2>Hola {nombreCliente},</h2>
+                        <p>El estado de tu vehículo
+                           <strong style='color:#f0a500;'>{placa}</strong> cambió a:</p>
+                        <h2 style='color:#f0a500;text-align:center;'>{nuevoEstado}</h2>
+                        {(string.IsNullOrEmpty(observacion) ? "" :
+                            $"<p><strong>Observación:</strong> {observacion}</p>")}
+                        <hr style='border-color:#f0a500;'>
+                        <p style='color:#aaaaaa;font-size:12px;'>
+                            Taller Optimus Byte — Sistema de gestión automotriz
+                        </p>
+                    </div>"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error correo estado: {ex.Message}");
+            }
+            // ─────────────────────────────────────────────────────────
+
             TempData["Exito"] = $"Estado actualizado a: {nuevoEstado}";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
         }
 
-        // POST: Actualizar diagnóstico
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult ActualizarDiagnostico(int idOrden, string? diagnostico, string? observaciones)
@@ -359,7 +664,7 @@ namespace Optimus_byte.Controllers
         }
 
         // ════════════════════════════════════════════════
-        // INVENTARIO — Repuestos
+        // INVENTARIO
         // ════════════════════════════════════════════════
         public IActionResult Inventario(string? buscar, string? categoria)
         {
@@ -406,13 +711,14 @@ namespace Optimus_byte.Controllers
                 while (r2.Read()) cats.Add(r2[0].ToString()!);
             }
 
+            // Solicitudes pendientes para campanita + panel inline
+            ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
             ViewBag.Categorias = cats;
             ViewBag.BuscarFiltro = buscar ?? "";
             ViewBag.CatFiltro = categoria ?? "";
             return View("~/Views/Admin/Inventario.cshtml", lista);
         }
 
-        // POST: Crear/Editar repuesto
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult GuardarRepuesto(int? idRepuesto, string nombre, string referencia,
@@ -440,10 +746,7 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);
                 int newId = (int)cmd.ExecuteScalar();
-
-                RegistrarMovimiento(conn, newId, idAdmin, null, "Entrada",
-                    stockActual, 0, "Stock inicial");
-
+                RegistrarMovimiento(conn, newId, idAdmin, null, "Entrada", stockActual, 0, "Stock inicial");
                 TempData["Exito"] = $"Repuesto '{nombre}' creado correctamente.";
             }
             else
@@ -474,26 +777,20 @@ namespace Optimus_byte.Controllers
                     RegistrarMovimiento(conn, idRepuesto.Value, idAdmin, null,
                         tipo, diff, stockAnterior, "Ajuste manual de stock");
                 }
-
                 TempData["Exito"] = $"Repuesto '{nombre}' actualizado.";
             }
-
             return RedirectToAction("Inventario");
         }
 
-        // POST: Desactivar repuesto
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult DesactivarRepuesto(int id)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
-
             using var conn = _db.GetConnection();
-            using var cmd = new SqlCommand(
-                "UPDATE Repuestos SET activo = 0 WHERE id_repuesto = @id", conn);
+            using var cmd = new SqlCommand("UPDATE Repuestos SET activo = 0 WHERE id_repuesto = @id", conn);
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
-
             TempData["Exito"] = "Repuesto desactivado.";
             return RedirectToAction("Inventario");
         }
@@ -506,7 +803,6 @@ namespace Optimus_byte.Controllers
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
             var lista = new List<FacturaViewModel>();
-
             string where = "WHERE 1=1";
             if (!string.IsNullOrWhiteSpace(estado))
                 where += $" AND f.estado_pago = '{estado.Replace("'", "''")}'";
@@ -516,16 +812,15 @@ namespace Optimus_byte.Controllers
                               OR CAST(f.id_factura AS VARCHAR) LIKE '%{buscar.Replace("'", "''")}%')";
 
             using var conn = _db.GetConnection();
-
             using (var cmd = new SqlCommand($@"
                 SELECT f.id_factura, f.subtotal, f.iva, f.total,
                        f.estado_pago, f.metodo_pago, f.fecha_emision, f.fecha_pago,
                        o.id_orden, v.placa, v.marca, v.modelo,
                        c.nombre_completo AS cliente
                 FROM Facturas f
-                INNER JOIN OrdenesTrabajo o ON f.id_orden     = o.id_orden
-                INNER JOIN Vehiculos      v ON o.id_vehiculo  = v.id_vehiculo
-                INNER JOIN Clientes       c ON v.id_cliente   = c.id_cliente
+                INNER JOIN OrdenesTrabajo o ON f.id_orden    = o.id_orden
+                INNER JOIN Vehiculos      v ON o.id_vehiculo = v.id_vehiculo
+                INNER JOIN Clientes       c ON v.id_cliente  = c.id_cliente
                 {where}
                 ORDER BY f.fecha_emision DESC", conn))
             using (var r = cmd.ExecuteReader())
@@ -550,19 +845,19 @@ namespace Optimus_byte.Controllers
 
             ViewBag.EstadoFiltro = estado ?? "";
             ViewBag.BuscarFiltro = buscar ?? "";
+            ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
             return View("~/Views/Admin/Facturas.cshtml", lista);
         }
 
-        // POST: Crear factura desde orden
+        // POST: Crear factura desde orden  ← AQUÍ también va correo de factura
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CrearFactura(int idOrden, decimal subtotal, decimal iva)
+        public async Task<IActionResult> CrearFactura(int idOrden, decimal subtotal, decimal iva)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
 
             using var conn = _db.GetConnection();
-
             int existe = EjecutarScalar<int>(conn,
                 $"SELECT COUNT(1) FROM Facturas WHERE id_orden = {idOrden}");
             if (existe > 0)
@@ -582,18 +877,89 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@tot", total);
             cmd.ExecuteNonQuery();
 
+            // ── Enviar correo de factura al cliente ───────────────────
+            string correoCliente = "";
+            string nombreCliente = "";
+            string placa = "";
+
+            using (var conEmail = _db.GetConnection())
+            {
+                conEmail.Open();
+                var cmdEmail = new SqlCommand(@"
+                    SELECT u.nombre_completo, u.correo, v.placa
+                    FROM OrdenesTrabajo o
+                    JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                    JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                    JOIN Usuarios  u ON c.id_usuario  = u.id_usuario
+                    WHERE o.id_orden = @id", conEmail);
+                cmdEmail.Parameters.AddWithValue("@id", idOrden);
+                using var reader = cmdEmail.ExecuteReader();
+                if (reader.Read())
+                {
+                    nombreCliente = reader["nombre_completo"].ToString()!;
+                    correoCliente = reader["correo"].ToString()!;
+                    placa = reader["placa"].ToString()!;
+                }
+            }
+
+            try
+            {
+                await _email.EnviarCorreoAsync(
+                    correoCliente,
+                    nombreCliente,
+                    "Tu factura está lista — Taller Optimus Byte",
+                    $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                            background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
+                        <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
+                        <h2>Hola {nombreCliente},</h2>
+                        <p>Se ha generado tu factura para el vehículo
+                           <strong style='color:#f0a500;'>{placa}</strong>.</p>
+                        <table style='width:100%;border-collapse:collapse;margin-top:20px;'>
+                            <tr style='background:#f0a500;color:#000;'>
+                                <td style='padding:10px;'>Subtotal</td>
+                                <td style='padding:10px;text-align:right;'>
+                                    ${subtotal.ToString("N0")}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style='padding:10px;'>IVA (19%)</td>
+                                <td style='padding:10px;text-align:right;'>
+                                    ${iva.ToString("N0")}
+                                </td>
+                            </tr>
+                            <tr style='background:#f0a500;color:#000;font-weight:bold;'>
+                                <td style='padding:10px;'>TOTAL</td>
+                                <td style='padding:10px;text-align:right;'>
+                                    ${total.ToString("N0")}
+                                </td>
+                            </tr>
+                        </table>
+                        <p style='margin-top:20px;'>
+                            Puedes ver el detalle completo desde tu portal.
+                        </p>
+                        <hr style='border-color:#f0a500;'>
+                        <p style='color:#aaaaaa;font-size:12px;'>
+                            Taller Optimus Byte — Sistema de gestión automotriz
+                        </p>
+                    </div>"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error correo factura: {ex.Message}");
+            }
+            // ─────────────────────────────────────────────────────────
+
             TempData["Exito"] = $"Factura creada por ${total:N0}.";
             return RedirectToAction("Facturas");
         }
 
-        // POST: Registrar pago
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RegistrarPago(int idFactura, decimal monto,
             string metodo, string? referencia, string? observaciones)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
-
             using var conn = _db.GetConnection();
 
             using (var cmd = new SqlCommand(@"
@@ -622,13 +988,11 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("Facturas");
         }
 
-        // POST: Anular factura
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AnularFactura(int idFactura, string motivo)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
-
             using var conn = _db.GetConnection();
             using var cmd = new SqlCommand(@"
                 UPDATE Facturas
@@ -637,7 +1001,6 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@motivo", motivo);
             cmd.Parameters.AddWithValue("@id", idFactura);
             cmd.ExecuteNonQuery();
-
             TempData["Exito"] = "Factura anulada.";
             return RedirectToAction("Facturas");
         }
@@ -665,6 +1028,37 @@ namespace Optimus_byte.Controllers
             using var r = cmd.ExecuteReader();
             while (r.Read())
                 lista.Add((Convert.ToInt32(r["id_usuario"]), r["nombre_completo"].ToString()!));
+            return lista;
+        }
+
+        private List<SolicitudRepuestoViewModel> ObtenerSolicitudesPendientes(SqlConnection conn)
+        {
+            var lista = new List<SolicitudRepuestoViewModel>();
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT s.id_solicitud, s.id_orden, s.nombre_repuesto,
+                           s.cantidad, s.motivo, s.fecha_solicitud, s.atendida,
+                           u.nombre_completo AS mecanico_nombre
+                    FROM SolicitudesRepuesto s
+                    INNER JOIN Usuarios u ON s.id_mecanico = u.id_usuario
+                    WHERE s.atendida = 0
+                    ORDER BY s.fecha_solicitud DESC", conn);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    lista.Add(new SolicitudRepuestoViewModel
+                    {
+                        IdSolicitud = Convert.ToInt32(r["id_solicitud"]),
+                        IdOrden = Convert.ToInt32(r["id_orden"]),
+                        NombreRepuesto = r["nombre_repuesto"].ToString()!,
+                        Cantidad = Convert.ToInt32(r["cantidad"]),
+                        Motivo = r["motivo"]?.ToString() ?? "",
+                        MecanicoNombre = r["mecanico_nombre"].ToString()!,
+                        FechaSolicitud = Convert.ToDateTime(r["fecha_solicitud"]),
+                        Atendida = Convert.ToBoolean(r["atendida"])
+                    });
+            }
+            catch { /* tabla puede no existir aún */ }
             return lista;
         }
 
@@ -705,3 +1099,5 @@ namespace Optimus_byte.Controllers
         }
     }
 }
+
+
