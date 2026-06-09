@@ -616,6 +616,18 @@ html, body {
         background: rgba(22, 163, 74, 0.14);
     }
 
+.btn-eliminar {
+    background: rgba(220, 38, 38, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+    .btn-eliminar:hover {
+        background: #dc2626;
+        color: #fff;
+        border-color: #dc2626;
+    }
+
 .tabla-vacia {
     text-align: center;
     padding: 56px 20px;
