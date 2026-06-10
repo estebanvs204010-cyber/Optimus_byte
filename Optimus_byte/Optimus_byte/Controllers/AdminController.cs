@@ -88,8 +88,10 @@ namespace Optimus_byte.Controllers
                     });
             }
 
-            // Campanita en dashboard también
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
+
+            // CAMBIO 2: RepuestosBajoStockList para el badge/panel del Dashboard
+            ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
 
             return View("~/Views/Admin/Dashboard.cshtml", vm);
         }
@@ -201,6 +203,22 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("SolicitudesRepuesto");
         }
 
+        // CAMBIO 1: Nuevo endpoint de polling para badge (reemplaza SolicitudesPendientesCount)
+        public IActionResult NotificacionesCount()
+        {
+            if (!EsAdmin()) return Json(new { solicitudes = 0, stockBajo = 0 });
+            using var conn = _db.GetConnection();
+
+            int solicitudes = EjecutarScalar<int>(conn,
+                "SELECT COUNT(1) FROM SolicitudesRepuesto WHERE atendida = 0");
+
+            int stockBajo = EjecutarScalar<int>(conn,
+                "SELECT COUNT(1) FROM Repuestos WHERE activo = 1 AND stock_actual < stock_minimo");
+
+            return Json(new { solicitudes, stockBajo });
+        }
+
+        // Mantenido por compatibilidad con llamadas existentes
         public IActionResult SolicitudesPendientesCount()
         {
             if (!EsAdmin()) return Json(new { count = 0 });
@@ -211,7 +229,7 @@ namespace Optimus_byte.Controllers
         }
 
         // ════════════════════════════════════════════════
-        // ACEPTAR SOLICITUD → descuenta stock + asigna repuesto a la orden
+        // ACEPTAR SOLICITUD → descuenta stock + cambia estado automático
         // ════════════════════════════════════════════════
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -223,7 +241,7 @@ namespace Optimus_byte.Controllers
 
             using var conn = _db.GetConnection();
 
-            // 1. Buscar el repuesto en inventario por nombre (puede no coincidir exacto, usamos LIKE)
+            // 1. Buscar el repuesto en inventario por nombre exacto
             int idRepuesto = 0;
             int stockActual = 0;
             decimal precioUnitario = 0;
@@ -247,13 +265,13 @@ namespace Optimus_byte.Controllers
             if (idRepuesto == 0)
             {
                 TempData["Error"] = $"No se encontró '{repuestoNombre}' en inventario. Verifica el nombre.";
-                return RedirectToAction("Inventario");
+                return RedirectToAction("SolicitudesRepuesto");
             }
 
             if (stockActual < cantidad)
             {
                 TempData["Error"] = $"Stock insuficiente para '{repuestoNombre}'. Disponible: {stockActual}, solicitado: {cantidad}.";
-                return RedirectToAction("Inventario");
+                return RedirectToAction("SolicitudesRepuesto");
             }
 
             // 2. Descontar stock
@@ -268,7 +286,7 @@ namespace Optimus_byte.Controllers
                 if (filas == 0)
                 {
                     TempData["Error"] = "No se pudo descontar el stock. Inténtalo de nuevo.";
-                    return RedirectToAction("Inventario");
+                    return RedirectToAction("SolicitudesRepuesto");
                 }
             }
 
@@ -314,13 +332,44 @@ namespace Optimus_byte.Controllers
                 cmdAten.ExecuteNonQuery();
             }
 
-            // 6. Registrar en EstadosOrden para que el mecánico lo vea en mensajes
-            RegistrarEstado(conn, ordenId, idAdmin,
-                "En proceso",
-                $"Repuesto '{repuestoNombre}' × {cantidad} asignado a esta orden por el administrador.");
+            // 6. Si la orden estaba "Esperando repuesto" → cambiar a "En proceso"
+            string estadoActual = EjecutarScalar<string>(conn,
+                $"SELECT estado FROM OrdenesTrabajo WHERE id_orden = {ordenId}") ?? "";
+
+            if (estadoActual == "Esperando repuesto")
+            {
+                using var cmdEst = new SqlCommand(@"
+                    UPDATE OrdenesTrabajo SET estado = 'En proceso'
+                    WHERE id_orden = @id", conn);
+                cmdEst.Parameters.AddWithValue("@id", ordenId);
+                cmdEst.ExecuteNonQuery();
+            }
+
+            // 7. Registrar en EstadosOrden para que el mecánico y cliente lo vean
+            string nuevoEstado = estadoActual == "Esperando repuesto" ? "En proceso" : estadoActual;
+            string obsEstado = estadoActual == "Esperando repuesto"
+                ? $"Repuesto '{repuestoNombre}' × {cantidad} aprobado. Orden retomada — estado cambiado a En proceso."
+                : $"Repuesto '{repuestoNombre}' × {cantidad} asignado a esta orden por el administrador.";
+
+            RegistrarEstado(conn, ordenId, idAdmin, nuevoEstado, obsEstado);
+
+            // CAMBIO 5: Notificar al mecánico registrando en EstadosOrden (ya cubierto arriba).
+            // Si en el futuro se agrega campo NotificacionMecanico a OrdenesTrabajo,
+            // descomentar el bloque siguiente:
+            //
+            // using (var cmdNotif = new SqlCommand(@"
+            //     UPDATE OrdenesTrabajo
+            //     SET NotificacionMecanico = @msg, FechaNotificacion = GETDATE()
+            //     WHERE id_orden = @id", conn))
+            // {
+            //     cmdNotif.Parameters.AddWithValue("@msg",
+            //         $"Repuesto '{repuestoNombre}' x{cantidad} aprobado por el admin.");
+            //     cmdNotif.Parameters.AddWithValue("@id", ordenId);
+            //     cmdNotif.ExecuteNonQuery();
+            // }
 
             TempData["Exito"] = $"Repuesto '{repuestoNombre}' × {cantidad} asignado a OT-{ordenId}. Stock actualizado.";
-            return RedirectToAction("Inventario");
+            return RedirectToAction("SolicitudesRepuesto");
         }
 
         // ════════════════════════════════════════════════
@@ -335,7 +384,6 @@ namespace Optimus_byte.Controllers
 
             using var conn = _db.GetConnection();
 
-            // Obtener datos para registrar en EstadosOrden
             int idOrden = 0;
             string nombreRep = "";
             using (var cmdGet = new SqlCommand(@"
@@ -352,7 +400,6 @@ namespace Optimus_byte.Controllers
                 }
             }
 
-            // Marcar como atendida (rechazada = atendida también para limpiar la lista)
             using (var cmdRech = new SqlCommand(@"
                 UPDATE SolicitudesRepuesto
                 SET atendida = 1
@@ -362,7 +409,6 @@ namespace Optimus_byte.Controllers
                 cmdRech.ExecuteNonQuery();
             }
 
-            // Notificar al mecánico via EstadosOrden
             if (idOrden > 0)
             {
                 RegistrarEstado(conn, idOrden, idAdmin,
@@ -371,7 +417,7 @@ namespace Optimus_byte.Controllers
             }
 
             TempData["Exito"] = "Solicitud rechazada. El mecánico fue notificado.";
-            return RedirectToAction("Inventario");
+            return RedirectToAction("SolicitudesRepuesto");
         }
 
         // ════════════════════════════════════════════════
@@ -469,7 +515,6 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Admin/OrdenDetalle.cshtml", vm);
         }
 
-        // POST: Crear orden  ← AQUÍ va el correo
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearOrden(int idVehiculo, int? idMecanico,
@@ -499,7 +544,6 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada");
 
-            // ── Enviar correo al cliente ──────────────────────────────
             string correoCliente = "";
             string nombreCliente = "";
             string placa = "";
@@ -548,13 +592,11 @@ namespace Optimus_byte.Controllers
             {
                 Console.WriteLine($"Error correo orden: {ex.Message}");
             }
-            // ─────────────────────────────────────────────────────────
 
             TempData["Exito"] = $"Orden #{idOrden} creada correctamente.";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
         }
 
-        // POST: Cambiar estado de orden  ← AQUÍ también va correo de estado
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarEstado(int idOrden, string nuevoEstado,
@@ -583,7 +625,6 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, nuevoEstado, observacion ?? "");
 
-            // ── Enviar correo al cliente sobre cambio de estado ───────
             string correoCliente = "";
             string nombreCliente = "";
             string placa = "";
@@ -634,7 +675,6 @@ namespace Optimus_byte.Controllers
             {
                 Console.WriteLine($"Error correo estado: {ex.Message}");
             }
-            // ─────────────────────────────────────────────────────────
 
             TempData["Exito"] = $"Estado actualizado a: {nuevoEstado}";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
@@ -708,8 +748,8 @@ namespace Optimus_byte.Controllers
                 while (r2.Read()) cats.Add(r2[0].ToString()!);
             }
 
-            // Solicitudes pendientes para campanita + panel inline
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
+            // CAMBIO 3: Inventario ya tiene SolicitudesPendientes (el stockBajo lo calcula la vista desde el Model)
             ViewBag.Categorias = cats;
             ViewBag.BuscarFiltro = buscar ?? "";
             ViewBag.CatFiltro = categoria ?? "";
@@ -843,10 +883,11 @@ namespace Optimus_byte.Controllers
             ViewBag.EstadoFiltro = estado ?? "";
             ViewBag.BuscarFiltro = buscar ?? "";
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
+            // CAMBIO 4: RepuestosBajoStockList en Facturas
+            ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
             return View("~/Views/Admin/Facturas.cshtml", lista);
         }
 
-        // POST: Crear factura desde orden  ← AQUÍ también va correo de factura
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearFactura(int idOrden, decimal subtotal, decimal iva)
@@ -874,7 +915,6 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@tot", total);
             cmd.ExecuteNonQuery();
 
-            // ── Enviar correo de factura al cliente ───────────────────
             string correoCliente = "";
             string nombreCliente = "";
             string placa = "";
@@ -914,26 +954,18 @@ namespace Optimus_byte.Controllers
                         <table style='width:100%;border-collapse:collapse;margin-top:20px;'>
                             <tr style='background:#f0a500;color:#000;'>
                                 <td style='padding:10px;'>Subtotal</td>
-                                <td style='padding:10px;text-align:right;'>
-                                    ${subtotal.ToString("N0")}
-                                </td>
+                                <td style='padding:10px;text-align:right;'>${subtotal.ToString("N0")}</td>
                             </tr>
                             <tr>
                                 <td style='padding:10px;'>IVA (19%)</td>
-                                <td style='padding:10px;text-align:right;'>
-                                    ${iva.ToString("N0")}
-                                </td>
+                                <td style='padding:10px;text-align:right;'>${iva.ToString("N0")}</td>
                             </tr>
                             <tr style='background:#f0a500;color:#000;font-weight:bold;'>
                                 <td style='padding:10px;'>TOTAL</td>
-                                <td style='padding:10px;text-align:right;'>
-                                    ${total.ToString("N0")}
-                                </td>
+                                <td style='padding:10px;text-align:right;'>${total.ToString("N0")}</td>
                             </tr>
                         </table>
-                        <p style='margin-top:20px;'>
-                            Puedes ver el detalle completo desde tu portal.
-                        </p>
+                        <p style='margin-top:20px;'>Puedes ver el detalle completo desde tu portal.</p>
                         <hr style='border-color:#f0a500;'>
                         <p style='color:#aaaaaa;font-size:12px;'>
                             Taller Optimus Byte — Sistema de gestión automotriz
@@ -945,7 +977,6 @@ namespace Optimus_byte.Controllers
             {
                 Console.WriteLine($"Error correo factura: {ex.Message}");
             }
-            // ─────────────────────────────────────────────────────────
 
             TempData["Exito"] = $"Factura creada por ${total:N0}.";
             return RedirectToAction("Facturas");
@@ -1059,6 +1090,32 @@ namespace Optimus_byte.Controllers
             return lista;
         }
 
+        // CAMBIO 2/4: Helper para repuestos bajo stock (reutilizado en Dashboard y Facturas)
+        private List<RepuestoViewModel> ObtenerRepuestosBajoStock(SqlConnection conn)
+        {
+            var lista = new List<RepuestoViewModel>();
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT id_repuesto, nombre, referencia, stock_actual, stock_minimo
+                    FROM Repuestos
+                    WHERE activo = 1 AND stock_actual < stock_minimo
+                    ORDER BY stock_actual ASC", conn);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    lista.Add(new RepuestoViewModel
+                    {
+                        IdRepuesto = Convert.ToInt32(r["id_repuesto"]),
+                        Nombre = r["nombre"].ToString()!,
+                        Referencia = r["referencia"].ToString()!,
+                        StockActual = Convert.ToInt32(r["stock_actual"]),
+                        StockMinimo = Convert.ToInt32(r["stock_minimo"])
+                    });
+            }
+            catch { /* tabla puede no existir aún */ }
+            return lista;
+        }
+
         private void RegistrarEstado(SqlConnection conn, int idOrden, int idUsuario,
             string estado, string observacion)
         {
@@ -1095,6 +1152,4 @@ namespace Optimus_byte.Controllers
             cmd.ExecuteNonQuery();
         }
     }
-}
-
 }
