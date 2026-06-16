@@ -186,6 +186,8 @@ namespace Optimus_byte.Controllers
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             using var conn = _db.GetConnection();
             var lista = ObtenerSolicitudesPendientes(conn);
+            ViewBag.SolicitudesPendientes = lista;
+            ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
             return View("~/Views/Admin/SolicitudesRepuesto.cshtml", lista);
         }
 

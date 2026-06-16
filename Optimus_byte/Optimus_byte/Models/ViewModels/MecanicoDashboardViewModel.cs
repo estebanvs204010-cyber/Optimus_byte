@@ -1,18 +1,9 @@
 ﻿namespace Optimus_byte.Models.ViewModels
 {
-    // ════════════════════════════════════════════════════════════════
-    // MECÁNICO — Dashboard
-    // ════════════════════════════════════════════════════════════════
     public class MecanicoDashboardViewModel
     {
         public string NombreMecanico { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Repuestos activos del inventario real para el selector del modal.
-        /// Solo incluye los que tienen stock_actual > 0.
-        /// </summary>
         public List<RepuestoDisponibleViewModel> RepuestosDisponibles { get; set; } = new();
-
         public List<CitaAsignadaViewModel> CitasAsignadas { get; set; } = new();
         public List<ServicioVehiculoViewModel> HistorialServicios { get; set; } = new();
         public List<ChecklistTecnicoViewModel> Checklists { get; set; } = new();
@@ -22,20 +13,16 @@
         public List<HerramientaViewModel> Herramientas { get; set; } = new();
     }
 
-    /// <summary>
-    /// Repuesto del inventario real disponible para que el mecánico solicite.
-    /// </summary>
     public class RepuestoDisponibleViewModel
     {
         public int IdRepuesto { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Referencia { get; set; } = string.Empty;
         public string Categoria { get; set; } = string.Empty;
+        public string Marca { get; set; } = string.Empty;   // ← NUEVO
         public decimal PrecioUnitario { get; set; }
         public int StockActual { get; set; }
         public int StockMinimo { get; set; }
-
-        /// <summary>True cuando el stock está por debajo del mínimo configurado.</summary>
         public bool EsBajoStock => StockActual < StockMinimo;
     }
 
@@ -46,6 +33,7 @@
         public string Cliente { get; set; } = string.Empty;
         public string Vehiculo { get; set; } = string.Empty;
         public string Placa { get; set; } = string.Empty;
+        public string MarcaVehiculo { get; set; } = string.Empty;  // ← NUEVO
         public string Servicio { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
         public int TiempoEstimadoMinutos { get; set; }

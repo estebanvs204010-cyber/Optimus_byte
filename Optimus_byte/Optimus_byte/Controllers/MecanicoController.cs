@@ -46,6 +46,8 @@ namespace Optimus_byte.Controllers
             {
                 NombreMecanico = nombre,
                 RepuestosDisponibles = repuestosDisponibles,
+
+                // ── FRAGMENTO 1: CitasAsignadas con MarcaVehiculo ─────────
                 CitasAsignadas = ordenesAsignadas.Select(orden => new CitaAsignadaViewModel
                 {
                     Id = orden.IdOrden,
@@ -53,12 +55,14 @@ namespace Optimus_byte.Controllers
                     Cliente = string.IsNullOrWhiteSpace(orden.Cliente) ? "Cliente sin registrar" : orden.Cliente,
                     Vehiculo = FormatearVehiculo(orden),
                     Placa = string.IsNullOrWhiteSpace(orden.Placa) ? "Sin placa" : orden.Placa,
+                    MarcaVehiculo = orden.Marca,   // ← NUEVO
                     Servicio = $"{orden.TipoServicio}: {Recortar(orden.DescripcionProblema, 55)}",
                     Estado = orden.Estado,
                     TiempoEstimadoMinutos = EstimarMinutos(orden.TipoServicio),
                     Diagnostico = orden.Diagnostico,
                     FechaEntregaEstimada = orden.FechaEntregaEstimada
                 }).ToList(),
+
                 HistorialServicios = historialBase.Select(orden => new ServicioVehiculoViewModel
                 {
                     Fecha = orden.FechaCierre ?? orden.FechaApertura,
@@ -255,8 +259,6 @@ namespace Optimus_byte.Controllers
         }
 
         // ─── Solicitar repuesto — inventario real + texto libre ───────────────────
-        // El mecánico puede escoger del inventario O escribir un nombre libre
-        // si el repuesto no existe todavía en el sistema.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult SolicitarRepuesto(int ordenId, int? repuestoId,
@@ -270,7 +272,6 @@ namespace Optimus_byte.Controllers
                 return RedirectToAction("MisOrdenes");
             }
 
-            // Debe venir uno de los dos: repuesto del inventario O nombre libre
             bool usaInventario = repuestoId.HasValue && repuestoId > 0;
             bool usaLibre = !string.IsNullOrWhiteSpace(nombreLibre);
 
@@ -293,7 +294,6 @@ namespace Optimus_byte.Controllers
 
             if (usaInventario)
             {
-                // Buscar nombre real en el inventario
                 using var cmdRep = new SqlCommand(@"
                     SELECT nombre FROM Repuestos
                     WHERE id_repuesto = @id AND activo = 1", conn);
@@ -309,13 +309,11 @@ namespace Optimus_byte.Controllers
             }
             else
             {
-                // Texto libre — se marca con prefijo para que el admin lo identifique fácilmente
                 nombreRepuesto = $"[Sin inventario] {nombreLibre!.Trim()}";
             }
 
             int cantidadFinal = cantidad <= 0 ? 1 : cantidad;
 
-            // Insertar solicitud
             using (var cmd = new SqlCommand(@"
                 INSERT INTO SolicitudesRepuesto
                     (id_orden, id_mecanico, nombre_repuesto, cantidad, motivo)
@@ -329,7 +327,6 @@ namespace Optimus_byte.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-            // Cambiar estado de la orden a "Esperando repuesto"
             using (var cmdEstado = new SqlCommand(@"
                 UPDATE OrdenesTrabajo
                 SET estado = 'Esperando repuesto'
@@ -340,7 +337,6 @@ namespace Optimus_byte.Controllers
                 cmdEstado.ExecuteNonQuery();
             }
 
-            // Registrar en EstadosOrden → esto alimenta la campana del Admin
             if (TieneColumnas(conn, "EstadosOrden",
                 "id_orden", "id_usuario", "estado_nuevo", "observacion", "fecha_cambio"))
             {
@@ -448,15 +444,14 @@ namespace Optimus_byte.Controllers
         // PRIVADOS — DATOS
         // ═════════════════════════════════════════════════════════════════════════
 
-        /// <summary>
-        /// Carga todos los repuestos activos del inventario para el selector del modal.
-        /// </summary>
+        // ── FRAGMENTO 2: ObtenerRepuestosDisponibles con columna Marca ───────────
         private List<RepuestoDisponibleViewModel> ObtenerRepuestosDisponibles(SqlConnection conn)
         {
             var lista = new List<RepuestoDisponibleViewModel>();
             using var cmd = new SqlCommand(@"
                 SELECT id_repuesto, nombre, referencia, categoria,
-                       precio_unitario, stock_actual, stock_minimo
+                       precio_unitario, stock_actual, stock_minimo,
+                       ISNULL(marca, 'General') AS marca
                 FROM Repuestos
                 WHERE activo = 1 AND stock_actual > 0
                 ORDER BY nombre ASC", conn);
@@ -468,6 +463,7 @@ namespace Optimus_byte.Controllers
                     Nombre = r["nombre"].ToString()!,
                     Referencia = r["referencia"].ToString()!,
                     Categoria = r["categoria"].ToString()!,
+                    Marca = r["marca"].ToString()!,   // ← NUEVO
                     PrecioUnitario = Convert.ToDecimal(r["precio_unitario"]),
                     StockActual = Convert.ToInt32(r["stock_actual"]),
                     StockMinimo = Convert.ToInt32(r["stock_minimo"])
