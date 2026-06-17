@@ -1,33 +1,45 @@
 ﻿// ════════════════════════════════════════════════════════
-//  catalogo.js  —  Lógica del catálogo de repuestos
-//  Ubicación: VistaPrincipal/wwwroot/js/catalogo.js
+//  catalogo.js — Catálogo conectado a la base de datos
 // ════════════════════════════════════════════════════════
 
-// ── Datos de productos ───────────────────────────────────
-// TODO: cuando tengas BD, reemplaza este array por una
-//       llamada fetch('/Inventario/GetProductos') y usa
-//       el JSON que devuelva tu controlador.
-const productos = [
-    { id: 1, nombre: 'Aceite de motor 5W-30', marca: 'Mobil', categoria: 'Lubricantes', desc: 'Lubricante sintético para motores modernos.', precio: 85000, stock: 10, bg: 'bg-motor', icon: '🛢️' },
-    { id: 2, nombre: 'Filtro de aire', marca: 'Bosch', categoria: 'Filtros', desc: 'Mantiene limpio el ingreso de aire al motor.', precio: 35000, stock: 15, bg: 'bg-filtros', icon: '🌬️' },
-    { id: 3, nombre: 'Pastillas de freno', marca: 'Brembo', categoria: 'Frenos', desc: 'Pastillas para sistema de frenos delanteros.', precio: 120000, stock: 8, bg: 'bg-frenos', icon: '🔴' },
-    { id: 4, nombre: 'Batería 12V', marca: 'Willard', categoria: 'Eléctrico', desc: 'Batería automotriz para autos particulares.', precio: 280000, stock: 3, bg: 'bg-electrico', icon: '🔋' },
-    { id: 5, nombre: 'Bujías de encendido', marca: 'NGK', categoria: 'Motor', desc: 'Bujías de iridio de alto rendimiento.', precio: 45000, stock: 12, bg: 'bg-motor', icon: '⚡' },
-    { id: 6, nombre: 'Amortiguador delantero', marca: 'Monroe', categoria: 'Suspensión', desc: 'Amortiguador hidráulico eje delantero.', precio: 210000, stock: 2, bg: 'bg-suspension', icon: '🔧' },
-    { id: 7, nombre: 'Correa de distribución', marca: 'Gates', categoria: 'Motor', desc: 'Correa dentada para sincronización del motor.', precio: 95000, stock: 6, bg: 'bg-motor', icon: '⚙️' },
-    { id: 8, nombre: 'Filtro de aceite', marca: 'Mann', categoria: 'Filtros', desc: 'Filtra impurezas del aceite del motor.', precio: 28000, stock: 20, bg: 'bg-filtros', icon: '🔩' },
-    { id: 9, nombre: 'Líquido de frenos DOT 4', marca: 'Castrol', categoria: 'Frenos', desc: 'Fluido hidráulico para sistema de frenos.', precio: 22000, stock: 0, bg: 'bg-frenos', icon: '💧' },
-];
-
-// ── Estado de la app ─────────────────────────────────────
+let productos = [];   // se llena desde la BD
 let carrito = [];
 let catActual = 'todos';
 let busqueda = '';
 let ordenActual = 'nombre';
 
+// ── Cargar productos desde la BD ─────────────────────────
+async function cargarProductos() {
+    try {
+        const res = await fetch('/Inventario/GetProductosJson');
+        productos = await res.json();
+        renderGrid();
+        renderSidebarCats();
+    } catch (e) {
+        console.error('Error cargando productos:', e);
+        document.getElementById('productosGrid').innerHTML =
+            '<p style="color:#dc2626;padding:20px;">Error cargando productos.</p>';
+    }
+}
+
+// ── Categorías dinámicas en sidebar ──────────────────────
+function renderSidebarCats() {
+    const cats = ['todos', ...new Set(productos.map(p => p.categoria))];
+    const cont = document.getElementById('listaCategorias');
+    if (!cont) return;
+
+    cont.innerHTML = cats.map(c => `
+        <div class="cat-sb-cat ${c === catActual ? 'on' : ''}"
+             onclick="filtrar('${c}', this)">
+            ${c === 'todos' ? 'Todos los productos' : c}
+            <span class="arr">→</span>
+        </div>
+    `).join('');
+}
+
 // ── Utilidades ───────────────────────────────────────────
 function fmtPrecio(p) {
-    return '$' + p.toLocaleString('es-CO');
+    return '$' + Number(p).toLocaleString('es-CO');
 }
 
 function getBadge(p) {
@@ -42,33 +54,32 @@ function enCarrito(id) {
 
 // ── Renderizado del grid ─────────────────────────────────
 function renderGrid() {
+    const grid = document.getElementById('productosGrid');
+    if (!grid) return;
+
     let lista = [...productos];
 
-    // Filtrar categoría
-    if (catActual !== 'todos') {
+    if (catActual !== 'todos')
         lista = lista.filter(p => p.categoria === catActual);
-    }
 
-    // Filtrar búsqueda
-    if (busqueda) {
+    if (busqueda)
         lista = lista.filter(p =>
             p.nombre.toLowerCase().includes(busqueda) ||
             p.marca.toLowerCase().includes(busqueda)
         );
-    }
 
-    // Ordenar
-    if (ordenActual === 'precio-asc') lista.sort((a, b) => a.precio - b.precio);
-    else if (ordenActual === 'precio-desc') lista.sort((a, b) => b.precio - a.precio);
-    else lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-    const grid = document.getElementById('productosGrid');
-    if (!grid) return;
+    lista.sort((a, b) => {
+        if (ordenActual === 'precio-asc') return a.precio - b.precio;
+        if (ordenActual === 'precio-desc') return b.precio - a.precio;
+        return a.nombre.localeCompare(b.nombre);
+    });
 
     if (lista.length === 0) {
-        grid.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--texto-suave);font-size:.9rem;">
-            No se encontraron productos para esta búsqueda.
-        </div>`;
+        grid.innerHTML = `
+            <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#9ca3af;">
+                <div style="font-size:2.5rem;margin-bottom:12px;">🔍</div>
+                <p>No se encontraron repuestos</p>
+            </div>`;
         return;
     }
 
@@ -87,8 +98,12 @@ function renderGrid() {
                 <div class="cat-card-desc">${p.desc}</div>
                 <div class="cat-card-precio">${fmtPrecio(p.precio)} <span>COP</span></div>
                 <div class="cat-card-btns">
-                    <button class="cat-btn-detalles" onclick="verDetalle(${p.id})">Ver detalles</button>
-                    <button class="cat-btn-agregar" id="btn-${p.id}"
+                    <button class="cat-btn-detalles"
+                            onclick="verDetalle(${p.id})">
+                        Ver detalles
+                    </button>
+                    <button class="cat-btn-agregar"
+                            id="btn-${p.id}"
                             ${agotado ? 'disabled' : ''}
                             onclick="toggleItem(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', ${p.precio})">
                         ${agotado ? 'Agotado' : inc ? '✓ Agregado' : '+ Cotizar'}
@@ -99,93 +114,87 @@ function renderGrid() {
     }).join('');
 }
 
-// ── Carrito / Cotización ─────────────────────────────────
-function toggleItem(id, nombre, precio) {
-    if (enCarrito(id)) {
-        carrito = carrito.filter(c => c.id !== id);
-    } else {
-        carrito.push({ id, nombre, precio });
-    }
-    renderCarrito();
+// ── Filtrar por categoría ────────────────────────────────
+function filtrar(cat, el) {
+    catActual = cat;
+    document.querySelectorAll('.cat-sb-cat')
+        .forEach(e => e.classList.remove('on'));
+    if (el) el.classList.add('on');
     renderGrid();
 }
 
-function renderCarrito() {
-    const n = carrito.length;
+// ── Buscar ───────────────────────────────────────────────
+function buscar() {
+    busqueda = document.getElementById('searchInp').value.toLowerCase();
+    renderGrid();
+}
 
-    const badge = document.getElementById('badgeCount');
-    const sbCount = document.getElementById('sbCount');
-    if (badge) badge.textContent = n;
-    if (sbCount) sbCount.textContent = n;
+// ── Ordenar ──────────────────────────────────────────────
+function ordenar(val) {
+    ordenActual = val;
+    renderGrid();
+}
 
-    const items = document.getElementById('carritoItems');
-    if (!items) return;
+// ── Ver detalle ──────────────────────────────────────────
+function verDetalle(id) {
+    window.location.href = '/Inventario/Detalles/' + id;
+}
 
-    items.innerHTML = carrito.length === 0
-        ? '<div style="padding:16px;font-size:.78rem;color:var(--texto-suave);text-align:center;">Sin productos agregados</div>'
-        : carrito.map(c => `
-            <div class="cat-carrito-item">
-                <div>
-                    <div class="cat-carrito-item-name">${c.nombre}</div>
-                    <div class="cat-carrito-item-precio">${fmtPrecio(c.precio)}</div>
-                </div>
-                <button class="cat-carrito-item-x"
-                        onclick="toggleItem(${c.id}, '', 0)">✕</button>
-            </div>`).join('');
-
-    const total = carrito.reduce((s, c) => s + c.precio, 0);
-    const totalEl = document.getElementById('totalVal');
-    if (totalEl) totalEl.textContent = fmtPrecio(total);
+// ════════════════════════════════════════
+// CARRITO / COTIZACIÓN
+// ════════════════════════════════════════
+function toggleItem(id, nombre, precio) {
+    const idx = carrito.findIndex(c => c.id === id);
+    if (idx >= 0) {
+        carrito.splice(idx, 1);
+    } else {
+        carrito.push({ id, nombre, precio });
+    }
+    actualizarCarrito();
+    renderGrid();
 }
 
 function toggleCarrito() {
     const panel = document.getElementById('carritoPanel');
-    if (!panel) return;
-    const abierto = panel.style.display !== 'none';
-    panel.style.display = abierto ? 'none' : 'block';
-    if (!abierto) renderCarrito();
+    if (panel)
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
-// ── Filtros ──────────────────────────────────────────────
-function filtrar(cat, el) {
-    catActual = cat;
-    document.querySelectorAll('.cat-sb-cat').forEach(e => e.classList.remove('on'));
-    el.classList.add('on');
-    renderGrid();
+function actualizarCarrito() {
+    const badge = document.getElementById('badgeCount');
+    const sbCount = document.getElementById('sbCount');
+    const items = document.getElementById('carritoItems');
+    const totalVal = document.getElementById('totalVal');
+
+    if (badge) badge.textContent = carrito.length;
+    if (sbCount) sbCount.textContent = carrito.length;
+
+    if (items) {
+        if (carrito.length === 0) {
+            items.innerHTML = `
+                <p style="padding:16px;text-align:center;
+                           color:#9ca3af;font-size:.82rem;">
+                    Sin productos agregados
+                </p>`;
+        } else {
+            items.innerHTML = carrito.map(c => `
+                <div class="cat-carrito-item">
+                    <span class="cat-carrito-item-name">${c.nombre}</span>
+                    <span class="cat-carrito-item-precio">
+                        ${fmtPrecio(c.precio)}
+                    </span>
+                    <button class="cat-carrito-item-x"
+                            onclick="toggleItem(${c.id},'','')">✕</button>
+                </div>`).join('');
+        }
+    }
+
+    const total = carrito.reduce((s, c) => s + Number(c.precio), 0);
+    if (totalVal) totalVal.textContent = fmtPrecio(total);
 }
 
-function buscar() {
-    const inp = document.getElementById('searchInp');
-    busqueda = inp ? inp.value.toLowerCase().trim() : '';
-    renderGrid();
-}
-
-function ordenar(v) {
-    ordenActual = v;
-    renderGrid();
-}
-
-// ── Detalle de producto ──────────────────────────────────
-// Por ahora muestra un alert. Cuando quieras una vista
-// real, cambia esto por: window.location.href = '/Inventario/Detalles/' + id;
-function verDetalle(id) {
-    const p = productos.find(x => x.id === id);
-    if (!p) return;
-    alert(
-        `📦 ${p.nombre}\n\n` +
-        `🏷️  Marca: ${p.marca}\n` +
-        `📂  Categoría: ${p.categoria}\n` +
-        `📝  ${p.desc}\n` +
-        `💰  Precio: ${fmtPrecio(p.precio)} COP\n` +
-        `📦  Stock: ${p.stock} unidades`
-    );
-}
-
-// ── Inicialización ───────────────────────────────────────
+// ── Iniciar al cargar la página ──────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    renderGrid();
-    renderCarrito();
-
-    const btn = document.getElementById('toggleCarrito');
-    if (btn) btn.addEventListener('click', toggleCarrito);
+    cargarProductos();
+    actualizarCarrito();
 });

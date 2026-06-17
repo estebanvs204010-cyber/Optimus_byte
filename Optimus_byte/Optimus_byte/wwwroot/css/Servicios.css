@@ -1,14 +1,4 @@
-﻿:root {
-    --bg: #f6f3ed;
-    --card: #ffffff;
-    --text: #1f2937;
-    --muted: #7b8794;
-    --line: #d9e2f2;
-    --blue: #3b6bdc;
-    --blue-soft: #eaf1ff;
-    --shadow: 0 2px 10px rgba(31, 41, 55, .06);
-    --radius: 10px;
-}
+﻿
 
 * {
     margin: 0;

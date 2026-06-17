@@ -33,6 +33,16 @@ namespace Optimus_byte.Controllers
             vm.TotalUsuarios = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Usuarios");
             vm.TotalClientes = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Clientes WHERE activo = 1");
             vm.TotalVehiculos = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Vehiculos WHERE activo = 1");
+            vm.OrdenesAbiertas = EjecutarScalar<int>(conn,
+                "SELECT COUNT(1) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
+            vm.OrdenesHoy = EjecutarScalar<int>(conn,
+                "SELECT COUNT(1) FROM OrdenesTrabajo WHERE CAST(fecha_apertura AS DATE) = CAST(GETDATE() AS DATE)");
+            vm.CitasHoy = CitasController.ContarCitasHoy(conn);
+            vm.ProximasCitas = CitasController.ContarProximasCitas(conn);
+            vm.VehiculosMantenimiento = EjecutarScalar<int>(conn,
+                "SELECT COUNT(DISTINCT id_vehiculo) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
+            vm.RepuestosBajoStock = EjecutarScalar<int>(conn,
+                "SELECT COUNT(1) FROM Repuestos WHERE stock_actual <= stock_minimo AND activo = 1");
             vm.OrdenesAbiertas = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM OrdenesTrabajo WHERE estado NOT IN ('Entregado','Cancelado')");
             vm.OrdenesHoy = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM OrdenesTrabajo WHERE CAST(fecha_apertura AS DATE) = CAST(GETDATE() AS DATE)");
             vm.RepuestosBajoStock = EjecutarScalar<int>(conn, "SELECT COUNT(1) FROM Repuestos WHERE stock_actual <= stock_minimo AND activo = 1");
@@ -672,7 +682,7 @@ namespace Optimus_byte.Controllers
 
             var lista = new List<RepuestoViewModel>();
 
-            string where = "WHERE activo = 1";
+            string where = "WHERE 1=1";
             if (!string.IsNullOrWhiteSpace(buscar))
                 where += $" AND (nombre LIKE '%{buscar.Replace("'", "''")}%' OR referencia LIKE '%{buscar.Replace("'", "''")}%')";
             if (!string.IsNullOrWhiteSpace(categoria))
@@ -683,6 +693,7 @@ namespace Optimus_byte.Controllers
             using (var cmd = new SqlCommand($@"
                 SELECT id_repuesto, nombre, referencia, descripcion,
                        categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro, marca, modelo
+       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro, activo
                 FROM Repuestos
                 {where}
                 ORDER BY nombre ASC", conn))
@@ -702,6 +713,8 @@ namespace Optimus_byte.Controllers
                         FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
                         marca = r["marca"]?.ToString() ?? "",
                         modelo = r["modelo"]?.ToString() ?? ""
+                        FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
+                        Activo = Convert.ToBoolean(r["activo"])
                     });
             }
 
@@ -798,6 +811,21 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
             TempData["Exito"] = "Repuesto desactivado.";
+            return RedirectToAction("Inventario");
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ReactivarRepuesto(int id)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+
+            using var conn = _db.GetConnection();
+            using var cmd = new SqlCommand(
+                "UPDATE Repuestos SET activo = 1 WHERE id_repuesto = @id", conn);
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+
+            TempData["Exito"] = "Repuesto reactivado.";
             return RedirectToAction("Inventario");
         }
 
