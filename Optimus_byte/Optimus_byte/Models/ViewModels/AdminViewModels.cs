@@ -88,6 +88,7 @@ namespace Optimus_byte.Models.ViewModels
         public int StockActual { get; set; }
         public int StockMinimo { get; set; }
         public DateTime FechaRegistro { get; set; }
+        public bool Activo { get; set; }
         public bool BajoStock => StockActual <= StockMinimo;
     }
 

@@ -682,7 +682,7 @@ namespace Optimus_byte.Controllers
 
             var lista = new List<RepuestoViewModel>();
 
-            string where = "WHERE activo = 1";
+            string where = "WHERE 1=1";
             if (!string.IsNullOrWhiteSpace(buscar))
                 where += $" AND (nombre LIKE '%{buscar.Replace("'", "''")}%' OR referencia LIKE '%{buscar.Replace("'", "''")}%')";
             if (!string.IsNullOrWhiteSpace(categoria))
@@ -692,7 +692,7 @@ namespace Optimus_byte.Controllers
 
             using (var cmd = new SqlCommand($@"
                 SELECT id_repuesto, nombre, referencia, descripcion,
-                       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro
+       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro, activo
                 FROM Repuestos
                 {where}
                 ORDER BY nombre ASC", conn))
@@ -709,7 +709,8 @@ namespace Optimus_byte.Controllers
                         PrecioUnitario = Convert.ToDecimal(r["precio_unitario"]),
                         StockActual = Convert.ToInt32(r["stock_actual"]),
                         StockMinimo = Convert.ToInt32(r["stock_minimo"]),
-                        FechaRegistro = Convert.ToDateTime(r["fecha_registro"])
+                        FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
+                        Activo = Convert.ToBoolean(r["activo"])
                     });
             }
 
@@ -802,6 +803,21 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
             TempData["Exito"] = "Repuesto desactivado.";
+            return RedirectToAction("Inventario");
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ReactivarRepuesto(int id)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+
+            using var conn = _db.GetConnection();
+            using var cmd = new SqlCommand(
+                "UPDATE Repuestos SET activo = 1 WHERE id_repuesto = @id", conn);
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+
+            TempData["Exito"] = "Repuesto reactivado.";
             return RedirectToAction("Inventario");
         }
 

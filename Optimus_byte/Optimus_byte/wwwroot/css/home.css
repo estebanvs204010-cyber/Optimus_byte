@@ -1,27 +1,4 @@
-/* ══════════════════════════════════════
-   HOME ÉPICA — PALETA CLARO/MARINO
-   ══════════════════════════════════════ */
-:root {
-    --acento: #1e3a8a; /* azul marino oscuro */
-    --acento-medio: #2563eb; /* azul vivo */
-    --acento-claro: #3b82f6; /* azul suave */
-    --acento-suave: rgba(30, 58, 138, 0.08);
-    --fondo: #f5f3ef; /* crema/hueso */
-    --fondo-2: #eceae5; /* crema más oscuro */
-    --fondo-card: #ffffff;
-    --fondo-oscuro: #1a2332; /* navy para contrastes */
-    --texto: #1a2332;
-    --texto-suave: #4b5563;
-    --texto-claro: #9ca3af;
-    --borde: rgba(30, 58, 138, 0.12);
-    --blanco: #ffffff;
-    --fuente-display: 'Barlow Condensed', sans-serif;
-    --fuente-cuerpo: 'Barlow', sans-serif;
-    --sombra-s: 0 2px 12px rgba(30,58,138,0.07);
-    --sombra-m: 0 8px 32px rgba(30,58,138,0.11);
-    --sombra-l: 0 24px 64px rgba(30,58,138,0.15);
-    --radio: 6px;
-}
+
 
 * {
     box-sizing: border-box;

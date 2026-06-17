@@ -5,24 +5,7 @@
 
 /*@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap');*/
 
-/* ── Variables ── */
-:root {
-    --negro: #1a2332;
-    --carbon: #f5f3ef;
-    --grafito: #ffffff;
-    --grafito-med: #eef1f6;
-    --dorado: #2563eb;
-    --dorado-claro: #3b82f6;
-    --dorado-suave: rgba(37, 99, 235, 0.08);
-    --marfil: #1a2332;
-    --texto-claro: #334155;
-    --texto-suave: #64748b;
-    --borde: rgba(37, 99, 235, 0.15);
-    --borde-input: rgba(37, 99, 235, 0.18);
-    --fuente-titulo: 'Cormorant Garamond', Georgia, serif;
-    --fuente-cuerpo: 'Jost', sans-serif;
-    --transicion: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+
 
 /* ── Reset base ── */
 *, *::before, *::after {

@@ -10,12 +10,11 @@
     <title>OPTIMUS-BYTE — Inventario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
-    <link href="~/css/usuarios.css" rel="stylesheet" />
-    <style>
-        .stock-ok  { color: #15803d; }
-        .stock-low { color: #dc2626; font-weight: 600; }
-        .badge-cat { display:inline-block;padding:2px 9px;border-radius:2px;font-size:.68rem;letter-spacing:.06em;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18);color:var(--dorado); }
-    </style>
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+
 </head>
 <body>
 
@@ -102,10 +101,19 @@
                 <tbody>
                     @foreach (var r in Model)
                     {
-                        <tr class="@(r.BajoStock ? "fila-inactiva" : "")">
+                        <tr class="@(!r.Activo ? "fila-inactiva" : r.BajoStock ? "fila-bajo-stock" : "")">
                             <td>@r.IdRepuesto</td>
                             <td>
                                 <strong>@r.Nombre</strong>
+                                @if (!r.Activo)
+                                {
+                                    <span style="display:inline-block;margin-left:6px;padding:1px 8px;
+                                 border-radius:10px;font-size:.65rem;font-weight:600;
+                                 background:rgba(220,38,38,0.08);color:#dc2626;
+                                 border:1px solid rgba(220,38,38,0.2);">
+                                        Desactivado
+                                    </span>
+                                }
                                 @if (!string.IsNullOrEmpty(r.Descripcion))
                                 {
                                     <div style="font-size:.73rem;color:var(--texto-suave)">@r.Descripcion</div>
@@ -115,8 +123,8 @@
                             <td><span class="badge-cat">@r.Categoria</span></td>
                             <td>$@r.PrecioUnitario.ToString("N0")</td>
                             <td>
-                                <span class="@(r.BajoStock ? "stock-low" : "stock-ok")">
-                                    @if (r.BajoStock)
+                                <span class="@(r.BajoStock && r.Activo ? "stock-low" : "stock-ok")">
+                                    @if (r.BajoStock && r.Activo)
                                     {
                                         <i class="bi bi-exclamation-triangle-fill me-1" style="font-size:.75rem"></i>
                                     }
@@ -125,19 +133,43 @@
                             </td>
                             <td>@r.StockMinimo</td>
                             <td class="td-acciones">
-                                <button class="btn-accion btn-editar" title="Editar"
-                                    onclick="prepararModal(@r.IdRepuesto,'@r.Nombre.Replace("'","\\'")', '@r.Referencia', '@r.Descripcion.Replace("'","\\'")', '@r.Categoria', @r.PrecioUnitario, @r.StockActual, @r.StockMinimo)"
-                                    data-bs-toggle="modal" data-bs-target="#modalRepuesto">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <form asp-controller="Admin" asp-action="DesactivarRepuesto"
-                                      asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
-                                      onsubmit="return confirm('¿Desactivar el repuesto @r.Nombre?')">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-accion btn-desactivar" title="Desactivar">
-                                        <i class="bi bi-trash-fill"></i>
+                                @if (r.Activo)
+                                {
+                                    <button class="btn-accion btn-editar" title="Editar"
+                                            onclick="prepararModal(@r.IdRepuesto,
+                            '@Html.Raw(r.Nombre.Replace("'", "\\'"))',
+                            '@Html.Raw(r.Referencia.Replace("'", "\\'"))',
+                            '@Html.Raw((r.Descripcion ?? "").Replace("'", "\\'"))',
+                            '@Html.Raw(r.Categoria.Replace("'", "\\'"))',
+                            @r.PrecioUnitario.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+                            @r.StockActual,
+                            @r.StockMinimo)"
+                                            data-bs-toggle="modal" data-bs-target="#modalRepuesto">
+                                        <i class="bi bi-pencil-fill"></i>
                                     </button>
-                                </form>
+
+                                    <form asp-controller="Admin" asp-action="DesactivarRepuesto"
+                                          asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
+                                          onsubmit="return confirm('¿Desactivar @Html.Raw(r.Nombre)?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-accion btn-desactivar" title="Desactivar">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-controller="Admin" asp-action="ReactivarRepuesto"
+                                          asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
+                                          onsubmit="return confirm('¿Reactivar @Html.Raw(r.Nombre)?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-accion btn-activar" title="Reactivar"
+                                                style="background:rgba(22,163,74,0.1);color:#15803d;
+                                       border:1px solid rgba(22,163,74,0.25);">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                    </form>
+                                }
                             </td>
                         </tr>
                     }
@@ -209,18 +241,19 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
-            const esNuevo = !id;
+               function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
+            const esNuevo = !id || id === 0;
             document.getElementById('modalRepuestoTitulo').innerHTML =
                 `<i class="bi bi-box-seam me-2"></i>${esNuevo ? 'Nuevo repuesto' : 'Editar repuesto'}`;
-            document.getElementById('inputIdRepuesto').value = id || 0;
-            document.getElementById('inputNombre').value  = nombre || '';
-            document.getElementById('inputRef').value     = ref    || '';
-            document.getElementById('inputDesc').value    = desc   || '';
-            document.getElementById('inputCat').value     = cat    || '';
-            document.getElementById('inputPrecio').value  = precio || 0;
-            document.getElementById('inputStock').value   = stock  || 0;
-            document.getElementById('inputMin').value     = min    || 5;
+            document.getElementById('inputIdRepuesto').value = id    || 0;
+            document.getElementById('inputNombre').value     = nombre || '';
+            document.getElementById('inputRef').value        = ref    || '';
+            document.getElementById('inputDesc').value       = desc   || '';
+            document.getElementById('inputCat').value        = cat    || '';
+            // Usar parseFloat para evitar problemas con el separador decimal
+            document.getElementById('inputPrecio').value     = parseFloat(precio) || 0;
+            document.getElementById('inputStock').value      = parseInt(stock)    || 0;
+            document.getElementById('inputMin').value        = parseInt(min)      || 5;
         }
     </script>
 </body>
