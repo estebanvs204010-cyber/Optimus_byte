@@ -89,6 +89,8 @@ namespace Optimus_byte.Models.ViewModels
         public int StockMinimo { get; set; }
         public DateTime FechaRegistro { get; set; }
         public bool BajoStock => StockActual <= StockMinimo;
+        public string marca { get; set; } = string.Empty;
+        public string modelo { get; set; } = string.Empty;
     }
 
     public class RepuestoCriticoViewModel

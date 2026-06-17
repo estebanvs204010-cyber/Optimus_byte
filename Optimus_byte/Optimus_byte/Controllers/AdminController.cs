@@ -682,7 +682,7 @@ namespace Optimus_byte.Controllers
 
             using (var cmd = new SqlCommand($@"
                 SELECT id_repuesto, nombre, referencia, descripcion,
-                       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro
+                       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro, marca, modelo
                 FROM Repuestos
                 {where}
                 ORDER BY nombre ASC", conn))
@@ -699,7 +699,9 @@ namespace Optimus_byte.Controllers
                         PrecioUnitario = Convert.ToDecimal(r["precio_unitario"]),
                         StockActual = Convert.ToInt32(r["stock_actual"]),
                         StockMinimo = Convert.ToInt32(r["stock_minimo"]),
-                        FechaRegistro = Convert.ToDateTime(r["fecha_registro"])
+                        FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
+                        marca = r["marca"]?.ToString() ?? "",
+                        modelo = r["modelo"]?.ToString() ?? ""
                     });
             }
 
@@ -735,9 +737,9 @@ namespace Optimus_byte.Controllers
                 using var cmd = new SqlCommand(@"
                     INSERT INTO Repuestos
                         (nombre, referencia, descripcion, categoria,
-                         precio_unitario, stock_actual, stock_minimo)
+                         precio_unitario, stock_actual, stock_minimo, marca, modelo)
                     OUTPUT INSERTED.id_repuesto
-                    VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min)", conn);
+                    VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min, @marca, @modelo)", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
@@ -745,6 +747,8 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);
+                cmd.Parameters.AddWithValue("@marca", DBNull.Value);
+                cmd.Parameters.AddWithValue("@modelo", DBNull.Value);
                 int newId = (int)cmd.ExecuteScalar();
                 RegistrarMovimiento(conn, newId, idAdmin, null, "Entrada", stockActual, 0, "Stock inicial");
                 TempData["Exito"] = $"Repuesto '{nombre}' creado correctamente.";
@@ -758,12 +762,14 @@ namespace Optimus_byte.Controllers
                     UPDATE Repuestos
                     SET nombre = @nom, referencia = @ref, descripcion = @desc,
                         categoria = @cat, precio_unitario = @precio,
-                        stock_actual = @stock, stock_minimo = @min
+                        stock_actual = @stock, stock_minimo = @min, marca = @marca, modelo = @modelo
                     WHERE id_repuesto = @id", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@cat", categoria);
+                cmd.Parameters.AddWithValue("@marca", DBNull.Value);
+                cmd.Parameters.AddWithValue("@modelo", DBNull.Value);
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);

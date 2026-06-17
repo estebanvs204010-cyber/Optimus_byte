@@ -36,5 +36,11 @@ namespace Optimus_byte.Models
 
         [Column("fecha_registro")]
         public DateTime FechaRegistro { get; set; }
+
+        [Column("marca")]
+        public string marca { get; set; } = string.Empty;
+
+        [Column("modelo")]
+        public string modelo { get; set; } = string.Empty;
     }
 }

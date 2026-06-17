@@ -25,5 +25,9 @@ namespace Optimus_byte.Models
 
         [ForeignKey("IdRepuesto")]
         public Repuesto? Repuesto { get; set; }
+
+
+
+
     }
 }

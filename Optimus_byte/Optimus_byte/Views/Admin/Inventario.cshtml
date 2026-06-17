@@ -90,12 +90,14 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
                         <th>Repuesto</th>
                         <th>Referencia</th>
-                        <th>Categoría</th>
-                        <th>Precio unit.</th>
+                        <th>Categoria</th>
+                        <th>Precio</th>
                         <th>Stock actual</th>
-                        <th>Stock mín.</th>
+                        <th>stock min</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -104,37 +106,56 @@
                     {
                         <tr class="@(r.BajoStock ? "fila-inactiva" : "")">
                             <td>@r.IdRepuesto</td>
+
+                            <td>@r.marca</td>
+
+                            <td>@r.modelo</td>
+
                             <td>
                                 <strong>@r.Nombre</strong>
                                 @if (!string.IsNullOrEmpty(r.Descripcion))
                                 {
-                                    <div style="font-size:.73rem;color:var(--texto-suave)">@r.Descripcion</div>
+                                    <div style="font-size:.73rem;color:var(--texto-suave)">
+                                        @r.Descripcion
+                                    </div>
                                 }
                             </td>
-                            <td style="font-family:monospace;font-size:.82rem">@r.Referencia</td>
+
+                            <td>@r.Referencia</td>
                             <td><span class="badge-cat">@r.Categoria</span></td>
                             <td>$@r.PrecioUnitario.ToString("N0")</td>
-                            <td>
-                                <span class="@(r.BajoStock ? "stock-low" : "stock-ok")">
-                                    @if (r.BajoStock)
-                                    {
-                                        <i class="bi bi-exclamation-triangle-fill me-1" style="font-size:.75rem"></i>
-                                    }
-                                    @r.StockActual
-                                </span>
-                            </td>
+                            <td>@r.StockActual</td>
                             <td>@r.StockMinimo</td>
+
                             <td class="td-acciones">
-                                <button class="btn-accion btn-editar" title="Editar"
-                                    onclick="prepararModal(@r.IdRepuesto,'@r.Nombre.Replace("'","\\'")', '@r.Referencia', '@r.Descripcion.Replace("'","\\'")', '@r.Categoria', @r.PrecioUnitario, @r.StockActual, @r.StockMinimo)"
-                                    data-bs-toggle="modal" data-bs-target="#modalRepuesto">
+                                <button class="btn-accion btn-editar"
+                                        title="Editar"
+                                        onclick="prepararModal(
+                            @r.IdRepuesto,
+                            '@r.Nombre.Replace("'", "\\'")',
+                            '@r.Referencia',
+                            '@r.Descripcion.Replace("'", "\\'")',
+                            '@r.Categoria',
+                            @r.PrecioUnitario,
+                            @r.StockActual,
+                            @r.StockMinimo
+                        )"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalRepuesto">
                                     <i class="bi bi-pencil-fill"></i>
                                 </button>
-                                <form asp-controller="Admin" asp-action="DesactivarRepuesto"
-                                      asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
-                                      onsubmit="return confirm('¿Desactivar el repuesto @r.Nombre?')">
+
+                                <form asp-controller="Admin"
+                                      asp-action="DesactivarRepuesto"
+                                      asp-route-id="@r.IdRepuesto"
+                                      method="post"
+                                      class="d-inline">
+
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-accion btn-desactivar" title="Desactivar">
+
+                                    <button type="submit"
+                                            class="btn-accion btn-desactivar"
+                                            title="Desactivar">
                                         <i class="bi bi-trash-fill"></i>
                                     </button>
                                 </form>
@@ -166,7 +187,9 @@
                 <form asp-controller="Admin" asp-action="GuardarRepuesto" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="idRepuesto" id="inputIdRepuesto" value="0" />
-                    <div class="modal-body" style="padding:24px">
+
+                    <div class="modal-body"
+                         style="padding:24px">
                         <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:16px">
                             <div class="form-group-custom">
                                 <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Nombre *</label>
@@ -196,12 +219,26 @@
                                 <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Stock mínimo *</label>
                                 <input type="number" name="stockMinimo" id="inputMin" class="input-custom" style="padding-left:14px" required min="0" />
                             </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Marca</label>
+                                <input type="text" name="marca" id="inputMarca" class="input-custom" style="padding-left:14px" />
+                            </div>
+
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Modelo</label>
+                                <input type="text" name="modelo" id="inputModelo" class="input-custom" style="padding-left:14px" />
+                             </div>
+
+                             <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
+                                     <button type="submit" class="btn-guardar"><i class="bi bi-floppy-fill me-2"></i>Guardar</button>
+                                     <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
+                             </div>
                         </div>
+
                     </div>
-                    <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
-                        <button type="submit" class="btn-guardar"><i class="bi bi-floppy-fill me-2"></i>Guardar</button>
-                        <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
-                    </div>
+
+
+
                 </form>
             </div>
         </div>
@@ -209,18 +246,22 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
+        function prepararModal(id, nombre, ref, desc, cat, precio, stock, min, marca, modelo) {
             const esNuevo = !id;
+
             document.getElementById('modalRepuestoTitulo').innerHTML =
                 `<i class="bi bi-box-seam me-2"></i>${esNuevo ? 'Nuevo repuesto' : 'Editar repuesto'}`;
+
             document.getElementById('inputIdRepuesto').value = id || 0;
-            document.getElementById('inputNombre').value  = nombre || '';
-            document.getElementById('inputRef').value     = ref    || '';
-            document.getElementById('inputDesc').value    = desc   || '';
-            document.getElementById('inputCat').value     = cat    || '';
-            document.getElementById('inputPrecio').value  = precio || 0;
-            document.getElementById('inputStock').value   = stock  || 0;
-            document.getElementById('inputMin').value     = min    || 5;
+            document.getElementById('inputNombre').value = nombre || '';
+            document.getElementById('inputRef').value = ref || '';
+            document.getElementById('inputDesc').value = desc || '';
+            document.getElementById('inputCat').value = cat || '';
+            document.getElementById('inputPrecio').value = precio || 0;
+            document.getElementById('inputStock').value = stock || 0;
+            document.getElementById('inputMin').value = min || 5;
+            document.getElementById('inputMarca').value = marca || '';
+            document.getElementById('inputModelo').value = modelo || '';
         }
     </script>
 </body>

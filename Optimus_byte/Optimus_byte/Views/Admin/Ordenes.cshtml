@@ -527,7 +527,7 @@
         {
                 <text>
                 (function () {
-                    try {
+                           try {
                         const ctx = new (window.AudioContext || window.webkitAudioContext)();
                         [523, 659, 784].forEach((freq, i) => {
                             const o = ctx.createOscillator();
