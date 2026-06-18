@@ -6,6 +6,12 @@
     int activos = vehiculos.Count(v => (bool)v.Activo);
     int inactivos = total - activos;
     int clientes = vehiculos.Select(v => (string)v.ClienteNombre).Distinct().Count();
+
+    var solicitudes = ViewBag.SolicitudesPendientes as List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>
+                      ?? new List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>();
+    var stockBajo = ViewBag.RepuestosBajoStockList as List<Optimus_byte.Models.ViewModels.RepuestoViewModel>
+                      ?? new List<Optimus_byte.Models.ViewModels.RepuestoViewModel>();
+    int totalNotif = solicitudes.Count + stockBajo.Count;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -19,19 +25,377 @@
     <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
     
+    <link href="~/css/usuarios.css" rel="stylesheet" />
+    <style>
+        /* ── Modal editar ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .modal-overlay.show {
+                display: flex;
+            }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 8px;
+            padding: 32px;
+            max-width: 520px;
+            width: 95%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+        }
+
+            .modal-box h5 {
+                font-size: 1rem;
+                font-weight: 700;
+                margin-bottom: 20px;
+                color: #1e293b;
+            }
+
+        .modal-label {
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 0.88rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            outline: none;
+            box-sizing: border-box;
+            margin-bottom: 14px;
+        }
+
+            .modal-input:focus {
+                border-color: #2563eb;
+            }
+
+            .modal-input[readonly] {
+                background: #f1f5f9;
+                color: #94a3b8;
+                cursor: not-allowed;
+            }
+
+        .modal-footer-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+
+        .btn-modal-cancel {
+            font-size: 0.82rem;
+            padding: 8px 20px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .btn-modal-save {
+            font-size: 0.82rem;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            background: #2563eb;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+            .btn-modal-save:hover {
+                opacity: 0.88;
+            }
+
+        .btn-editar {
+            background: rgba(37,99,235,0.08);
+            color: #2563eb;
+            border: 1px solid rgba(37,99,235,0.2);
+            border-radius: 4px;
+            padding: 5px 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background .15s;
+        }
+
+            .btn-editar:hover {
+                background: rgba(37,99,235,0.16);
+            }
+
+        /* ── Campanita ── */
+        .bell-btn {
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            color: var(--texto-suave);
+            font-size: 1.25rem;
+            transition: color .2s;
+        }
+
+            .bell-btn:hover {
+                color: var(--dorado);
+            }
+
+        .bell-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ef4444;
+            color: #fff;
+            font-size: .6rem;
+            font-weight: 700;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            line-height: 1;
+        }
+
+        /* ── Panel notificaciones ── */
+        .notif-panel {
+            display: none;
+            position: fixed;
+            top: 54px;
+            right: 18px;
+            width: 370px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.12);
+            z-index: 9999;
+        }
+
+            .notif-panel.open {
+                display: block;
+            }
+
+        .notif-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--borde-input);
+            font-size: .75rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--dorado);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notif-section-title {
+            padding: 8px 16px 4px;
+            font-size: .65rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+            background: var(--grafito-med);
+            border-bottom: 1px solid var(--borde-input);
+        }
+
+        .notif-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(0,0,0,.04);
+            font-size: .82rem;
+        }
+
+            .notif-item:last-child {
+                border-bottom: none;
+            }
+
+        .notif-titulo {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .notif-sub {
+            color: #64748b;
+            font-size: .76rem;
+        }
+
+        .notif-hora {
+            color: #94a3b8;
+            font-size: .7rem;
+            margin-top: 4px;
+        }
+
+        .notif-empty {
+            padding: 24px 16px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: .82rem;
+        }
+
+        .stock-alerta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(220,38,38,.08);
+            border: 1px solid rgba(220,38,38,.25);
+            color: #b91c1c;
+            border-radius: 4px;
+            font-size: .7rem;
+            font-weight: 600;
+            padding: 3px 9px;
+        }
+    </style>
 </head>
 <body>
+
+    <!-- ── TOPBAR ── -->
     <div class="admin-topbar">
         <div class="d-flex align-items-center gap-3">
             <span class="brand">⚙ OPTIMUS-BYTE</span>
             <span class="badge-admin">Admin</span>
         </div>
         <div class="d-flex align-items-center gap-3">
+
+            <!-- CAMPANITA -->
+            <button class="bell-btn" id="btnCampana" title="Notificaciones" onclick="toggleNotif()">
+                <i class="bi bi-bell-fill"></i>
+                @if (totalNotif > 0)
+                {
+                    <span class="bell-badge" id="bellBadge">@totalNotif</span>
+                }
+            </button>
+
             <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")</span>
             <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
         </div>
     </div>
 
+    <!-- ── PANEL NOTIFICACIONES ── -->
+    <div class="notif-panel" id="notifPanel">
+        <div class="notif-header">
+            <span><i class="bi bi-bell me-1"></i>Notificaciones</span>
+            @if (totalNotif > 0)
+            {
+                <span style="background:#ef4444;color:#fff;font-size:.65rem;padding:2px 7px;border-radius:10px">
+                    @totalNotif pendiente(s)
+                </span>
+            }
+        </div>
+
+        @* — Solicitudes de repuesto — *@
+        @if (solicitudes.Any())
+        {
+            <div class="notif-section-title"><i class="bi bi-box-seam me-1"></i>Solicitudes de repuesto (@solicitudes.Count)</div>
+            @foreach (var s in solicitudes)
+            {
+                bool esLibre = s.NombreRepuesto?.StartsWith("[Sin inventario]") ?? false;
+                string nombreMostrar = esLibre ? s.NombreRepuesto!.Replace("[Sin inventario]", "").Trim() : (s.NombreRepuesto ?? "—");
+                <div class="notif-item">
+                    <div class="notif-titulo">
+                        <i class="bi bi-box-seam me-1" style="color:#f97316"></i>
+                        @if (esLibre)
+                        {
+                            <span style="font-size:.63rem;background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:1px 6px;margin-right:4px">Sin inventario</span>
+                        }
+                        @nombreMostrar <span style="color:#94a3b8;font-weight:400"> × @s.Cantidad</span>
+                    </div>
+                    <div class="notif-sub">OT-@s.IdOrden &nbsp;·&nbsp; @s.MecanicoNombre</div>
+                    @if (!string.IsNullOrWhiteSpace(s.Motivo))
+                    {
+                        <div class="notif-sub" style="margin-top:2px;font-style:italic"><i class="bi bi-chat-left-text me-1"></i>@s.Motivo</div>
+                    }
+                    <div class="notif-hora">@s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")</div>
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                        @if (esLibre)
+                        {
+                            <a href="/Admin/Inventario" style="font-size:.68rem;padding:4px 10px;background:#3b82f6;color:#fff;border-radius:4px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                                <i class="bi bi-plus-circle"></i> Crear en inventario
+                            </a>
+                        }
+                        else
+                        {
+                            <form asp-controller="Admin" asp-action="AceptarSolicitudRepuesto" method="post" style="display:inline" onsubmit="return confirm('¿Aceptar y descontar stock de este repuesto?')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                                <input type="hidden" name="ordenId" value="@s.IdOrden" />
+                                <input type="hidden" name="repuestoNombre" value="@nombreMostrar" />
+                                <input type="hidden" name="cantidad" value="@s.Cantidad" />
+                                <button type="submit" style="font-size:.68rem;padding:4px 10px;background:#22c55e;color:#fff;border:none;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+                                    <i class="bi bi-check2"></i> Aceptar
+                                </button>
+                            </form>
+                        }
+                        <form asp-controller="Admin" asp-action="RechazarSolicitudRepuesto" method="post" style="display:inline" onsubmit="return confirm('¿Rechazar esta solicitud?')">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                            <button type="submit" style="font-size:.68rem;padding:4px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+                                <i class="bi bi-x-lg"></i> Rechazar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+
+        @* — Stock bajo — *@
+        @if (stockBajo.Any())
+        {
+            <div class="notif-section-title"><i class="bi bi-exclamation-triangle-fill me-1" style="color:#dc2626"></i>Stock bajo (@stockBajo.Count repuesto(s))</div>
+            @foreach (var r in stockBajo)
+            {
+                <div class="notif-item">
+                    <div class="notif-titulo">
+                        <span class="stock-alerta-chip"><i class="bi bi-exclamation-triangle-fill"></i>STOCK BAJO</span>
+                        <span style="margin-left:6px">@r.Nombre</span>
+                    </div>
+                    <div class="notif-sub" style="margin-top:4px">
+                        Stock actual: <strong style="color:#dc2626">@r.StockActual</strong> &nbsp;·&nbsp; Mínimo: @r.StockMinimo
+                        &nbsp;·&nbsp; Ref: <span style="font-family:monospace">@r.Referencia</span>
+                    </div>
+                    <div style="margin-top:6px">
+                        <a href="/Admin/Inventario" style="font-size:.68rem;padding:4px 10px;background:#3b82f6;color:#fff;border-radius:4px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                            <i class="bi bi-arrow-up-circle"></i> Actualizar stock
+                        </a>
+                    </div>
+                </div>
+            }
+        }
+
+        @if (totalNotif == 0)
+        {
+            <div class="notif-empty">
+                <i class="bi bi-check-circle" style="font-size:1.8rem;display:block;margin-bottom:8px;color:#22c55e"></i>
+                Sin notificaciones pendientes
+            </div>
+        }
+
+        @if (solicitudes.Any())
+        {
+            <div style="padding:10px 16px;text-align:right">
+                <a href="/Admin/SolicitudesRepuesto" style="font-size:.76rem;color:var(--dorado);text-decoration:none">
+                    Ver todas las solicitudes <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        }
+    </div>
+
+    <!-- ── SIDEBAR ── -->
     <div class="admin-sidebar">
         <nav class="sidebar-nav">
             <a href="/Usuarios" class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
@@ -40,9 +404,18 @@
             <a href="/Admin/Facturas" class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
             <a href="/Admin/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
             <a href="/VehiculosAdmin/Index" class="nav-link active"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
+            <a href="/Admin/SolicitudesRepuesto" class="nav-link" style="position:relative">
+                <i class="bi bi-bell-fill"></i>
+                <span>Solicitudes</span>
+                @if (solicitudes.Count > 0)
+                {
+                    <span style="position:absolute;top:6px;right:10px;background:#ef4444;color:#fff;font-size:.55rem;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px">@solicitudes.Count</span>
+                }
+            </a>
         </nav>
     </div>
 
+    <!-- ── CONTENIDO ── -->
     <div class="admin-content">
         <div class="section-header">
             <div>
@@ -141,7 +514,6 @@
                             </td>
                             <td style="font-size:.78rem;color:#64748b">@(((DateTime)v.FechaRegistro).ToString("dd/MM/yyyy"))</td>
                             <td class="td-acciones">
-                                @* Botón editar *@
                                 <button type="button" class="btn-editar" title="Editar"
                                         onclick="abrirEditar(@v.IdVehiculo, '@v.Placa', '@v.Marca', '@v.Modelo', @v.Anio, '@v.Color', '@v.Vin', @v.KmActuales)">
                                     <i class="bi bi-pencil-fill"></i>
@@ -191,7 +563,7 @@
         </div>
     </div>
 
-    @* Form oculto para enviar edición *@
+    <!-- Form oculto edición -->
     <form id="formEditarAdmin" action="/VehiculosAdmin/Editar" method="post" style="display:none">
         @Html.AntiForgeryToken()
         <input type="hidden" id="eId" name="IdVehiculo" />
@@ -204,7 +576,7 @@
         <input type="hidden" id="eKm" name="KmActuales" />
     </form>
 
-    @* Modal editar *@
+    <!-- Modal editar -->
     <div class="modal-overlay" id="modalEditar">
         <div class="modal-box">
             <h5><i class="bi bi-pencil-fill me-2"></i>Editar vehículo</h5>
@@ -249,6 +621,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        /* ── Filtro tabla ── */
         function filtrarTabla() {
             const buscar = document.getElementById('buscarInput').value.toLowerCase();
             const estado = document.getElementById('filtroEstado').value;
@@ -260,6 +633,7 @@
             });
         }
 
+        /* ── Modal editar ── */
         let idActual = null;
 
         function abrirEditar(id, placa, marca, modelo, anio, color, vin, km) {
@@ -269,7 +643,7 @@
             document.getElementById('mModelo').value = modelo;
             document.getElementById('mAnio').value   = anio;
             document.getElementById('mColor').value  = color === '—' ? '' : color;
-            document.getElementById('mVin').value    = vin  === '—' ? '' : vin;
+            document.getElementById('mVin').value    = vin   === '—' ? '' : vin;
             document.getElementById('mKm').value     = km;
             document.getElementById('modalEditar').classList.add('show');
             setTimeout(() => document.getElementById('mPlaca').focus(), 100);
@@ -292,6 +666,35 @@
             document.getElementById('eKm').value     = document.getElementById('mKm').value;
             document.getElementById('formEditarAdmin').submit();
         }
+
+        /* ── Campanita ── */
+        function toggleNotif() {
+            document.getElementById('notifPanel').classList.toggle('open');
+        }
+        document.addEventListener('click', function (e) {
+            const panel = document.getElementById('notifPanel');
+            const btn   = document.getElementById('btnCampana');
+            if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+        });
+
+        /* Polling badge cada 30s */
+        setInterval(async () => {
+            try {
+                const res  = await fetch('/Admin/NotificacionesCount');
+                const data = await res.json();
+                const badge = document.getElementById('bellBadge');
+                const total = (data.solicitudes || 0) + (data.stockBajo || 0);
+                if (total > 0) {
+                    if (!badge) {
+                        const b = document.createElement('span');
+                        b.id = 'bellBadge'; b.className = 'bell-badge'; b.textContent = total;
+                        document.getElementById('btnCampana').appendChild(b);
+                    } else { badge.textContent = total; }
+                } else if (badge) { badge.remove(); }
+            } catch (e) {}
+        }, 30000);
     </script>
 </body>
 </html>

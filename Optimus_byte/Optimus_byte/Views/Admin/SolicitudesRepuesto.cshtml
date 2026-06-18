@@ -1,7 +1,10 @@
-﻿@model List<Optimus_byte.Models.SolicitudRepuesto>
+﻿@model List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>
 @{
     ViewData["Title"] = "Solicitudes de Repuesto";
-    Layout = null;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int total = Model?.Count ?? 0;
+    int pendientes = Model?.Count(s => !s.Atendida) ?? 0;
+    int atendidas = Model?.Count(s => s.Atendida) ?? 0;
 }
 
 <!DOCTYPE html>
@@ -18,247 +21,335 @@
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
 </head>
 <body>
-
-    <!-- TOP BAR -->
-    <div class="topbar">
-        <div class="topbar-brand">
-            <i class="fas fa-bolt"></i>
-            Optimus Byte — Admin
-        </div>
-        <a href="/Admin/Dashboard" class="btn-back">
-            <i class="fas fa-arrow-left"></i> Volver al Panel
-        </a>
-    </div>
-
-    <!-- MAIN -->
-    <div class="main">
-
-        <!-- Header -->
-        <div class="page-header">
-            <div>
-                <h1 class="page-title">Solicitudes de <span>Repuesto</span></h1>
-                <p style="color:var(--muted);font-size:.88rem;margin-top:4px;">
-                    Gestiona las solicitudes enviadas por los mecánicos
-                </p>
-            </div>
-        </div>
-
-        <!-- Stats -->
-        @{
-            int total = Model?.Count ?? 0;
-            int pendiente = Model?.Count(s => !s.Atendida) ?? 0;
-            int atendida = Model?.Count(s => s.Atendida) ?? 0;
+@section Styles {
+    <style>
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--borde-input);
         }
-        <div class="stats-row">
-            <div class="stat-chip total">
-                <i class="fas fa-list-ul" style="color:var(--accent)"></i>
-                Total: <span class="num">@total</span>
-            </div>
-            <div class="stat-chip pending">
-                <i class="fas fa-hourglass-half" style="color:var(--warning)"></i>
-                Pendientes: <span class="num">@pendiente</span>
-            </div>
-            <div class="stat-chip done">
-                <i class="fas fa-check-circle" style="color:var(--success)"></i>
-                Atendidas: <span class="num">@atendida</span>
-            </div>
-        </div>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" onclick="filtrar('todas', this)">Todas</button>
-            <button class="tab-btn" onclick="filtrar('pendientes', this)">Pendientes</button>
-            <button class="tab-btn" onclick="filtrar('atendidas', this)">Atendidas</button>
-            <button class="tab-btn" onclick="filtrar('libre', this)">Sin inventario</button>
-        </div>
+        .tab-btn {
+            padding: 8px 18px;
+            border: none;
+            background: transparent;
+            color: var(--texto-suave);
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all .2s;
+        }
 
-        <!-- Table -->
-        <div class="table-wrap">
-            @if (Model == null || !Model.Any())
-            {
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <p>No hay solicitudes de repuesto registradas.</p>
-                </div>
+            .tab-btn:hover {
+                color: var(--marfil);
             }
-            else
-            {
-                <table id="tabla-solicitudes">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Orden</th>
-                            <th>Mecánico</th>
-                            <th>Repuesto solicitado</th>
-                            <th>Origen</th>
-                            <th>Cantidad</th>
-                            <th>Fecha</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var s in Model.OrderByDescending(x => x.FechaSolicitud))
-                        {
-                            bool esLibre = s.NombreRepuesto?.StartsWith("[Sin inventario]") ?? false;
-                            string nombre = esLibre
-                            ? s.NombreRepuesto!.Replace("[Sin inventario]", "").Trim()
-                            : (s.NombreRepuesto ?? "—");
-                            string rowClass = s.Atendida ? "row-atendida" : "row-pendiente";
 
-                            <tr class="@rowClass" data-libre="@esLibre.ToString().ToLower()">
-                                <td style="color:var(--muted);font-size:.8rem;">@s.Id</td>
-
-                                <td class="text-main">
-                                    <a href="/Admin/DetalleOrden/@s.OrdenId"
-                                       style="color:var(--accent);text-decoration:none;">
-                                        #@s.OrdenId
-                                    </a>
-                                </td>
-
-                                <td>@(s.NombreMecanico ?? "—")</td>
-
-                                <td class="text-main">@nombre</td>
-
-                                <td>
-                                    @if (esLibre)
-                                    {
-                                        <span class="badge badge-libre">
-                                            <i class="fas fa-pencil-alt"></i> Texto libre
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-inv">
-                                            <i class="fas fa-boxes"></i> Inventario
-                                        </span>
-                                    }
-                                </td>
-
-                                <td>@s.Cantidad</td>
-
-                                <td style="white-space:nowrap;font-size:.82rem;">
-                                    @s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")
-                                </td>
-
-                                <td>
-                                    @if (s.Atendida)
-                                    {
-                                        <span class="badge badge-done">
-                                            <i class="fas fa-check"></i> Atendida
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-pending">
-                                            <i class="fas fa-clock"></i> Pendiente
-                                        </span>
-                                    }
-                                </td>
-
-                                <td>
-                                    @if (!s.Atendida)
-                                    {
-                                        @if (esLibre)
-                                        {
-                                            <!-- Repuesto no está en inventario: enviar al admin a crearlo primero -->
-                                            <a href="/Admin/NuevoRepuesto?nombre=@Uri.EscapeDataString(nombre)"
-                                               class="btn-action btn-accept"
-                                               title="Crear repuesto en inventario y luego aceptar">
-                                                <i class="fas fa-plus"></i>
-                                                <span>Crear repuesto</span>
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <form method="post" action="/Admin/AceptarSolicitudRepuesto"
-                                                  style="display:inline"
-                                                  onsubmit="return confirmar(this, 'aceptar')">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="solicitudId" value="@s.Id" />
-                                                <button type="submit" class="btn-action btn-accept">
-                                                    <i class="fas fa-check"></i>
-                                                    <span>Aceptar</span>
-                                                </button>
-                                            </form>
-                                        }
-
-                                        <form method="post" action="/Admin/RechazarSolicitudRepuesto"
-                                              style="display:inline"
-                                              onsubmit="return confirmar(this, 'rechazar')">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="solicitudId" value="@s.Id" />
-                                            <button type="submit" class="btn-action btn-reject">
-                                                <i class="fas fa-times"></i>
-                                                <span>Rechazar</span>
-                                            </button>
-                                        </form>
-                                    }
-                                    else
-                                    {
-                                        <span class="btn-action btn-disabled">
-                                            <i class="fas fa-lock"></i>
-                                            <span>Cerrada</span>
-                                        </span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            .tab-btn.active {
+                color: var(--dorado);
+                border-bottom-color: var(--dorado);
             }
-        </div>
+
+        .badge-sol {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+        }
+
+        .badge-pendiente-sol {
+            background: rgba(234,179,8,.1);
+            border: 1px solid rgba(234,179,8,.3);
+            color: #a16207;
+        }
+
+        .badge-atendida-sol {
+            background: rgba(22,163,74,.08);
+            border: 1px solid rgba(22,163,74,.2);
+            color: #15803d;
+        }
+
+        .badge-libre-sol {
+            background: rgba(239,68,68,.1);
+            border: 1px solid rgba(239,68,68,.25);
+            color: #dc2626;
+        }
+
+        .badge-inv-sol {
+            background: rgba(37,99,235,.08);
+            border: 1px solid rgba(37,99,235,.2);
+            color: var(--dorado);
+        }
+
+        .btn-sol {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all .2s;
+            text-decoration: none;
+        }
+
+        .btn-sol-accept {
+            background: rgba(22,163,74,.1);
+            color: #15803d;
+            border: 1px solid rgba(22,163,74,.3);
+        }
+
+            .btn-sol-accept:hover {
+                background: rgba(22,163,74,.2);
+            }
+
+        .btn-sol-reject {
+            background: rgba(239,68,68,.08);
+            color: #dc2626;
+            border: 1px solid rgba(239,68,68,.25);
+        }
+
+            .btn-sol-reject:hover {
+                background: rgba(239,68,68,.18);
+            }
+
+        .btn-sol-disabled {
+            background: rgba(100,116,139,.07);
+            color: #94a3b8;
+            border: 1px solid rgba(100,116,139,.15);
+            cursor: default;
+            opacity: .75;
+        }
+
+        .btn-sol-crear {
+            background: rgba(37,99,235,.1);
+            color: var(--dorado);
+            border: 1px solid rgba(37,99,235,.25);
+        }
+
+            .btn-sol-crear:hover {
+                background: rgba(37,99,235,.2);
+            }
+
+        .fila-atendida {
+            opacity: .6;
+        }
+    </style>
+}
+
+<div class="section-header">
+    <div>
+        <h1 class="section-title">Solicitudes de Repuesto</h1>
+        <p class="section-sub">Gestiona las solicitudes enviadas por los mecánicos</p>
     </div>
+</div>
 
-    <!-- TOAST -->
-    <div id="toast"></div>
+@if (TempData["Exito"] != null)
+{
+    <div class="alerta alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alerta alerta-err"><i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]</div>
+}
 
+@* Stats *@
+<div class="stats-row" style="margin-bottom:20px">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(37,99,235,.08)">
+            <i class="bi bi-list-ul" style="color:var(--dorado)"></i>
+        </div>
+        <div><div class="stat-num">@total</div><div class="stat-label">Total</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(234,179,8,.08)">
+            <i class="bi bi-hourglass-split" style="color:#a16207"></i>
+        </div>
+        <div><div class="stat-num">@pendientes</div><div class="stat-label">Pendientes</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(22,163,74,.08)">
+            <i class="bi bi-check-circle-fill" style="color:#15803d"></i>
+        </div>
+        <div><div class="stat-num">@atendidas</div><div class="stat-label">Atendidas</div></div>
+    </div>
+</div>
+
+@* Tabs *@
+<div class="tabs">
+    <button class="tab-btn active" onclick="filtrar('todas',this)">Todas</button>
+    <button class="tab-btn" onclick="filtrar('pendientes',this)">Pendientes</button>
+    <button class="tab-btn" onclick="filtrar('atendidas',this)">Atendidas</button>
+    <button class="tab-btn" onclick="filtrar('libre',this)">Sin inventario</button>
+</div>
+
+@* Tabla *@
+<div class="tabla-wrapper">
+    @if (Model == null || !Model.Any())
+    {
+        <div class="tabla-vacia">
+            <i class="bi bi-inbox" style="font-size:3rem;color:#334155"></i>
+            <p class="mt-2">No hay solicitudes de repuesto registradas.</p>
+        </div>
+    }
+    else
+    {
+        <table class="tabla-usuarios" id="tablaSolicitudes">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Orden</th>
+                    <th>Mecánico</th>
+                    <th>Repuesto solicitado</th>
+                    <th>Origen</th>
+                    <th>Cant.</th>
+                    <th>Motivo</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.OrderByDescending(x => x.FechaSolicitud))
+                {
+                    bool esLibre = s.NombreRepuesto?.StartsWith("[Sin inventario]") ?? false;
+                    string nombre = esLibre
+                    ? s.NombreRepuesto!.Replace("[Sin inventario]", "").Trim()
+                    : (s.NombreRepuesto ?? "—");
+                    string rowClass = s.Atendida ? "fila-atendida" : "";
+
+                    <tr class="@rowClass"
+                        data-atendida="@s.Atendida.ToString().ToLower()"
+                        data-libre="@esLibre.ToString().ToLower()">
+
+                        <td style="color:var(--texto-suave);font-size:.8rem">@s.IdSolicitud</td>
+
+                        <td>
+                            <a href="/Admin/OrdenDetalle/@s.IdOrden"
+                               style="color:var(--dorado);font-weight:600;text-decoration:none">
+                                #@s.IdOrden
+                            </a>
+                        </td>
+
+                        <td>@(s.MecanicoNombre ?? "—")</td>
+
+                        <td style="font-weight:600;color:var(--marfil)">@nombre</td>
+
+                        <td>
+                            @if (esLibre)
+                            {
+                                <span class="badge-sol badge-libre-sol">
+                                    <i class="bi bi-pencil-fill"></i> Texto libre
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge-sol badge-inv-sol">
+                                    <i class="bi bi-boxes"></i> Inventario
+                                </span>
+                            }
+                        </td>
+
+                        <td>@s.Cantidad</td>
+
+                        <td style="font-size:.8rem;color:var(--texto-suave);max-width:180px">
+                            @(string.IsNullOrWhiteSpace(s.Motivo) ? "—" : s.Motivo)
+                        </td>
+
+                        <td style="white-space:nowrap;font-size:.8rem;color:var(--texto-suave)">
+                            @s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")
+                        </td>
+
+                        <td>
+                            @if (s.Atendida)
+                            {
+                                <span class="badge-sol badge-atendida-sol">
+                                    <i class="bi bi-check-lg"></i> Atendida
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge-sol badge-pendiente-sol">
+                                    <i class="bi bi-clock"></i> Pendiente
+                                </span>
+                            }
+                        </td>
+
+                        <td class="td-acciones" style="white-space:nowrap">
+                            @if (!s.Atendida)
+                            {
+                                @if (esLibre)
+                                {
+                                    <a href="/Admin/Inventario" class="btn-sol btn-sol-crear" title="Ir a inventario a crear el repuesto">
+                                        <i class="bi bi-plus-circle"></i> <span>Crear repuesto</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <form method="post" action="/Admin/AceptarSolicitudRepuesto"
+                                          style="display:inline"
+                                          onsubmit="return confirm('¿Aceptar y descontar stock?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                                        <input type="hidden" name="ordenId" value="@s.IdOrden" />
+                                        <input type="hidden" name="repuestoNombre" value="@nombre" />
+                                        <input type="hidden" name="cantidad" value="@s.Cantidad" />
+                                        <button type="submit" class="btn-sol btn-sol-accept">
+                                            <i class="bi bi-check2"></i> <span>Aceptar</span>
+                                        </button>
+                                    </form>
+                                }
+
+                                <form method="post" action="/Admin/RechazarSolicitudRepuesto"
+                                      style="display:inline"
+                                      onsubmit="return confirm('¿Rechazar esta solicitud?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                                    <button type="submit" class="btn-sol btn-sol-reject">
+                                        <i class="bi bi-x-lg"></i> <span>Rechazar</span>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="btn-sol btn-sol-disabled">
+                                    <i class="bi bi-lock-fill"></i> <span>Cerrada</span>
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@section Scripts {
     <script>
-        /* ── FILTRO TABS ── */
         function filtrar(tipo, btn) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            document.querySelectorAll('#tabla-solicitudes tbody tr').forEach(tr => {
-                const pendiente = tr.classList.contains('row-pendiente');
-                const atendida  = tr.classList.contains('row-atendida');
-                const libre     = tr.dataset.libre === 'true';
+            document.querySelectorAll('#tablaSolicitudes tbody tr').forEach(tr => {
+                const atendida = tr.dataset.atendida === 'true';
+                const libre    = tr.dataset.libre    === 'true';
 
                 let show = false;
                 if      (tipo === 'todas')      show = true;
-                else if (tipo === 'pendientes') show = pendiente;
+                else if (tipo === 'pendientes') show = !atendida;
                 else if (tipo === 'atendidas')  show = atendida;
                 else if (tipo === 'libre')      show = libre;
 
                 tr.style.display = show ? '' : 'none';
             });
         }
-
-        /* ── CONFIRMACIÓN ── */
-        function confirmar(form, accion) {
-            return confirm(`¿Seguro que deseas ${accion} esta solicitud?`);
-        }
-
-        /* ── TOAST desde TempData ── */
-        @if (TempData["Mensaje"] != null)
-        {
-                <text>
-                mostrarToast(@Html.Raw(Json.Serialize(TempData["Mensaje"])), 'success');
-                </text>
-        }
-        @if (TempData["Error"] != null)
-        {
-                <text>
-                mostrarToast(@Html.Raw(Json.Serialize(TempData["Error"])), 'error');
-                </text>
-        }
-
-        function mostrarToast(msg, tipo) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className   = 'show ' + tipo;
-            setTimeout(() => { t.className = ''; }, 4000);
-        }
     </script>
-</body>
-</html>
+}

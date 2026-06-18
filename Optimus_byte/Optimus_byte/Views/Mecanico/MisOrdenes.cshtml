@@ -814,8 +814,9 @@
                                         onclick="abrirModalTiempo(@cita.Id)">
                                     <i class="bi bi-clock"></i> Tiempo estimado
                                 </button>
+                                {{!-- CAMBIO 1a: se pasa MarcaVehiculo al modal --}}
                                 <button type="button" class="btn-accion btn-repuesto"
-                                        onclick="abrirModalRepuesto(@cita.Id)">
+                                        onclick="abrirModalRepuesto(@cita.Id, '@Html.Raw(cita.MarcaVehiculo)')">
                                     <i class="bi bi-box-seam"></i> Pedir repuesto
                                 </button>
                             </div>
@@ -871,8 +872,9 @@
                                                 onclick="abrirModalTiempo(@cita.Id)">
                                             <i class="bi bi-clock"></i> Tiempo
                                         </button>
+                                        {{!-- CAMBIO 1b: se pasa MarcaVehiculo al modal en la tabla --}}
                                         <button type="button" class="btn-accion btn-repuesto"
-                                                onclick="abrirModalRepuesto(@cita.Id)">
+                                                onclick="abrirModalRepuesto(@cita.Id, '@Html.Raw(cita.MarcaVehiculo)')">
                                             <i class="bi bi-box-seam"></i> Repuesto
                                         </button>
                                     </div>
@@ -1167,16 +1169,24 @@
                             <select name="repuestoId" id="selectRepuesto"
                                     class="modal-input" onchange="toggleCampoLibre(this)">
                                 <option value="">— No está en inventario, lo escribo abajo —</option>
+                                @* CAMBIO 2a: data-marca agregado a cada option *@
                                 @foreach (var r in Model.RepuestosDisponibles)
                                 {
                                     <option value="@r.IdRepuesto"
                                             data-stock="@r.StockActual"
                                             data-ref="@r.Referencia"
-                                            data-cat="@r.Categoria">
+                                            data-cat="@r.Categoria"
+                                            data-marca="@r.Marca">
                                         @r.Nombre (@r.Referencia) · Stock: @r.StockActual
                                     </option>
                                 }
                             </select>
+                            @* CAMBIO 2b: mensaje de sin resultados para la marca *@
+                            <p id="sinRepuestosMsg" style="display:none;font-size:.75rem;
+                               color:#f87171;margin-top:.4rem">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                No hay repuestos de esta marca en inventario. Usa el campo de abajo.
+                            </p>
                         </div>
 
                         @* Info del repuesto seleccionado — aparece dinámicamente *@
@@ -1288,16 +1298,48 @@
             else         document.getElementById('inputHoras').value = '';
         }
 
-        // ── Modal repuesto ────────────────────────────────────────
-        function abrirModalRepuesto(ordenId) {
+        // ── Modal repuesto (CAMBIO 3) ─────────────────────────────
+        // Guarda la marca del vehículo para filtrar el inventario
+        let _marcaVehiculo = '';
+
+        function abrirModalRepuesto(ordenId, marcaVehiculo) {
+            _marcaVehiculo = (marcaVehiculo || '').trim().toLowerCase();
+
             document.getElementById('repOrdenId').value = ordenId;
             document.getElementById('modalRepuestoOT').textContent = 'OT-' + ordenId;
+
             // Resetear campos
-            document.getElementById('selectRepuesto').value = '';
+            const select = document.getElementById('selectRepuesto');
+            select.value = '';
             document.getElementById('inputNombreLibre').value = '';
             document.getElementById('repCantidad').value = 1;
-            toggleCampoLibre(document.getElementById('selectRepuesto'));
+
+            // Filtrar opciones por marca y mostrar/ocultar aviso
+            filtrarRepuestosPorMarca(_marcaVehiculo);
+            toggleCampoLibre(select);
+
             new bootstrap.Modal(document.getElementById('modalRepuesto')).show();
+        }
+
+        // Filtra las <option> del select según la marca del vehículo.
+        // Si no hay ninguna coincidencia, muestra el mensaje de aviso.
+        function filtrarRepuestosPorMarca(marca) {
+            const select  = document.getElementById('selectRepuesto');
+            const aviso   = document.getElementById('sinRepuestosMsg');
+            const options = select.querySelectorAll('option[value]'); // excluye el placeholder
+
+            let hayCoincidencia = false;
+
+            options.forEach(opt => {
+                const marcaOpt = (opt.dataset.marca || '').toLowerCase();
+                // Mostrar siempre si no hay marca de vehículo, o si coincide
+                const visible = !marca || marcaOpt === marca || marcaOpt === 'general';
+                opt.style.display = visible ? '' : 'none';
+                if (visible && opt.value !== '') hayCoincidencia = true;
+            });
+
+            // Mostrar aviso solo cuando hay marca pero ningún repuesto coincide
+            aviso.style.display = (marca && !hayCoincidencia) ? '' : 'none';
         }
 
         // Muestra/oculta campo libre según si escogió del inventario
@@ -1310,21 +1352,18 @@
             const hint        = document.getElementById('repLibreHint');
 
             if (tieneInventario) {
-                // Escogió del inventario → campo libre opcional, apagado visualmente
                 campoLibre.style.opacity  = '.45';
                 inputLibre.required       = false;
                 inputLibre.placeholder    = 'Opcional: agrega mas detalles si lo necesitas';
                 asterisco.style.display   = 'none';
                 hint.textContent          = '— opcional si ya escogiste del inventario';
 
-                // Mostrar info del repuesto seleccionado
-                const opt   = select.selectedOptions[0];
+                const opt = select.selectedOptions[0];
                 document.getElementById('repInfoRef').textContent   = opt.dataset.ref   || '—';
                 document.getElementById('repInfoCat').textContent   = opt.dataset.cat   || '—';
                 document.getElementById('repInfoStock').textContent = opt.dataset.stock || '—';
                 infoBox.style.display = '';
             } else {
-                // No escogió del inventario → campo libre obligatorio
                 campoLibre.style.opacity  = '1';
                 inputLibre.required       = true;
                 inputLibre.placeholder    = 'Ej: Filtro de combustible Bosch 1457434310';
