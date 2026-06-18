@@ -733,11 +733,12 @@ namespace Optimus_byte.Controllers
             using var conn = _db.GetConnection();
 
             using (var cmd = new SqlCommand($@"
-                SELECT id_repuesto, nombre, referencia, descripcion,
-       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro, activo
-                FROM Repuestos
-                {where}
-                ORDER BY nombre ASC", conn))
+   SELECT id_repuesto, nombre, referencia, descripcion,
+           categoria, precio_unitario, stock_actual, stock_minimo,
+           fecha_registro, imagen_url, marca, modelo, activo
+    FROM Repuestos
+    {where}
+    ORDER BY nombre ASC", conn))
             using (var r = cmd.ExecuteReader())
             {
                 while (r.Read())
@@ -752,7 +753,10 @@ namespace Optimus_byte.Controllers
                         StockActual = Convert.ToInt32(r["stock_actual"]),
                         StockMinimo = Convert.ToInt32(r["stock_minimo"]),
                         FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
-                        Activo = Convert.ToBoolean(r["activo"])
+                        ImagenUrl = r["imagen_url"]?.ToString(),
+                        Marca = r["marca"]?.ToString(),    // ← nuevo
+                        Modelo = r["modelo"]?.ToString(),
+                        Activo = Convert.ToBoolean(r["activo"]) // ← nuevo
                     });
             }
 
@@ -774,12 +778,36 @@ namespace Optimus_byte.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult GuardarRepuesto(int? idRepuesto, string nombre, string referencia,
-            string? descripcion, string categoria, decimal precioUnitario,
-            int stockActual, int stockMinimo)
-        {
+        public async Task<IActionResult> GuardarRepuesto(
+    int? idRepuesto, string nombre, string referencia,
+    string? descripcion, string categoria, decimal precioUnitario,
+    int stockActual, int stockMinimo,
+    string? marca, string? modelo,
+    string? imagenUrlActual,
+    IFormFile? imagenRepuesto)
+        
+
+
+            {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
+
+            string? imagenUrl = null;
+            if (imagenRepuesto != null && imagenRepuesto.Length > 0)
+            {
+                var ext = Path.GetExtension(imagenRepuesto.FileName).ToLowerInvariant();
+                var nombreArchivo = $"{Guid.NewGuid()}{ext}";
+                var carpeta = Path.Combine("wwwroot", "img", "repuestos");
+                Directory.CreateDirectory(carpeta);
+                var ruta = Path.Combine(carpeta, nombreArchivo);
+                using var stream = System.IO.File.Create(ruta);
+                await imagenRepuesto.CopyToAsync(stream);
+                imagenUrl = $"/img/repuestos/{nombreArchivo}";
+            }
+            else if (!string.IsNullOrEmpty(imagenUrlActual))
+            {
+                imagenUrl = imagenUrlActual;
+            }
 
             using var conn = _db.GetConnection();
 
@@ -788,7 +816,7 @@ namespace Optimus_byte.Controllers
                 using var cmd = new SqlCommand(@"
                     INSERT INTO Repuestos
                         (nombre, referencia, descripcion, categoria,
-                         precio_unitario, stock_actual, stock_minimo)
+                         precio_unitario, stock_actual, stock_minimo,string? marca, string? modelo,IFormFile? imagenRepuesto )
                     OUTPUT INSERTED.id_repuesto
                     VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min)", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
@@ -798,6 +826,9 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);
+                cmd.Parameters.AddWithValue("@marca", DBNull.Value); 
+                cmd.Parameters.AddWithValue("@modelo", DBNull.Value);
+                cmd.Parameters.AddWithValue("@imagenRepuesto", DBNull.Value);
                 int newId = (int)cmd.ExecuteScalar();
                 RegistrarMovimiento(conn, newId, idAdmin, null, "Entrada", stockActual, 0, "Stock inicial");
                 TempData["Exito"] = $"Repuesto '{nombre}' creado correctamente.";
@@ -1130,9 +1161,9 @@ namespace Optimus_byte.Controllers
                 using var cmd = new SqlCommand(@"
                     SELECT id_repuesto, nombre, referencia, stock_actual, stock_minimo
                     FROM Repuestos
-                    WHERE activo = 1 AND stock_actual < stock_minimo
+                    WHERE activo == 1 AND stock_actual < stock_minimo
                     ORDER BY stock_actual ASC", conn);
-                using var r = cmd.ExecuteReader();
+                using var r = cmd.ExecuteReader();  
                 while (r.Read())
                     lista.Add(new RepuestoViewModel
                     {
@@ -1186,4 +1217,4 @@ namespace Optimus_byte.Controllers
 }
 
 
-}
+

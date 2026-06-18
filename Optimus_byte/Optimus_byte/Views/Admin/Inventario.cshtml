@@ -374,6 +374,7 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>Foto</th>
                         <th>Repuesto</th>
                         <th>Referencia</th>
                         <th>Categoría</th>
@@ -388,6 +389,25 @@
                     {
                         <tr class="@(!r.Activo ? "fila-inactiva" : r.BajoStock ? "fila-bajo-stock" : "")">
                             <td>@r.IdRepuesto</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(r.ImagenUrl))
+                                {
+                                    <img src="@r.ImagenUrl" alt="@r.Nombre"
+                                         style="width:46px;height:46px;object-fit:cover;
+                    border-radius:5px;border:1px solid var(--borde-input);" />
+                                }
+                                else
+                                {
+                                    <div style="width:46px;height:46px;border-radius:5px;
+                    border:1px dashed var(--borde-input);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:1.2rem;background:#f8fafc;">
+                                        🔩
+                                    </div>
+                                }
+                            </td>
+                   
+
                             <td>
                                 <strong>@r.Nombre</strong>
                                 @if (!r.Activo)
@@ -421,14 +441,7 @@
                                 @if (r.Activo)
                                 {
                                     <button class="btn-accion btn-editar" title="Editar"
-                                            onclick="prepararModal(@r.IdRepuesto,
-                            '@Html.Raw(r.Nombre.Replace("'", "\\'"))',
-                            '@Html.Raw(r.Referencia.Replace("'", "\\'"))',
-                            '@Html.Raw((r.Descripcion ?? "").Replace("'", "\\'"))',
-                            '@Html.Raw(r.Categoria.Replace("'", "\\'"))',
-                            @r.PrecioUnitario.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
-                            @r.StockActual,
-                            @r.StockMinimo)"
+                                            onclick="prepararModal(@r.IdRepuesto,'@r.Nombre.Replace("'","\\'")', '@r.Referencia', '@r.Descripcion.Replace("'","\\'")', '@r.Categoria', @r.PrecioUnitario, @r.StockActual, @r.StockMinimo, '@(r.ImagenUrl ?? "")', '@(r.Marca?.Replace("'","\\'") ?? "")', '@(r.Modelo?.Replace("'","\\'") ?? "")')"
                                             data-bs-toggle="modal" data-bs-target="#modalRepuesto">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
@@ -450,24 +463,11 @@
                                         @Html.AntiForgeryToken()
                                         <button type="submit" class="btn-accion btn-activar" title="Reactivar"
                                                 style="background:rgba(22,163,74,0.1);color:#15803d;
-                                       border:1px solid rgba(22,163,74,0.25);">
+                           border:1px solid rgba(22,163,74,0.25);">
                                             <i class="bi bi-check-circle"></i>
                                         </button>
                                     </form>
                                 }
-                                <button class="btn-accion btn-editar" title="Editar"
-                                        onclick="prepararModal(@r.IdRepuesto,'@r.Nombre.Replace("'", "\\'")', '@r.Referencia', '@r.Descripcion.Replace("'", "\\'")', '@r.Categoria', @r.PrecioUnitario, @r.StockActual, @r.StockMinimo)"
-                                        data-bs-toggle="modal" data-bs-target="#modalRepuesto">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <form asp-controller="Admin" asp-action="DesactivarRepuesto"
-                                      asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
-                                      onsubmit="return confirm('¿Desactivar el repuesto @r.Nombre?')">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-accion btn-desactivar" title="Desactivar">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
-                                </form>
                             </td>
                         </tr>
                     }
@@ -493,7 +493,7 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form asp-controller="Admin" asp-action="GuardarRepuesto" method="post">
+                <form asp-controller="Admin" asp-action="GuardarRepuesto" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="idRepuesto" id="inputIdRepuesto" value="0" />
                     <div class="modal-body" style="padding:24px">
@@ -526,6 +526,71 @@
                                 <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Stock mínimo *</label>
                                 <input type="number" name="stockMinimo" id="inputMin" class="input-custom" style="padding-left:14px" required min="0" />
                             </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Marca</label>
+                                <input type="text" name="marca" id="inputMarca" class="input-custom" style="padding-left:14px" placeholder="Ej: Bosch, NGK..." />
+                            </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Modelo compatible</label>
+                                <input type="text" name="modelo" id="inputModelo" class="input-custom" style="padding-left:14px" placeholder="Ej: Chevrolet Sail 2018..." />
+                            </div>
+
+                            <!-- Foto del repuesto -->
+                            <div class="form-group-custom" style="grid-column:1/-1">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">
+                                    Foto del repuesto
+                                </label>
+
+                                <!-- Preview de imagen actual o nueva -->
+                                <div id="previewZone" style="margin-bottom:10px;display:none;">
+                                    <img id="previewImagen" src="" alt="preview"
+                                         style="max-height:110px;border-radius:6px;border:1px solid var(--borde-input);object-fit:cover;" />
+                                    <button type="button" onclick="quitarImagen()"
+                                            style="display:block;margin-top:6px;font-size:.7rem;color:#dc2626;
+                       background:none;border:none;cursor:pointer;padding:0;">
+                                        ✕ Quitar imagen
+                                    </button>
+                                </div>
+
+                                <input type="file" name="imagenRepuesto" id="inputImagen"
+                                       class="input-custom" style="padding-left:14px"
+                                       accept="image/png,image/jpeg,image/webp"
+                                       onchange="previsualizarImagen(this)" />
+                                <input type="hidden" name="imagenUrlActual" id="inputImagenUrlActual" value="" />
+
+                                <!-- Selector de imagen por defecto -->
+                                <div style="margin-top:10px;">
+                                    <div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+                    color:var(--texto-suave);margin-bottom:6px;">
+                                        — o elige una imagen por defecto —
+                                    </div>
+                                    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="defaultImgPicker">
+                                        @{
+                                            var defaults = new[] {
+                                        new { key="motor",      label="Motor",      icon="⚙️"  },
+                                        new { key="frenos",     label="Frenos",     icon="🛞"  },
+                                        new { key="filtros",    label="Filtros",    icon="🌬️" },
+                                        new { key="electrico",  label="Eléctrico",  icon="🔋"  },
+                                        new { key="suspension", label="Suspensión", icon="🔧"  },
+                                        new { key="lubricantes",label="Lubricantes",icon="🛢️" },
+                                        new { key="repuesto",   label="Genérico",   icon="🔩"  },
+                                        };
+                                        }
+                                        @foreach (var d in defaults)
+                                        {
+                                            <button type="button"
+                                                    onclick="elegirDefault('/img/defaults/@(d.key).png', this)"
+                                                    style="padding:6px 10px;border:1px solid var(--borde-input);
+                               border-radius:5px;background:#f8fafc;cursor:pointer;
+                               font-size:.72rem;display:flex;align-items:center;gap:4px;
+                               transition:.15s;"
+                                                    title="Usar imagen de @d.label">
+                                                @d.icon @d.label
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
@@ -539,11 +604,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-               function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
-            const esNuevo = !id || id === 0;
         function toggleNotif() {
             document.getElementById('notifPanel').classList.toggle('open');
         }
+
         document.addEventListener('click', function (e) {
             const panel = document.getElementById('notifPanel');
             const btn   = document.getElementById('btnCampana');
@@ -568,19 +632,81 @@
             } catch (e) {}
         }, 30000);
 
-        function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
+                function prepararModal(id, nombre, ref, desc, cat, precio, stock, min, imagenUrl, marca, modelo) {
             const esNuevo = !id;
             document.getElementById('modalRepuestoTitulo').innerHTML =
                 `<i class="bi bi-box-seam me-2"></i>${esNuevo ? 'Nuevo repuesto' : 'Editar repuesto'}`;
-            document.getElementById('inputIdRepuesto').value = id    || 0;
-            document.getElementById('inputNombre').value     = nombre || '';
-            document.getElementById('inputRef').value        = ref    || '';
-            document.getElementById('inputDesc').value       = desc   || '';
-            document.getElementById('inputCat').value        = cat    || '';
-            // Usar parseFloat para evitar problemas con el separador decimal
-            document.getElementById('inputPrecio').value     = parseFloat(precio) || 0;
-            document.getElementById('inputStock').value      = parseInt(stock)    || 0;
-            document.getElementById('inputMin').value        = parseInt(min)      || 5;
+
+            document.getElementById('inputIdRepuesto').value  = id     || 0;
+            document.getElementById('inputNombre').value      = nombre || '';
+            document.getElementById('inputRef').value         = ref    || '';
+            document.getElementById('inputDesc').value        = desc   || '';
+            document.getElementById('inputCat').value         = cat    || '';
+            document.getElementById('inputPrecio').value      = precio || 0;
+            document.getElementById('inputStock').value       = stock  || 0;
+            document.getElementById('inputMin').value         = min    || 5;
+            document.getElementById('inputMarca').value       = marca  || '';
+            document.getElementById('inputModelo').value      = modelo || '';
+
+            // Limpiar file input
+            document.getElementById('inputImagen').value = '';
+
+            // Guardar URL actual y mostrar preview si existe
+            document.getElementById('inputImagenUrlActual').value = imagenUrl || '';
+            resetDefaultBtns();
+
+            if (imagenUrl && imagenUrl.trim() !== '') {
+                document.getElementById('previewImagen').src = imagenUrl;
+                document.getElementById('previewZone').style.display = 'block';
+            } else {
+                document.getElementById('previewZone').style.display = 'none';
+            }
+        }
+
+        function previsualizarImagen(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('previewImagen').src = e.target.result;
+                    document.getElementById('previewZone').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+                resetDefaultBtns();
+            }
+        }
+
+        function elegirDefault(url, btn) {
+            // Marcar botón activo
+            resetDefaultBtns();
+            btn.style.borderColor  = '#2563eb';
+            btn.style.background   = '#eff6ff';
+            btn.style.color        = '#1e3a8a';
+            btn.style.fontWeight   = '700';
+
+            // Mostrar preview
+            document.getElementById('previewImagen').src = url;
+            document.getElementById('previewZone').style.display = 'block';
+
+            // Limpiar file input y guardar la URL default como "actual"
+            document.getElementById('inputImagen').value          = '';
+            document.getElementById('inputImagenUrlActual').value = url;
+        }
+
+        function quitarImagen() {
+            document.getElementById('inputImagen').value          = '';
+            document.getElementById('inputImagenUrlActual').value = '';
+            document.getElementById('previewImagen').src          = '';
+            document.getElementById('previewZone').style.display  = 'none';
+            resetDefaultBtns();
+        }
+
+        function resetDefaultBtns() {
+            document.querySelectorAll('#defaultImgPicker button').forEach(b => {
+                b.style.borderColor  = 'var(--borde-input)';
+                b.style.background   = '#f8fafc';
+                b.style.color        = '';
+                b.style.fontWeight   = '';
+            });
         }
     </script>
 </body>

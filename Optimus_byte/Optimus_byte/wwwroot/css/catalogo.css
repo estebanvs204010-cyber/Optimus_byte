@@ -819,3 +819,26 @@ body {
     margin: 0 !important;
     padding: 0 !important;
 }
+
+
+.chip-marca, .chip-modelo {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: .65rem;
+    font-weight: 600;
+}
+
+.chip-marca {
+    background: #eff6ff;
+    color: #1e3a8a;
+    border: 1px solid #bfdbfe;
+}
+
+.chip-modelo {
+    background: #fefce8;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}

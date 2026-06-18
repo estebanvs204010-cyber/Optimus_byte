@@ -89,6 +89,10 @@ namespace Optimus_byte.Models.ViewModels
         public int StockMinimo { get; set; }
         public DateTime FechaRegistro { get; set; }
         public bool Activo { get; set; }
+        public string? ImagenUrl { get; set; }
+        public string? Marca { get; set; }      
+        public string? Modelo { get; set; }
+
         public bool BajoStock => StockActual <= StockMinimo;
     }
 
@@ -128,5 +132,16 @@ namespace Optimus_byte.Models.ViewModels
         public string MecanicoNombre { get; set; } = "";
         public DateTime FechaSolicitud { get; set; }
         public bool Atendida { get; set; }
+    }
+}
+
+namespace Optimus_byte.Controllers
+{
+    public class CalificacionViewModel
+    {
+        public int Estrellas { get; set; }
+        public string Comentario { get; set; } = "";
+        public DateTime Fecha { get; set; }
+        public string NombreUsuario { get; set; } = "";
     }
 }

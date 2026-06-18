@@ -1,8 +1,10 @@
 @{
     Layout = null;
     ViewData["Title"] = "Catálogo de Repuestos";
+    var nombre   = Context.Session.GetString("UsuarioNombre");
+    var rol      = Context.Session.GetString("UsuarioRol");
+    bool logueado = !string.IsNullOrEmpty(nombre);
 }
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,23 +12,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Optimus-Byte</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/catalogo.css" asp-append-version="true" />
-
+    <style>
+        /* Ajuste del contenido para no quedar bajo el navbar del home */
+        .cat-layout { padding-top: 72px !important; }
+        /* Botón cotización en navbar */
+        .nb-cotizacion {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--dorado, #d97706);
+            color: var(--dorado, #d97706);
+            padding: 7px 16px;
+            border-radius: 4px;
+            font-size: .75rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            background: transparent;
+            transition: .2s;
+        }
+        .nb-cotizacion:hover { background: var(--dorado, #d97706); color: #fff; }
+        .carrito-badge {
+            background: var(--dorado, #d97706);
+            color: #fff;
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            font-size: .62rem; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+        }
+    </style>
 </head>
-
 <body>
 
-    <!-- ══ NAVBAR ══════════════════════════════════════════ -->
-    <header class="barra-superior">
-        <button class="boton-menu" onclick="mostrarMenu()">☰</button>
+    <!-- ══ NAVBAR (igual al Home) ══ -->
+    <nav class="ob-navbar">
+        <button class="ob-hamburger" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
 
-        <a class="logo-proyecto" asp-controller="Home" asp-action="Index">
-            <img src="~/img/putin.png" alt="Optimus-Byte" class="logo-img" />
+        <a class="ob-nav-logo" asp-controller="Home" asp-action="Index">
+            <img src="~/img/putin.png" alt="Optimus-Byte" />
         </a>
 
         <button class="nb-cotizacion" id="toggleCarrito">
@@ -34,23 +68,61 @@
             <span class="carrito-badge" id="badgeCount">0</span>
         </button>
 
-        <div class="nav-acciones">
-            <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
-            <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrar</a>
+        <div class="ob-nav-acciones">
+            @if (!logueado)
+            {
+                <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
+                <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrarse</a>
+            }
+            else
+            {
+                <div class="ob-dropdown">
+                    <button class="ob-btn-usuario" onclick="toggleMenu(this)">
+                        <i class="fas fa-circle-user"></i>
+                        @nombre
+                        <i class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.6;"></i>
+                    </button>
+                    <div class="ob-menu-usuario" id="menuUsuario">
+                        <a asp-controller="Cliente" asp-action="Portal">
+                            <i class="fas fa-user-pen" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                            Menú cliente
+                        </a>
+                        <hr class="ob-menu-divider" />
+                        <form asp-controller="Home" asp-action="Logout" method="post" style="margin:0;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit">
+                                <i class="fas fa-arrow-right-from-bracket" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
         </div>
-    </header>
+    </nav>
 
-    <!-- ══ BARRA LATERAL ═══════════════════════════════════ -->
-    <aside class="barra-lateral" id="barraLateral">
-        <h2>Optimus-Byte</h2>
-        <a asp-controller="Home" asp-action="Index">Inicio</a>
-        <a asp-controller="Inventario" asp-action="Index" class="activo-sidebar">Catálogo</a>
-        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
-        <a asp-controller="Citas" asp-action="Index">Citas</a>
-        <a asp-controller="Home" asp-action="Sobre">Acerca de</a>
+    <!-- ══ SIDEBAR (igual al Home) ══ -->
+    <aside class="ob-sidebar" id="obSidebar">
+        <div class="ob-sidebar-title">Optimus-Byte</div>
+        <a asp-controller="Home" asp-action="Index">
+            <i class="fas fa-house"></i> Inicio
+        </a>
+        <a asp-controller="Inventario" asp-action="Index" class="activo-sidebar">
+            <i class="fas fa-boxes-stacked"></i> Catálogo
+        </a>
+        <a asp-controller="Servicios" asp-action="Index">
+            <i class="fas fa-screwdriver-wrench"></i> Servicios
+        </a>
+        <a asp-controller="Citas" asp-action="Index">
+            <i class="fas fa-calendar-check"></i> Citas
+        </a>
+        <a asp-controller="Home" asp-action="Sobre">
+            <i class="fas fa-circle-info"></i> Acerca de
+        </a>
     </aside>
+    <div class="ob-overlay" id="obOverlay" onclick="closeSidebar()"></div>
 
-    <!-- ══ LAYOUT: SIDEBAR CATEGORÍAS + MAIN ══════════════ -->
+    <!-- ══ LAYOUT: SIDEBAR CATEGORÍAS + MAIN ══ -->
     <div class="cat-layout" id="contenidoPrincipal">
 
         <aside class="cat-sb">
@@ -62,7 +134,9 @@
                 </button>
             </div>
             <div class="cat-sb-cat-title">Categorías</div>
-            <div id="listaCategorias"></div>
+            <div id="listaCategorias">
+                <div class="cat-sb-cat on" onclick="filtrar('todos', this)">Todos los productos <span class="arr">→</span></div>
+            </div>
         </aside>
 
         <main class="cat-main">
@@ -76,13 +150,19 @@
                         <option value="precio-asc">Precio ↑</option>
                         <option value="precio-desc">Precio ↓</option>
                     </select>
+                    <select class="cat-sort-sel" id="filtroMarca" onchange="filtrarMarca()">
+                        <option value="todas">Todas las marcas</option>
+                    </select>
+                    <select class="cat-sort-sel" id="filtroModelo" onchange="filtrarModelo()">
+                        <option value="todos">Todos los modelos</option>
+                    </select>
                 </div>
             </div>
 
             <div class="cat-carrito-panel" id="carritoPanel" style="display:none;">
                 <div class="cat-carrito-panel-hdr">
                     <span>Mi cotización</span>
-                    <span style="cursor:pointer;" onclick="toggleCarrito()" >✕ cerrar</span>
+                    <span style="cursor:pointer;" onclick="toggleCarrito()">✕ cerrar</span>
                 </div>
                 <div id="carritoItems"></div>
                 <div class="cat-carrito-total">
@@ -98,10 +178,26 @@
 
     <script src="~/js/catalogo.js" asp-append-version="true"></script>
     <script>
-        function mostrarMenu() {
-            document.getElementById('barraLateral').classList.toggle('activa');
+        // Sidebar del home
+        function toggleSidebar() {
+            document.getElementById('obSidebar').classList.toggle('activa');
+            document.getElementById('obOverlay').classList.toggle('activa');
+        }
+        function closeSidebar() {
+            document.getElementById('obSidebar').classList.remove('activa');
+            document.getElementById('obOverlay').classList.remove('activa');
+        }
+        // Dropdown usuario
+        function toggleMenu(btn) {
+            const menu = document.getElementById('menuUsuario');
+            menu.classList.toggle('open');
+            document.addEventListener('click', function cerrar(e) {
+                if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                    menu.classList.remove('open');
+                    document.removeEventListener('click', cerrar);
+                }
+            });
         }
     </script>
-
 </body>
 </html>
