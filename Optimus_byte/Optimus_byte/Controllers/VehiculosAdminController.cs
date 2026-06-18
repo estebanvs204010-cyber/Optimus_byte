@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Optimus_byte.DATA;
+using Optimus_byte.Models.ViewModels;
 
 namespace Optimus_byte.Controllers
 {
@@ -22,7 +23,8 @@ namespace Optimus_byte.Controllers
 
             var vehiculos = new List<dynamic>();
 
-            using (var conn = _db.GetConnection())
+            using var conn = _db.GetConnection();
+
             using (var cmd = new SqlCommand(@"
                 SELECT v.id_vehiculo, v.placa, v.marca, v.modelo, v.anio,
                        v.color, v.vin, v.km_actuales, v.activo, v.fecha_registro,
@@ -53,6 +55,9 @@ namespace Optimus_byte.Controllers
             }
 
             ViewBag.Vehiculos = vehiculos;
+            ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
+            ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
+
             return View("~/Views/Admin/Vehiculos.cshtml");
         }
 
@@ -63,7 +68,6 @@ namespace Optimus_byte.Controllers
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            // Verificar placa duplicada excluyendo este vehículo
             bool placaExiste = false;
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(
@@ -164,6 +168,62 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@accion", accion);
             cmd.Parameters.AddWithValue("@modulo", "Gestión de Vehículos");
             cmd.ExecuteNonQuery();
+        }
+
+        private List<SolicitudRepuestoViewModel> ObtenerSolicitudesPendientes(SqlConnection conn)
+        {
+            var lista = new List<SolicitudRepuestoViewModel>();
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT s.id_solicitud, s.id_orden, s.nombre_repuesto,
+                           s.cantidad, s.motivo, s.fecha_solicitud, s.atendida,
+                           u.nombre_completo AS mecanico_nombre
+                    FROM SolicitudesRepuesto s
+                    INNER JOIN Usuarios u ON s.id_mecanico = u.id_usuario
+                    WHERE s.atendida = 0
+                    ORDER BY s.fecha_solicitud DESC", conn);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    lista.Add(new SolicitudRepuestoViewModel
+                    {
+                        IdSolicitud = Convert.ToInt32(r["id_solicitud"]),
+                        IdOrden = Convert.ToInt32(r["id_orden"]),
+                        NombreRepuesto = r["nombre_repuesto"].ToString()!,
+                        Cantidad = Convert.ToInt32(r["cantidad"]),
+                        Motivo = r["motivo"]?.ToString() ?? "",
+                        MecanicoNombre = r["mecanico_nombre"].ToString()!,
+                        FechaSolicitud = Convert.ToDateTime(r["fecha_solicitud"]),
+                        Atendida = Convert.ToBoolean(r["atendida"])
+                    });
+            }
+            catch { /* tabla puede no existir aún */ }
+            return lista;
+        }
+
+        private List<RepuestoViewModel> ObtenerRepuestosBajoStock(SqlConnection conn)
+        {
+            var lista = new List<RepuestoViewModel>();
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT id_repuesto, nombre, referencia, stock_actual, stock_minimo
+                    FROM Repuestos
+                    WHERE activo = 1 AND stock_actual < stock_minimo
+                    ORDER BY stock_actual ASC", conn);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    lista.Add(new RepuestoViewModel
+                    {
+                        IdRepuesto = Convert.ToInt32(r["id_repuesto"]),
+                        Nombre = r["nombre"].ToString()!,
+                        Referencia = r["referencia"].ToString()!,
+                        StockActual = Convert.ToInt32(r["stock_actual"]),
+                        StockMinimo = Convert.ToInt32(r["stock_minimo"])
+                    });
+            }
+            catch { /* tabla puede no existir aún */ }
+            return lista;
         }
     }
 }

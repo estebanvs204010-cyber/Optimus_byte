@@ -27,7 +27,8 @@ namespace Optimus_byte.Controllers
 
             var usuarios = new List<UsuarioEditarViewModel>();
 
-            using (var conn = _db.GetConnection())
+            using var conn = _db.GetConnection();
+
             using (var cmd = new SqlCommand(@"
                 SELECT u.id_usuario, u.nombre_completo, u.correo, u.telefono,
                        u.id_rol, u.activo, r.nombre AS nombre_rol
@@ -52,6 +53,9 @@ namespace Optimus_byte.Controllers
             }
 
             ViewBag.Roles = ObtenerRoles();
+            ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
+            ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
+
             return View("~/Views/Usuarios/Usuarios_Index.cshtml", usuarios);
         }
 
@@ -73,7 +77,6 @@ namespace Optimus_byte.Controllers
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            // Verificar correo duplicado
             bool correoExiste = false;
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(
@@ -100,7 +103,6 @@ namespace Optimus_byte.Controllers
             var hash = BC.HashPassword(model.Contrasena);
             int nuevoId = 0;
 
-            // Insertar usuario y obtener ID generado
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(@"
                 INSERT INTO Usuarios (nombre_completo, correo, contrasena_hash, telefono, id_rol, activo)
@@ -115,13 +117,11 @@ namespace Optimus_byte.Controllers
                 nuevoId = (int)cmd.ExecuteScalar()!;
             }
 
-            // Si es Cliente, crear registro en tabla Clientes
             int idRolCliente = ObtenerIdRol("Cliente");
             if (model.IdRol == idRolCliente)
                 CrearCliente(nuevoId, model.NombreCompleto, model.Correo, model.Telefono ?? "");
 
             RegistrarAuditoria($"Creó usuario: {model.NombreCompleto} — Rol ID: {model.IdRol}");
-
             TempData["Exito"] = $"Usuario {model.NombreCompleto} creado correctamente.";
             return RedirectToAction("Index");
         }
@@ -173,7 +173,6 @@ namespace Optimus_byte.Controllers
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            // Verificar correo duplicado en otro usuario
             bool correoExiste = false;
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(
@@ -191,7 +190,6 @@ namespace Optimus_byte.Controllers
                 return View("~/Views/Usuarios/Usuarios_Editar.cshtml", model);
             }
 
-            // Actualizar usuario
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(@"
                 UPDATE Usuarios
@@ -211,7 +209,6 @@ namespace Optimus_byte.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-            // Cambiar contraseña solo si escribió una nueva
             if (!string.IsNullOrWhiteSpace(model.Contrasena))
             {
                 var hash = BC.HashPassword(model.Contrasena);
@@ -223,7 +220,6 @@ namespace Optimus_byte.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-            // Si cambió a Cliente y no tiene registro, crearlo
             int idRolCliente = ObtenerIdRol("Cliente");
             if (model.IdRol == idRolCliente)
             {
@@ -393,6 +389,62 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@accion", accion);
             cmd.Parameters.AddWithValue("@modulo", "Gestión de Usuarios");
             cmd.ExecuteNonQuery();
+        }
+
+        private List<SolicitudRepuestoViewModel> ObtenerSolicitudesPendientes(SqlConnection conn)
+        {
+            var lista = new List<SolicitudRepuestoViewModel>();
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT s.id_solicitud, s.id_orden, s.nombre_repuesto,
+                           s.cantidad, s.motivo, s.fecha_solicitud, s.atendida,
+                           u.nombre_completo AS mecanico_nombre
+                    FROM SolicitudesRepuesto s
+                    INNER JOIN Usuarios u ON s.id_mecanico = u.id_usuario
+                    WHERE s.atendida = 0
+                    ORDER BY s.fecha_solicitud DESC", conn);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    lista.Add(new SolicitudRepuestoViewModel
+                    {
+                        IdSolicitud = Convert.ToInt32(r["id_solicitud"]),
+                        IdOrden = Convert.ToInt32(r["id_orden"]),
+                        NombreRepuesto = r["nombre_repuesto"].ToString()!,
+                        Cantidad = Convert.ToInt32(r["cantidad"]),
+                        Motivo = r["motivo"]?.ToString() ?? "",
+                        MecanicoNombre = r["mecanico_nombre"].ToString()!,
+                        FechaSolicitud = Convert.ToDateTime(r["fecha_solicitud"]),
+                        Atendida = Convert.ToBoolean(r["atendida"])
+                    });
+            }
+            catch { /* tabla puede no existir aún */ }
+            return lista;
+        }
+
+        private List<RepuestoViewModel> ObtenerRepuestosBajoStock(SqlConnection conn)
+        {
+            var lista = new List<RepuestoViewModel>();
+            try
+            {
+                using var cmd = new SqlCommand(@"
+                    SELECT id_repuesto, nombre, referencia, stock_actual, stock_minimo
+                    FROM Repuestos
+                    WHERE activo = 1 AND stock_actual < stock_minimo
+                    ORDER BY stock_actual ASC", conn);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    lista.Add(new RepuestoViewModel
+                    {
+                        IdRepuesto = Convert.ToInt32(r["id_repuesto"]),
+                        Nombre = r["nombre"].ToString()!,
+                        Referencia = r["referencia"].ToString()!,
+                        StockActual = Convert.ToInt32(r["stock_actual"]),
+                        StockMinimo = Convert.ToInt32(r["stock_minimo"])
+                    });
+            }
+            catch { /* tabla puede no existir aún */ }
+            return lista;
         }
     }
 }
