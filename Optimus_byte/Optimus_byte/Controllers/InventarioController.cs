@@ -29,7 +29,7 @@ namespace Optimus_byte.Controllers
             using var cmd = new SqlCommand($@"
                 SELECT id_repuesto, nombre, referencia, descripcion,
                        categoria, precio_unitario, stock_actual, stock_minimo,
-                       activo, fecha_registro
+                       activo, fecha_registro, marca, modelo
                 FROM Repuestos
                 {where}
                 ORDER BY nombre ASC", conn);
@@ -48,7 +48,10 @@ namespace Optimus_byte.Controllers
                     StockActual = Convert.ToInt32(reader["stock_actual"]),
                     StockMinimo = Convert.ToInt32(reader["stock_minimo"]),
                     Activo = Convert.ToBoolean(reader["activo"]),
-                    FechaRegistro = Convert.ToDateTime(reader["fecha_registro"])
+                    FechaRegistro = Convert.ToDateTime(reader["fecha_registro"]),
+                    marca = reader["marca"].ToString()!,
+                    modelo = reader["modelo"].ToString()!
+
                 });
             }
 
@@ -126,6 +129,8 @@ namespace Optimus_byte.Controllers
                     desc = reader["descripcion"]?.ToString() ?? "",
                     precio = Convert.ToDecimal(reader["precio_unitario"]),
                     stock = Convert.ToInt32(reader["stock_actual"]),
+
+
                     bg,
                     icon
                 });
@@ -143,7 +148,7 @@ namespace Optimus_byte.Controllers
             using var cmd = new SqlCommand(@"
                 SELECT id_repuesto, nombre, referencia, descripcion,
                        categoria, precio_unitario, stock_actual, stock_minimo,
-                       activo, fecha_registro
+                       activo, fecha_registro, marca, modelo
                 FROM Repuestos
                 WHERE id_repuesto = @id AND activo = 1", conn);
             cmd.Parameters.AddWithValue("@id", id);
@@ -162,7 +167,9 @@ namespace Optimus_byte.Controllers
                     StockActual = Convert.ToInt32(reader["stock_actual"]),
                     StockMinimo = Convert.ToInt32(reader["stock_minimo"]),
                     Activo = Convert.ToBoolean(reader["activo"]),
-                    FechaRegistro = Convert.ToDateTime(reader["fecha_registro"])
+                    FechaRegistro = Convert.ToDateTime(reader["fecha_registro"]),
+                    marca = reader["marca"].ToString()!,
+                    modelo = reader["modelo"].ToString()!
                 };
             }
 

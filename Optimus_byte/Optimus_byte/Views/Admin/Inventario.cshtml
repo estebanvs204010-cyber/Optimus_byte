@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
-
 </head>
 <body>
 
@@ -31,11 +30,11 @@
 
     <div class="admin-sidebar">
         <nav class="sidebar-nav">
-            <a href="/Usuarios"         class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
-            <a href="/Admin/Ordenes"    class="nav-link"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
+            <a href="/Usuarios" class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
+            <a href="/Admin/Ordenes" class="nav-link"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
             <a href="/Admin/Inventario" class="nav-link active"><i class="bi bi-box-seam"></i><span>Inventario</span></a>
-            <a href="/Admin/Facturas"   class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
-            <a href="/Admin/Dashboard"  class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+            <a href="/Admin/Facturas" class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
+            <a href="/Admin/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
             <a href="/VehiculosAdmin/Index" class="nav-link active"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
         </nav>
     </div>
@@ -105,19 +104,16 @@
                     {
                         <tr class="@(!r.Activo ? "fila-inactiva" : r.BajoStock ? "fila-bajo-stock" : "")">
                             <td>@r.IdRepuesto</td>
-
                             <td>@r.marca</td>
-
                             <td>@r.modelo</td>
-
                             <td>
                                 <strong>@r.Nombre</strong>
                                 @if (!r.Activo)
                                 {
                                     <span style="display:inline-block;margin-left:6px;padding:1px 8px;
-                                 border-radius:10px;font-size:.65rem;font-weight:600;
-                                 background:rgba(220,38,38,0.08);color:#dc2626;
-                                 border:1px solid rgba(220,38,38,0.2);">
+                                                 border-radius:10px;font-size:.65rem;font-weight:600;
+                                                 background:rgba(220,38,38,0.08);color:#dc2626;
+                                                 border:1px solid rgba(220,38,38,0.2);">
                                         Desactivado
                                     </span>
                                 }
@@ -128,7 +124,6 @@
                                     </div>
                                 }
                             </td>
-
                             <td>@r.Referencia</td>
                             <td><span class="badge-cat">@r.Categoria</span></td>
                             <td>$@r.PrecioUnitario.ToString("N0")</td>
@@ -146,19 +141,25 @@
                             <td class="td-acciones">
                                 @if (r.Activo)
                                 {
+                                    @* Botón Editar *@
                                     <button class="btn-accion btn-editar" title="Editar"
-                                            onclick="prepararModal(@r.IdRepuesto,
+                                            onclick="prepararModal(
+                            @r.IdRepuesto,
                             '@Html.Raw(r.Nombre.Replace("'", "\\'"))',
                             '@Html.Raw(r.Referencia.Replace("'", "\\'"))',
                             '@Html.Raw((r.Descripcion ?? "").Replace("'", "\\'"))',
                             '@Html.Raw(r.Categoria.Replace("'", "\\'"))',
                             @r.PrecioUnitario.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
                             @r.StockActual,
-                            @r.StockMinimo)"
+                            @r.StockMinimo,
+                            '@Html.Raw((r.marca ?? "").Replace("'", "\\'"))',
+                            '@Html.Raw((r.modelo ?? "").Replace("'", "\\'"))'
+                        )"
                                             data-bs-toggle="modal" data-bs-target="#modalRepuesto">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
 
+                                    @* Botón Desactivar *@
                                     <form asp-controller="Admin" asp-action="DesactivarRepuesto"
                                           asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
                                           onsubmit="return confirm('¿Desactivar @Html.Raw(r.Nombre)?')">
@@ -170,17 +171,30 @@
                                 }
                                 else
                                 {
+                                    @* Botón Reactivar *@
                                     <form asp-controller="Admin" asp-action="ReactivarRepuesto"
                                           asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
                                           onsubmit="return confirm('¿Reactivar @Html.Raw(r.Nombre)?')">
                                         @Html.AntiForgeryToken()
                                         <button type="submit" class="btn-accion btn-activar" title="Reactivar"
                                                 style="background:rgba(22,163,74,0.1);color:#15803d;
-                                       border:1px solid rgba(22,163,74,0.25);">
+                                   border:1px solid rgba(22,163,74,0.25);">
                                             <i class="bi bi-check-circle"></i>
                                         </button>
                                     </form>
                                 }
+
+                                @* Botón Eliminar permanente — visible siempre (activo o no) *@
+                                <form asp-controller="Admin" asp-action="EliminarRepuesto"
+                                      asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
+                                      onsubmit="return confirm('⚠️ ¿Eliminar permanentemente @Html.Raw(r.Nombre)? Esta acción NO se puede deshacer.')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-accion btn-eliminar" title="Eliminar permanente"
+                                            style="background:rgba(220,38,38,0.1);color:#dc2626;
+                           border:1px solid rgba(220,38,38,0.25);">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     }
@@ -210,8 +224,7 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="idRepuesto" id="inputIdRepuesto" value="0" />
 
-                    <div class="modal-body"
-                         style="padding:24px">
+                    <div class="modal-body" style="padding:24px">
                         <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:16px">
                             <div class="form-group-custom">
                                 <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Nombre *</label>
@@ -245,21 +258,17 @@
                                 <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Marca</label>
                                 <input type="text" name="marca" id="inputMarca" class="input-custom" style="padding-left:14px" />
                             </div>
-
                             <div class="form-group-custom">
                                 <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Modelo</label>
                                 <input type="text" name="modelo" id="inputModelo" class="input-custom" style="padding-left:14px" />
-                             </div>
-
-                             <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
-                                     <button type="submit" class="btn-guardar"><i class="bi bi-floppy-fill me-2"></i>Guardar</button>
-                                     <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
-                             </div>
+                            </div>
                         </div>
-
                     </div>
 
-
+                    <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
+                        <button type="submit" class="btn-guardar"><i class="bi bi-floppy-fill me-2"></i>Guardar</button>
+                        <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
+                    </div>
 
                 </form>
             </div>
@@ -268,19 +277,20 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-               function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
+        function prepararModal(id, nombre, ref, desc, cat, precio, stock, min, marca, modelo) {
             const esNuevo = !id || id === 0;
             document.getElementById('modalRepuestoTitulo').innerHTML =
                 `<i class="bi bi-box-seam me-2"></i>${esNuevo ? 'Nuevo repuesto' : 'Editar repuesto'}`;
-            document.getElementById('inputIdRepuesto').value = id    || 0;
-            document.getElementById('inputNombre').value     = nombre || '';
-            document.getElementById('inputRef').value        = ref    || '';
-            document.getElementById('inputDesc').value       = desc   || '';
-            document.getElementById('inputCat').value        = cat    || '';
-            // Usar parseFloat para evitar problemas con el separador decimal
+            document.getElementById('inputIdRepuesto').value = id      || 0;
+            document.getElementById('inputNombre').value     = nombre  || '';
+            document.getElementById('inputRef').value        = ref     || '';
+            document.getElementById('inputDesc').value       = desc    || '';
+            document.getElementById('inputCat').value        = cat     || '';
             document.getElementById('inputPrecio').value     = parseFloat(precio) || 0;
             document.getElementById('inputStock').value      = parseInt(stock)    || 0;
             document.getElementById('inputMin').value        = parseInt(min)      || 5;
+            document.getElementById('inputMarca').value      = marca   || '';
+            document.getElementById('inputModelo').value     = modelo  || '';
         }
     </script>
 </body>

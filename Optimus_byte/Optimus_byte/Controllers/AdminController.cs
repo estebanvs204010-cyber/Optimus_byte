@@ -691,12 +691,12 @@ namespace Optimus_byte.Controllers
             using var conn = _db.GetConnection();
 
             using (var cmd = new SqlCommand($@"
-                SELECT id_repuesto, nombre, referencia, descripcion,
-                       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro, marca, modelo
-       categoria, precio_unitario, stock_actual, stock_minimo, fecha_registro, activo
-                FROM Repuestos
-                {where}
-                ORDER BY nombre ASC", conn))
+        SELECT id_repuesto, nombre, referencia, descripcion,
+               categoria, precio_unitario, stock_actual, stock_minimo,
+               fecha_registro, marca, modelo, activo
+        FROM Repuestos
+        {where}
+        ORDER BY nombre ASC", conn))
             using (var r = cmd.ExecuteReader())
             {
                 while (r.Read())
@@ -712,8 +712,7 @@ namespace Optimus_byte.Controllers
                         StockMinimo = Convert.ToInt32(r["stock_minimo"]),
                         FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
                         marca = r["marca"]?.ToString() ?? "",
-                        modelo = r["modelo"]?.ToString() ?? ""
-                        FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
+                        modelo = r["modelo"]?.ToString() ?? "",
                         Activo = Convert.ToBoolean(r["activo"])
                     });
             }
@@ -726,7 +725,6 @@ namespace Optimus_byte.Controllers
                 while (r2.Read()) cats.Add(r2[0].ToString()!);
             }
 
-            // Solicitudes pendientes para campanita + panel inline
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
             ViewBag.Categorias = cats;
             ViewBag.BuscarFiltro = buscar ?? "";
@@ -738,7 +736,7 @@ namespace Optimus_byte.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult GuardarRepuesto(int? idRepuesto, string nombre, string referencia,
             string? descripcion, string categoria, decimal precioUnitario,
-            int stockActual, int stockMinimo)
+            int stockActual, int stockMinimo, string? marca, string? modelo)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
@@ -748,11 +746,11 @@ namespace Optimus_byte.Controllers
             if (idRepuesto == null || idRepuesto == 0)
             {
                 using var cmd = new SqlCommand(@"
-                    INSERT INTO Repuestos
-                        (nombre, referencia, descripcion, categoria,
-                         precio_unitario, stock_actual, stock_minimo, marca, modelo)
-                    OUTPUT INSERTED.id_repuesto
-                    VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min, @marca, @modelo)", conn);
+            INSERT INTO Repuestos
+                (nombre, referencia, descripcion, categoria,
+                 precio_unitario, stock_actual, stock_minimo, marca, modelo)
+            OUTPUT INSERTED.id_repuesto
+            VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min, @marca, @modelo)", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
@@ -760,8 +758,9 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);
-                cmd.Parameters.AddWithValue("@marca", DBNull.Value);
-                cmd.Parameters.AddWithValue("@modelo", DBNull.Value);
+                cmd.Parameters.AddWithValue("@marca", (object?)marca ?? DBNull.Value); // ✅ CORREGIDO
+                cmd.Parameters.AddWithValue("@modelo", (object?)modelo ?? DBNull.Value); // ✅ CORREGIDO
+
                 int newId = (int)cmd.ExecuteScalar();
                 RegistrarMovimiento(conn, newId, idAdmin, null, "Entrada", stockActual, 0, "Stock inicial");
                 TempData["Exito"] = $"Repuesto '{nombre}' creado correctamente.";
@@ -772,20 +771,26 @@ namespace Optimus_byte.Controllers
                     $"SELECT stock_actual FROM Repuestos WHERE id_repuesto = {idRepuesto}");
 
                 using var cmd = new SqlCommand(@"
-                    UPDATE Repuestos
-                    SET nombre = @nom, referencia = @ref, descripcion = @desc,
-                        categoria = @cat, precio_unitario = @precio,
-                        stock_actual = @stock, stock_minimo = @min, marca = @marca, modelo = @modelo
-                    WHERE id_repuesto = @id", conn);
+            UPDATE Repuestos
+            SET nombre         = @nom,
+                referencia     = @ref,
+                descripcion    = @desc,
+                categoria      = @cat,
+                precio_unitario= @precio,
+                stock_actual   = @stock,
+                stock_minimo   = @min,
+                marca          = @marca,
+                modelo         = @modelo
+            WHERE id_repuesto  = @id", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@cat", categoria);
-                cmd.Parameters.AddWithValue("@marca", DBNull.Value);
-                cmd.Parameters.AddWithValue("@modelo", DBNull.Value);
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);
+                cmd.Parameters.AddWithValue("@marca", (object?)marca ?? DBNull.Value); // ✅ CORREGIDO
+                cmd.Parameters.AddWithValue("@modelo", (object?)modelo ?? DBNull.Value); // ✅ CORREGIDO
                 cmd.Parameters.AddWithValue("@id", idRepuesto);
                 cmd.ExecuteNonQuery();
 
@@ -807,27 +812,60 @@ namespace Optimus_byte.Controllers
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             using var conn = _db.GetConnection();
-            using var cmd = new SqlCommand("UPDATE Repuestos SET activo = 0 WHERE id_repuesto = @id", conn);
+            using var cmd = new SqlCommand(
+                "UPDATE Repuestos SET activo = 0 WHERE id_repuesto = @id", conn);
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
             TempData["Exito"] = "Repuesto desactivado.";
             return RedirectToAction("Inventario");
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult ReactivarRepuesto(int id)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
-
             using var conn = _db.GetConnection();
             using var cmd = new SqlCommand(
                 "UPDATE Repuestos SET activo = 1 WHERE id_repuesto = @id", conn);
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
-
             TempData["Exito"] = "Repuesto reactivado.";
             return RedirectToAction("Inventario");
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EliminarRepuesto(int id)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+
+            using var conn = _db.GetConnection();
+
+            // Guardar el nombre antes de borrar para el mensaje
+            string nombre = EjecutarScalar<string>(conn,
+                $"SELECT nombre FROM Repuestos WHERE id_repuesto = {id}") ?? "Repuesto";
+
+            // 1️⃣ Borrar primero los registros hijos que tienen FK hacia este repuesto
+            using (var cmdMov = new SqlCommand(
+                "DELETE FROM MovimientosInventario WHERE id_repuesto = @id", conn))
+            {
+                cmdMov.Parameters.AddWithValue("@id", id);
+                cmdMov.ExecuteNonQuery();
+            }
+
+            // 2️⃣ Ahora sí borrar el repuesto
+            using (var cmdRep = new SqlCommand(
+                "DELETE FROM Repuestos WHERE id_repuesto = @id", conn))
+            {
+                cmdRep.Parameters.AddWithValue("@id", id);
+                cmdRep.ExecuteNonQuery();
+            }
+
+            TempData["Exito"] = $"Repuesto '{nombre}' eliminado permanentemente.";
+            return RedirectToAction("Inventario");
+        }
+
 
         // ════════════════════════════════════════════════
         // FACTURAS
