@@ -90,7 +90,8 @@ namespace Optimus_byte.Models.ViewModels
         public DateTime FechaRegistro { get; set; }
         public bool Activo { get; set; }
         public string? ImagenUrl { get; set; }
-     
+        public string? Modelo { get; set; }
+
         public bool BajoStock => StockActual <= StockMinimo;
         public string marca { get; set; } = string.Empty;
         public string modelo { get; set; } = string.Empty;

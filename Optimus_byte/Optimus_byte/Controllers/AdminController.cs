@@ -11,11 +11,15 @@ namespace Optimus_byte.Controllers
     {
         private readonly DbHelper _db;
         private readonly EmailService _email;
-        public AdminController(DbHelper db, EmailService email)
+        private readonly IWebHostEnvironment _env;
+
+        public AdminController(DbHelper db, EmailService email, IWebHostEnvironment env)
         {
             _db = db;
             _email = email;
+            _env = env;
         }
+
 
         private bool EsAdmin() =>
             HttpContext.Session.GetString("UsuarioRol") == "Admin";
@@ -785,16 +789,15 @@ namespace Optimus_byte.Controllers
     string? marca, string? modelo,
     string? imagenUrlActual,
     IFormFile? imagenRepuesto)
-        
-
-
-            {
+        {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
 
+            // ── Resolver imagen ──────────────────────────────────────
             string? imagenUrl = null;
             if (imagenRepuesto != null && imagenRepuesto.Length > 0)
             {
+                // Subió archivo nuevo → guardarlo
                 var ext = Path.GetExtension(imagenRepuesto.FileName).ToLowerInvariant();
                 var nombreArchivo = $"{Guid.NewGuid()}{ext}";
                 var carpeta = Path.Combine("wwwroot", "img", "repuestos");
@@ -806,19 +809,24 @@ namespace Optimus_byte.Controllers
             }
             else if (!string.IsNullOrEmpty(imagenUrlActual))
             {
+                // No subió archivo pero había una URL → mantenerla
                 imagenUrl = imagenUrlActual;
             }
+            // Si ambos vacíos → imagenUrl queda null (sin imagen propia)
 
             using var conn = _db.GetConnection();
 
             if (idRepuesto == null || idRepuesto == 0)
             {
+                // ── INSERT ───────────────────────────────────────────
                 using var cmd = new SqlCommand(@"
-                    INSERT INTO Repuestos
-                        (nombre, referencia, descripcion, categoria,
-                         precio_unitario, stock_actual, stock_minimo,string? marca, string? modelo,IFormFile? imagenRepuesto )
-                    OUTPUT INSERTED.id_repuesto
-                    VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min)", conn);
+            INSERT INTO Repuestos
+                (nombre, referencia, descripcion, categoria,
+                 precio_unitario, stock_actual, stock_minimo,
+                 marca, modelo, imagen_url)
+            OUTPUT INSERTED.id_repuesto
+            VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min,
+                    @marca, @modelo, @img)", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
@@ -826,30 +834,37 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);
-                cmd.Parameters.AddWithValue("@marca", DBNull.Value); 
-                cmd.Parameters.AddWithValue("@modelo", DBNull.Value);
-                cmd.Parameters.AddWithValue("@imagenRepuesto", DBNull.Value);
+                cmd.Parameters.AddWithValue("@marca", (object?)marca ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@modelo", (object?)modelo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@img", (object?)imagenUrl ?? DBNull.Value);
                 int newId = (int)cmd.ExecuteScalar();
                 RegistrarMovimiento(conn, newId, idAdmin, null, "Entrada", stockActual, 0, "Stock inicial");
                 TempData["Exito"] = $"Repuesto '{nombre}' creado correctamente.";
             }
             else
             {
+                // ── UPDATE ───────────────────────────────────────────
                 int stockAnterior = EjecutarScalar<int>(conn,
                     $"SELECT stock_actual FROM Repuestos WHERE id_repuesto = {idRepuesto}");
 
-                using var cmd = new SqlCommand(@"
+                // Si imagenUrl es null → no tocar imagen_url en BD (COALESCE la mantiene)
+                string sqlImg = imagenUrl != null
+                    ? ", imagen_url = @img"
+                    : ", imagen_url = COALESCE(@img, imagen_url)";
+
+                using var cmd = new SqlCommand($@"
             UPDATE Repuestos
-            SET nombre         = @nom,
-                referencia     = @ref,
-                descripcion    = @desc,
-                categoria      = @cat,
-                precio_unitario= @precio,
-                stock_actual   = @stock,
-                stock_minimo   = @min,
-                marca          = @marca,
-                modelo         = @modelo
-            WHERE id_repuesto  = @id", conn);
+            SET nombre          = @nom,
+                referencia      = @ref,
+                descripcion     = @desc,
+                categoria       = @cat,
+                precio_unitario = @precio,
+                stock_actual    = @stock,
+                stock_minimo    = @min,
+                marca           = @marca,
+                modelo          = @modelo
+                {sqlImg}
+            WHERE id_repuesto   = @id", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
@@ -857,8 +872,9 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@precio", precioUnitario);
                 cmd.Parameters.AddWithValue("@stock", stockActual);
                 cmd.Parameters.AddWithValue("@min", stockMinimo);
-                cmd.Parameters.AddWithValue("@marca", (object?)marca ?? DBNull.Value); // ✅ CORREGIDO
-                cmd.Parameters.AddWithValue("@modelo", (object?)modelo ?? DBNull.Value); // ✅ CORREGIDO
+                cmd.Parameters.AddWithValue("@marca", (object?)marca ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@modelo", (object?)modelo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@img", (object?)imagenUrl ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@id", idRepuesto);
                 cmd.ExecuteNonQuery();
 
@@ -935,6 +951,67 @@ namespace Optimus_byte.Controllers
         }
 
 
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubirImagenCategoria(string categoria, string catKey, IFormFile? imagen)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+
+            if (imagen != null && imagen.Length > 0)
+            {
+                var ext = Path.GetExtension(imagen.FileName).ToLowerInvariant();
+                var extensionesPermitidas = new[] { ".png", ".jpg", ".jpeg", ".webp" };
+                if (!extensionesPermitidas.Contains(ext))
+                {
+                    TempData["Error"] = "Solo se permiten imagenes PNG, JPG, JPEG o WEBP.";
+                    return RedirectToAction("Inventario");
+                }
+
+                // Siempre guarda como catKey.ext (ej: motor.png, frenos.jpg)
+                var nombreArchivo = $"{catKey}{ext}";
+                var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var carpeta = Path.Combine(webRoot, "img", "defaults");
+                Directory.CreateDirectory(carpeta);
+
+                foreach (var oldExt in extensionesPermitidas)
+                {
+                    var anterior = Path.Combine(carpeta, $"{catKey}{oldExt}");
+                    if (System.IO.File.Exists(anterior))
+                    {
+                        System.IO.File.Delete(anterior);
+                    }
+                }
+
+                var ruta = Path.Combine(carpeta, nombreArchivo);
+
+                using (var stream = System.IO.File.Create(ruta))
+                {
+                    await imagen.CopyToAsync(stream);
+                }
+
+                // ── ESTO FALTABA: actualizar la BD con la URL ──────────────
+                string urlImagen = $"/img/defaults/{nombreArchivo}";
+
+                using var conn = _db.GetConnection();
+                using var cmd = new SqlCommand(@"
+            UPDATE Repuestos
+            SET imagen_url = @url
+            WHERE categoria = @cat", conn);
+                cmd.Parameters.AddWithValue("@url", urlImagen);
+                cmd.Parameters.AddWithValue("@cat", categoria);
+                int filas = cmd.ExecuteNonQuery();
+                // ────────────────────────────────────────────────────────
+
+                TempData["Exito"] = $"Imagen de '{categoria}' actualizada. {filas} repuesto(s) afectado(s).";
+            }
+            else
+            {
+                TempData["Error"] = "No se seleccionó ninguna imagen.";
+            }
+
+            return RedirectToAction("Inventario");
+        }
         // ════════════════════════════════════════════════
         // FACTURAS
         // ════════════════════════════════════════════════

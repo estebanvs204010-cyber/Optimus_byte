@@ -49,31 +49,7 @@ bool logueado = !string.IsNullOrEmpty(nombre);
             }
             else
             {
-                <div class="ob-dropdown">
-                    <button class="ob-btn-usuario" onclick="toggleMenu(this)">
-                        <i class="fas fa-circle-user"></i>
-                        @nombre
-                        <i class="fas fa-chevron-down" style="font-size:0.65rem; opacity:0.6;"></i>
-                    </button>
-                    <div class="ob-menu-usuario" id="menuUsuario">
-                        <a asp-controller="Cliente" asp-action="Portal">
-                            <i class="fas fa-user-pen" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                            menu cliente
-                        </a>
-                        <a asp-controller="Facturas" asp-action="Index">
-                            <i class="fas fa-file-invoice" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                            Facturas
-                        </a>
-                        <hr class="ob-menu-divider" />
-                        <form asp-controller="Home" asp-action="Logout" method="post" style="margin:0;">
-                            @Html.AntiForgeryToken()
-                            <button type="submit">
-                                <i class="fas fa-arrow-right-from-bracket" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                                Cerrar sesión
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                @await Html.PartialAsync("_MenuUsuarioPartial")
             }
         </div>
     </nav>

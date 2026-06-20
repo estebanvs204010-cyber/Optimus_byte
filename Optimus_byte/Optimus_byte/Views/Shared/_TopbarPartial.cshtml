@@ -1,0 +1,34 @@
+﻿@{
+    string rol = Context.Session.GetString("UsuarioRol") ?? "";
+    string nombre = Context.Session.GetString("UsuarioNombre") ?? "";
+}
+
+<header class="ob-navbar">
+    <button class="ob-hamburger" onclick="toggleSidebar()">☰</button>
+
+    <a class="ob-nav-logo" asp-controller="Home" asp-action="Index">
+        <img src="~/img/putin.png" alt="Optimus-Byte" />
+    </a>
+
+    <div class="ob-nav-acciones">
+        @if (!string.IsNullOrEmpty(rol))
+        {
+            <span style="background:var(--acento-suave);color:var(--acento);
+                         padding:4px 12px;border-radius:20px;font-size:.72rem;
+                         font-weight:700;letter-spacing:.08em;text-transform:uppercase;">
+                @rol
+            </span>
+            <span style="color:var(--texto-suave);font-size:.85rem;">
+                @nombre
+            </span>
+            <a asp-controller="Login" asp-action="Logout" class="ob-btn-ingresar">
+                <i class="bi bi-box-arrow-right"></i> Salir
+            </a>
+        }
+        else
+        {
+            <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
+            <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrarse</a>
+        }
+    </div>
+</header>
