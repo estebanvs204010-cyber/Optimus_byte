@@ -76,27 +76,7 @@
             }
             else
             {
-                <div class="ob-dropdown">
-                    <button class="ob-btn-usuario" onclick="toggleMenu(this)">
-                        <i class="fas fa-circle-user"></i>
-                        @nombre
-                        <i class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.6;"></i>
-                    </button>
-                    <div class="ob-menu-usuario" id="menuUsuario">
-                        <a asp-controller="Cliente" asp-action="Portal">
-                            <i class="fas fa-user-pen" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                            Menú cliente
-                        </a>
-                        <hr class="ob-menu-divider" />
-                        <form asp-controller="Home" asp-action="Logout" method="post" style="margin:0;">
-                            @Html.AntiForgeryToken()
-                            <button type="submit">
-                                <i class="fas fa-arrow-right-from-bracket" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                                Cerrar sesión
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                @await Html.PartialAsync("_MenuUsuarioPartial")
             }
         </div>
     </nav>
@@ -188,12 +168,12 @@
             document.getElementById('obOverlay').classList.remove('activa');
         }
         // Dropdown usuario
-        function toggleMenu(btn) {
+                       function toggleMenu(btn) {
             const menu = document.getElementById('menuUsuario');
-            menu.classList.toggle('open');
+            menu.classList.toggle('abierto');
             document.addEventListener('click', function cerrar(e) {
                 if (!btn.contains(e.target) && !menu.contains(e.target)) {
-                    menu.classList.remove('open');
+                    menu.classList.remove('abierto');
                     document.removeEventListener('click', cerrar);
                 }
             });

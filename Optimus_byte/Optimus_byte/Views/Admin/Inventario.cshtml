@@ -324,6 +324,17 @@
             <button class="btn-nuevo" data-bs-toggle="modal" data-bs-target="#modalRepuesto" onclick="prepararModal(null)">
                 <i class="bi bi-plus-lg me-2"></i>Nuevo repuesto
             </button>
+            <a asp-controller="Inventario" asp-action="Index" class="btn-nuevo">
+                <i class="fas fa-eye"></i> Ver Catálogo Principal
+            </a>
+            <button class="btn-nuevo" data-bs-toggle="modal"
+                    data-bs-target="#modalImagenesCategoria"
+                    style="background:transparent;
+               border:1.5px solid var(--dorado);
+               color:var(--dorado);
+               margin-left:10px;">
+                <i class="bi bi-images"></i> EDITAR IMÁGENES 
+            </button>
         </div>
 
         @* Banner persistente stock bajo *@
@@ -391,8 +402,6 @@
                     {
                         <tr class="@(!r.Activo ? "fila-inactiva" : r.BajoStock ? "fila-bajo-stock" : "")">
                             <td>@r.IdRepuesto</td>
-                            <td>@r.marca</td>
-                            <td>@r.modelo</td>
                             <td>
                                 @if (!string.IsNullOrEmpty(r.ImagenUrl))
                                 {
@@ -410,8 +419,8 @@
                                     </div>
                                 }
                             </td>
-                   
-
+                            <td>@r.marca</td>
+                            <td>@r.modelo</td>
                             <td>
                                 <strong>@r.Nombre</strong>
                                 @if (!r.Activo)
@@ -449,18 +458,7 @@
                                 {
                                     @* Botón Editar *@
                                     <button class="btn-accion btn-editar" title="Editar"
-                                            onclick="prepararModal(
-                            @r.IdRepuesto,
-                            '@Html.Raw(r.Nombre.Replace("'", "\\'"))',
-                            '@Html.Raw(r.Referencia.Replace("'", "\\'"))',
-                            '@Html.Raw((r.Descripcion ?? "").Replace("'", "\\'"))',
-                            '@Html.Raw(r.Categoria.Replace("'", "\\'"))',
-                            @r.PrecioUnitario.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
-                            @r.StockActual,
-                            @r.StockMinimo,
-                            '@Html.Raw((r.marca ?? "").Replace("'", "\\'"))',
-                            '@Html.Raw((r.modelo ?? "").Replace("'", "\\'"))'
-                        )"
+                                            onclick="prepararModal(@r.IdRepuesto,'@Html.Raw(r.Nombre.Replace("'","\\\'"))','@Html.Raw(r.Referencia.Replace("'","\\\'"))','@Html.Raw((r.Descripcion??"").Replace("'","\\\'"))','@Html.Raw(r.Categoria.Replace("'","\\\'"))',@r.PrecioUnitario.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture),@r.StockActual,@r.StockMinimo,'@Html.Raw((r.ImagenUrl??"").Replace("'","\\\'"))','@Html.Raw((r.marca??"").Replace("'","\\\'"))','@Html.Raw((r.modelo??"").Replace("'","\\\'"))')"
                                             data-bs-toggle="modal" data-bs-target="#modalRepuesto">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
@@ -690,12 +688,21 @@
             document.getElementById('inputImagenUrlActual').value = imagenUrl || '';
             resetDefaultBtns();
 
-            if (imagenUrl && imagenUrl.trim() !== '') {
-                document.getElementById('previewImagen').src = imagenUrl;
-                document.getElementById('previewZone').style.display = 'block';
-            } else {
-                document.getElementById('previewZone').style.display = 'none';
-            }
+           if (imagenUrl && imagenUrl.trim() !== '') {
+    // Tiene foto propia — mostrarla
+    document.getElementById('previewImagen').src = imagenUrl;
+    document.getElementById('previewZone').style.display = 'block';
+} else {
+    // Sin foto propia — mostrar imagen de categoría como referencia visual
+    const catKey = (cat || '').toLowerCase()
+        .replace(/ /g,'-').replace(/é/g,'e').replace(/ó/g,'o')
+        .replace(/ú/g,'u').replace(/ñ/g,'n');
+    const imgCat = `/img/defaults/${catKey}.png`;
+    document.getElementById('previewImagen').src = imgCat;
+    document.getElementById('previewZone').style.display = 'block';
+    // No guardar como imagenUrlActual para no pisar nada
+    document.getElementById('inputImagenUrlActual').value = '';
+}
         }
 
         function previsualizarImagen(input) {
@@ -742,6 +749,123 @@
                 b.style.color        = '';
                 b.style.fontWeight   = '';
             });
+        }
+
+    </script>
+
+    <!-- ══ MODAL EDITAR IMÁGENES POR CATEGORÍA ══ -->
+    <div class="modal fade" id="modalImagenesCategoria" tabindex="-1">
+        <div class="modal-dialog modal-lg" style="max-width:700px;">
+            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:8px;">
+                <div class="modal-header" style="border-bottom:1px solid var(--borde-input);">
+                    <h5 class="modal-title" style="font-size:.9rem;letter-spacing:.06em;color:var(--dorado);">
+                        <i class="bi bi-images me-2"></i>Imagen por defecto por Categoría
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding:24px;max-height:70vh;overflow-y:auto;">
+                    <p style="font-size:.8rem;color:var(--texto-suave);margin-bottom:20px;">
+                        Esta imagen se mostrará en todos los repuestos de esa categoría que <strong>no tengan foto propia</strong>.
+                    </p>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+                        @{
+                            var cats = ViewBag.Categorias as List<string> ?? new List<string>();
+                            var iconosCat = new Dictionary<string, string> {
+                        {"Motor","⚙️"},{"Frenos","🛞"},{"Filtros","🌬️"},
+                        {"Sistema Eléctrico","🔋"},{"Eléctrico","🔋"},
+                        {"Suspensión","🔧"},{"Lubricantes","🛢️"}
+                        };
+                        }
+                        @foreach (var cat in cats)
+                        {
+                            string catKey = cat.ToLower()
+                            .Replace(" ", "-").Replace("é", "e")
+                            .Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n");
+                            string icono = iconosCat.ContainsKey(cat) ? iconosCat[cat] : "📦";
+
+                            // Buscar imagen actual de esta categoría
+                            string imgActual = $"/img/defaults/{catKey}.png";
+
+                            <div style="background:#f8fafc;border:1px solid var(--borde-input);
+                                        border-radius:8px;padding:16px;display:flex;
+                                        flex-direction:column;gap:12px;">
+
+                                <!-- Header categoría -->
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <span style="font-size:1.6rem;">@icono</span>
+                                    <strong style="font-size:.85rem;text-transform:uppercase;
+                                                   letter-spacing:.08em;color:var(--dorado);">
+                                        @cat
+                                    </strong>
+                                </div>
+
+                                <!-- Preview imagen actual -->
+                                <div style="width:100%;height:100px;background:linear-gradient(135deg,#e8edf5,#dde4f0);
+                                            border-radius:6px;display:flex;align-items:center;
+                                            justify-content:center;overflow:hidden;">
+                                    <img id="catImg_@catKey" src="@imgActual" alt="@cat"
+                                         style="max-width:100%;max-height:100%;object-fit:contain;"
+                                         onerror="this.style.display='none';
+                                                  document.getElementById('noImg_@catKey').style.display='flex'" />
+                                    <div id="noImg_@catKey"
+                                         style="display:none;width:100%;height:100%;
+                                                align-items:center;justify-content:center;
+                                                font-size:2rem;color:#94a3b8;">
+                                        @icono
+                                    </div>
+                                </div>
+
+                                <!-- Form subir imagen -->
+                                <form asp-controller="Admin" asp-action="SubirImagenCategoria"
+                                      method="post" enctype="multipart/form-data"
+                                      style="display:flex;flex-direction:column;gap:8px;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="categoria" value="@cat" />
+                                    <input type="hidden" name="catKey" value="@catKey" />
+
+                                    <label for="fileCat_@catKey"
+                                           style="padding:7px 12px;border:1px dashed var(--borde-input);
+                                                  border-radius:5px;font-size:.75rem;cursor:pointer;
+                                                  background:#fff;text-align:center;">
+                                        📁 Seleccionar imagen
+                                    </label>
+                                    <input type="file" id="fileCat_@catKey" name="imagen"
+                                           accept="image/png,image/jpeg,image/webp"
+                                           style="display:none;"
+                                           onchange="prevCatImg(this,'@catKey')" />
+
+                                    <button type="submit" id="btnCat_@catKey"
+                                            style="display:none;padding:7px;background:var(--dorado);
+                                                   color:#fff;border:none;border-radius:5px;
+                                                   font-size:.75rem;font-weight:600;cursor:pointer;">
+                                        💾 Guardar como imagen de @cat
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:12px 20px;">
+                    <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function prevCatImg(input, catKey) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = document.getElementById('catImg_' + catKey);
+                    const noImg = document.getElementById('noImg_' + catKey);
+                    if (img)   { img.src = e.target.result; img.style.display = 'block'; }
+                    if (noImg) { noImg.style.display = 'none'; }
+                    const btn = document.getElementById('btnCat_' + catKey);
+                    if (btn)   { btn.style.display = 'block'; }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
     </script>
 </body>

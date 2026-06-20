@@ -1,0 +1,57 @@
+@{
+    var nombre = Context.Session.GetString("UsuarioNombre");
+    var rol = Context.Session.GetString("UsuarioRol");
+}
+
+<div class="ob-dropdown">
+    <button class="ob-btn-usuario" onclick="toggleMenu(this)">
+        <i class="fas fa-circle-user"></i>
+        @nombre
+        <i class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.6;"></i>
+    </button>
+    <div class="ob-menu-usuario" id="menuUsuario">
+
+        @if (rol == "Admin")
+        {
+            <a href="/Admin/Inventario">
+                <i class="fas fa-gear" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                Panel Admin
+            </a>
+            <a href="/Admin/Dashboard">
+                <i class="fas fa-chart-line" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                Dashboard
+            </a>
+        }
+        else if (rol == "Mecanico")
+        {
+            <a href="/Mecanico/MisOrdenes">
+                <i class="fas fa-wrench" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                Panel Mecánico
+            </a>
+            <a href="/Mecanico/MisOrdenes">
+                <i class="fas fa-clipboard-check" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                Mis Órdenes
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Cliente" asp-action="Portal">
+                <i class="fas fa-user-pen" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                Menú cliente
+            </a>
+            <a asp-controller="Facturas" asp-action="Index">
+                <i class="fas fa-file-invoice" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                Mis facturas
+            </a>
+        }
+
+        <hr class="ob-menu-divider" />
+        <form asp-controller="Home" asp-action="Logout" method="post" style="margin:0;">
+            @Html.AntiForgeryToken()
+            <button type="submit">
+                <i class="fas fa-arrow-right-from-bracket" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
+                Cerrar sesión
+            </button>
+        </form>
+    </div>
+</div>
