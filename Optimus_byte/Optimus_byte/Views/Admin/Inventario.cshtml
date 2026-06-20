@@ -391,25 +391,26 @@
                     {
                         <tr class="@(!r.Activo ? "fila-inactiva" : r.BajoStock ? "fila-bajo-stock" : "")">
                             <td>@r.IdRepuesto</td>
-                            <td>@r.marca</td>
-                            <td>@r.modelo</td>
                             <td>
                                 @if (!string.IsNullOrEmpty(r.ImagenUrl))
                                 {
                                     <img src="@r.ImagenUrl" alt="@r.Nombre"
                                          style="width:46px;height:46px;object-fit:cover;
-                    border-radius:5px;border:1px solid var(--borde-input);" />
+                            border-radius:5px;border:1px solid var(--borde-input);" />
                                 }
                                 else
                                 {
                                     <div style="width:46px;height:46px;border-radius:5px;
-                    border:1px dashed var(--borde-input);
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:1.2rem;background:#f8fafc;">
+                            border:1px dashed var(--borde-input);
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:1.2rem;background:#f8fafc;">
                                         🔩
                                     </div>
                                 }
                             </td>
+                            <td>@r.marca</td>
+                            <td>@r.modelo</td>
+                           
                    
 
                             <td>
