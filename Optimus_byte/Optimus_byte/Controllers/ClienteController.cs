@@ -87,7 +87,7 @@ namespace Optimus_byte.Controllers
         // Agregar Vehículo POST
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult AgregarVehiculo(string Placa, string Marca, string Modelo,
-            int Anio, string? Color, string? Vin, int KmActuales)
+            int Anio, string? Color, string? Vin, int KmActuales, string? returnUrl)
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
 
@@ -216,6 +216,9 @@ namespace Optimus_byte.Controllers
 
             RegistrarAuditoria($"Registró vehículo placa {Placa.ToUpper()}");
             TempData["Exito"] = $"Vehículo {Placa.ToUpper()} registrado correctamente.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
             return RedirectToAction("MisVehiculos");
         }
 
