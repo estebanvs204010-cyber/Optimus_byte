@@ -420,6 +420,89 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/MisOrdenes.cshtml");
         }
 
+        public IActionResult MisFacturas()
+        {
+            if (!EsCliente())
+                return RedirectToAction("Index", "Login");
+
+            var facturas = new List<dynamic>();
+            var idUsuario = GetIdUsuario();
+
+            using var conn = _db.GetConnection();
+
+            using var cmd = new SqlCommand(@"
+        SELECT
+            f.id_factura,
+            f.id_orden,
+            f.total,
+            f.estado_pago,
+            f.fecha_emision
+        FROM Facturas f
+        INNER JOIN OrdenesTrabajo o ON f.id_orden = o.id_orden
+        INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+        INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+        WHERE c.id_usuario = @idUsuario
+        ORDER BY f.fecha_emision DESC
+    ", conn);
+
+            cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                facturas.Add(new
+                {
+                    IdFactura = Convert.ToInt32(reader["id_factura"]),
+                    IdOrden = Convert.ToInt32(reader["id_orden"]),
+                    Total = Convert.ToDecimal(reader["total"]),
+                    EstadoPago = reader["estado_pago"].ToString(),
+                    FechaEmision = Convert.ToDateTime(reader["fecha_emision"])
+                });
+            }
+
+            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre");
+            ViewBag.Facturas = facturas;
+
+            return View("~/Views/Cliente/MisFacturas.cshtml");
+        }
+
+        public IActionResult PagarFactura(int id)
+        {
+            if (!EsCliente())
+                return RedirectToAction("Index", "Login");
+
+            using var conn = _db.GetConnection();
+
+            using var cmd = new SqlCommand(@"
+        SELECT
+            id_factura,
+            id_orden,
+            total,
+            estado_pago,
+            fecha_emision
+        FROM Facturas
+        WHERE id_factura = @id
+    ", conn);
+
+            cmd.Parameters.AddWithValue("@id", id);
+
+            using var reader = cmd.ExecuteReader();
+
+            if (!reader.Read())
+            {
+                TempData["Error"] = "Factura no encontrada.";
+                return RedirectToAction("MisFacturas");
+            }
+
+            ViewBag.IdFactura = Convert.ToInt32(reader["id_factura"]);
+            ViewBag.IdOrden = Convert.ToInt32(reader["id_orden"]);
+            ViewBag.Total = Convert.ToDecimal(reader["total"]);
+            ViewBag.EstadoPago = reader["estado_pago"].ToString();
+            ViewBag.FechaEmision = Convert.ToDateTime(reader["fecha_emision"]);
+
+            return View("~/Views/Cliente/PagarFactura.cshtml");
+        }
 
         // Helper auditoría
         private void RegistrarAuditoria(string accion)
