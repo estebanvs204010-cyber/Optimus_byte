@@ -13,14 +13,7 @@ namespace Optimus_byte.Models.ViewModels
         public int     ProximasCitas      { get; set; }
         public int     RepuestosBajoStock { get; set; }
         public decimal IngresosMes        { get; set; }
-        public int TotalUsuarios { get; set; }
-        public int TotalClientes { get; set; }
-        public int TotalVehiculos { get; set; }
-        public int OrdenesAbiertas { get; set; }
-        public int OrdenesHoy { get; set; }
-        public int RepuestosBajoStock { get; set; }
-        public decimal IngresosMes { get; set; }
-
+       
         public List<OrdenResumenViewModel> OrdenesRecientes { get; set; } = new();
         public List<RepuestoCriticoViewModel> RepuestosCriticos { get; set; } = new();
         public List<CitaClienteViewModel>      CitasRecientes    { get; set; } = new();
