@@ -280,7 +280,10 @@
         <div class="ob-nav-acciones">
             @if (!logueado)
             {
-                <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
+                <a class="ob-btn-ingresar"
+                   href="/Login/Index?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
+                    Ingresar
+                </a>
                 <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrarse</a>
             }
             else

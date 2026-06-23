@@ -38,7 +38,7 @@
                 <h1>Inicia sesión para agendar tu cita</h1>
                 <p>Para reservar una atención en el taller necesitamos saber quién eres y qué vehículo vas a traer.</p>
                 <div class="login-actions">
-                    <a asp-controller="Login" asp-action="Index" class="btn-main">
+                    <a href="/Login/Index?returnUrl=/Citas/Index" class="btn-main">
                         <i class="bi bi-box-arrow-in-right"></i>
                         Iniciar sesión
                     </a>
@@ -82,9 +82,7 @@
                             <i class="bi bi-car-front-fill"></i>
                             <h3>Primero registra un vehículo</h3>
                             <p>Necesitas tener un vehículo activo para poder solicitar una cita.</p>
-                            <a asp-controller="Cliente" asp-action="AgregarVehiculo" class="btn-main">
-                                Registrar vehículo
-                            </a>
+                            <a class="btn-main" href=" /Cliente/AgregarVehiculo?returnUrl =/Citas/Index">Agregar vehículo</a>
                         </div>
                     }
                     else

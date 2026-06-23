@@ -224,8 +224,9 @@
                 <div class="alerta-err"><i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]</div>
             }
 
-            <form action="/Cliente/AgregarVehiculo" method="post" autocomplete="off">
+            <form asp-controller="Cliente" asp-action="AgregarVehiculo" method="post">
                 @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@Context.Request.Query["returnUrl"]" />
                 <div class="row g-3">
 
                     <div class="col-md-6 field-group">

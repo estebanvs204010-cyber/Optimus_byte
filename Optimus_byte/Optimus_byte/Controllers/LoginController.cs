@@ -15,18 +15,18 @@ namespace Optimus_byte.Controllers
 
         // GET: /Login
         [HttpGet]
-        public IActionResult Index()
+        public IActionResult Index(string? returnUrl)
         {
             if (HttpContext.Session.GetString("UsuarioId") != null)
                 return RedirigirPorRol(HttpContext.Session.GetString("UsuarioRol")!);
-
+            ViewBag.ReturnUrl = returnUrl;
             return View("~/Views/Login/Index.cshtml");
         }
 
         // POST: /Login
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Index(LoginViewModel model)
+        public IActionResult Index(LoginViewModel model, string? returnUrl)
         {
             if (!ModelState.IsValid)
                 return View("~/Views/Login/Index.cshtml", model);
@@ -89,18 +89,24 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@modulo", "Autenticación");
                 cmd.ExecuteNonQuery();
             }
-
-            return RedirigirPorRol(nombreRol);
+            ViewBag.ReturnUrl = returnUrl;
+            return RedirigirPorRol(nombreRol, returnUrl);
         }
 
         // Helper de redirección
-        private IActionResult RedirigirPorRol(string rol) => rol switch
+        private IActionResult RedirigirPorRol(string rol, string? returnUrl = null)
         {
-            "Admin"    => RedirectToAction("Index",     "Usuarios"),
-            "Mecanico" => RedirectToAction("MisOrdenes","Mecanico"),
-            "Cliente"  => RedirectToAction("Portal",    "Cliente"),
-            _          => RedirectToAction("Index",     "Home")
-        };
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return rol switch
+            {
+                "Admin" => RedirectToAction("Index", "Usuarios"),
+                "Mecanico" => RedirectToAction("MisOrdenes", "Mecanico"),
+                "Cliente" => RedirectToAction("Portal", "Cliente"),
+                _ => RedirectToAction("Index", "Home")
+            };
+        }
 
         // GET: /Login/Logout
         public IActionResult Logout()
