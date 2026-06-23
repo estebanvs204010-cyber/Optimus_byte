@@ -563,13 +563,24 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada");
 
+            // Actualiza el km_actuales del vehículo con el km de ingreso de esta orden,
+            // solo si es mayor al registrado (evita retroceder el odómetro por error).
+            using (var cmdKm = new SqlCommand(@"
+                UPDATE Vehiculos
+                SET km_actuales = @km
+                WHERE id_vehiculo = @veh AND km_actuales < @km", conn))
+            {
+                cmdKm.Parameters.AddWithValue("@km", kmIngreso);
+                cmdKm.Parameters.AddWithValue("@veh", idVehiculo);
+                cmdKm.ExecuteNonQuery();
+            }
+
             string correoCliente = "";
             string nombreCliente = "";
             string placa = "";
 
             using (var conEmail = _db.GetConnection())
             {
-                conEmail.Open();
                 var cmdEmail = new SqlCommand(@"
                     SELECT u.nombre_completo, u.correo, v.placa
                     FROM OrdenesTrabajo o
@@ -650,7 +661,6 @@ namespace Optimus_byte.Controllers
 
             using (var conEmail = _db.GetConnection())
             {
-                conEmail.Open();
                 var cmdEmail = new SqlCommand(@"
                     SELECT u.nombre_completo, u.correo, v.placa
                     FROM OrdenesTrabajo o
@@ -1101,7 +1111,6 @@ namespace Optimus_byte.Controllers
 
             using (var conEmail = _db.GetConnection())
             {
-                conEmail.Open();
                 var cmdEmail = new SqlCommand(@"
                     SELECT u.nombre_completo, u.correo, v.placa
                     FROM OrdenesTrabajo o
