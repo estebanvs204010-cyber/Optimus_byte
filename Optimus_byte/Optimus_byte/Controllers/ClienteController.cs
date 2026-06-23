@@ -78,10 +78,11 @@ namespace Optimus_byte.Controllers
         }
 
         // Agregar Vehículo GET
-        public IActionResult AgregarVehiculo()
+        public IActionResult AgregarVehiculo(string? returnUrl)
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
-            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
+            if (!string.IsNullOrEmpty(returnUrl))
+                HttpContext.Session.SetString("VehiculoReturnUrl", returnUrl);
             return View("~/Views/Vehiculo/AgregarVehiculo.cshtml");
         }
 
@@ -144,9 +145,8 @@ namespace Optimus_byte.Controllers
 
             RegistrarAuditoria($"Registró vehículo placa {Placa.ToUpper()}");
             TempData["Exito"] = $"Vehículo {Placa.ToUpper()} registrado correctamente.";
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            if (!string.IsNullOrEmpty(returnUrl))
                 return Redirect(returnUrl);
-
             return RedirectToAction("MisVehiculos");
         }
 
