@@ -138,79 +138,6 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@color", (object?)Color ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@vin", (object?)Vin ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@km", KmActuales);
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
                 cmd.ExecuteNonQuery();
             }
 
@@ -343,9 +270,32 @@ namespace Optimus_byte.Controllers
             if (!EsCliente()) return RedirectToAction("Index", "Login");
 
             var idUsuario = GetIdUsuario();
-            string placa = "";
 
-            using (var conn = _db.GetConnection())
+            using var conn = _db.GetConnection();
+
+            // Verifica primero si el vehículo tiene órdenes de trabajo asociadas.
+            // Si las tiene, no se puede eliminar (rompería la integridad referencial
+            // y se perdería el historial de órdenes/facturas de ese vehículo).
+            int ordenesAsociadas;
+            using (var cmdCheck = new SqlCommand(@"
+                SELECT COUNT(1)
+                FROM OrdenesTrabajo o
+                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                WHERE v.id_vehiculo = @id AND c.id_usuario = @idUsuario", conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@id", id);
+                cmdCheck.Parameters.AddWithValue("@idUsuario", idUsuario);
+                ordenesAsociadas = (int)cmdCheck.ExecuteScalar()!;
+            }
+
+            if (ordenesAsociadas > 0)
+            {
+                TempData["Error"] = "No es posible eliminar este vehículo porque tiene órdenes de trabajo asociadas. Si ya no lo usas, puedes desactivarlo en su lugar.";
+                return RedirectToAction("MisVehiculos");
+            }
+
+            string placa;
             using (var cmd = new SqlCommand(@"
                 DELETE FROM Vehiculos
                 OUTPUT DELETED.placa

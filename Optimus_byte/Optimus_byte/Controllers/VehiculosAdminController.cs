@@ -141,8 +141,32 @@ namespace Optimus_byte.Controllers
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
 
-            string placa = EjecutarYObtenerPlaca(
-                "DELETE FROM Vehiculos OUTPUT DELETED.placa WHERE id_vehiculo = @id", id);
+            using var conn = _db.GetConnection();
+
+            // Verifica primero si el vehículo tiene órdenes de trabajo asociadas.
+            // Si las tiene, no se puede eliminar (rompería la integridad referencial
+            // y se perdería el historial de órdenes/facturas de ese vehículo).
+            int ordenesAsociadas;
+            using (var cmdCheck = new SqlCommand(
+                "SELECT COUNT(1) FROM OrdenesTrabajo WHERE id_vehiculo = @id", conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@id", id);
+                ordenesAsociadas = (int)cmdCheck.ExecuteScalar()!;
+            }
+
+            if (ordenesAsociadas > 0)
+            {
+                TempData["Error"] = "No es posible eliminar este vehículo porque tiene órdenes de trabajo asociadas.";
+                return RedirectToAction("Index");
+            }
+
+            string placa;
+            using (var cmd = new SqlCommand(
+                "DELETE FROM Vehiculos OUTPUT DELETED.placa WHERE id_vehiculo = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", id);
+                placa = cmd.ExecuteScalar()?.ToString() ?? "";
+            }
 
             RegistrarAuditoria($"Eliminó vehículo placa {placa}");
             TempData["Exito"] = $"Vehículo {placa} eliminado.";

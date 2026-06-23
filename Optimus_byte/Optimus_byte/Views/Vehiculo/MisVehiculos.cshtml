@@ -4,6 +4,7 @@
     var nombre = ViewBag.Nombre as string ?? "Cliente";
     var inicial = nombre.Length > 0 ? nombre[0].ToString().ToUpper() : "C";
     var vehiculos = ViewBag.Vehiculos as List<dynamic> ?? new List<dynamic>();
+    var mensajeError = TempData["Error"] as string;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -222,6 +223,64 @@
             display: flex;
             align-items: center;
         }
+
+        .modal-aviso-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-aviso-caja {
+            background: #fff;
+            border-radius: 6px;
+            padding: 34px 30px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .modal-aviso-icono {
+            font-size: 2.4rem;
+            color: #dc2626;
+            margin-bottom: 14px;
+        }
+
+        .modal-aviso-titulo {
+            font-family: var(--fuente-titulo);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--marfil);
+            margin-bottom: 8px;
+        }
+
+        .modal-aviso-texto {
+            font-size: 0.86rem;
+            color: var(--texto-suave);
+            margin-bottom: 22px;
+            line-height: 1.5;
+        }
+
+        .modal-aviso-btn {
+            font-size: 0.78rem;
+            padding: 9px 26px;
+            border: none;
+            border-radius: 2px;
+            background: var(--dorado);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+            .modal-aviso-btn:hover {
+                opacity: 0.88;
+            }
     </style>
 </head>
 <body>
@@ -249,12 +308,6 @@
         {
             <div class="alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
         }
-        @if (TempData["Error"] != null)
-        {
-            <div class="alerta-ok" style="background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.2);border-left-color:#dc2626;color:#b91c1c">
-                <i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]
-            </div>
-        }
 
         <div class="vehiculos-wrap">
             <div class="section-header">
@@ -263,7 +316,7 @@
                     <p class="section-sub">@((vehiculos as IEnumerable<dynamic>)?.Count() ?? 0) vehículo(s) encontrado(s)</p>
                 </div>
                 <div class="d-flex align-items-center gap-3 flex-wrap">
-                  <div>
+                    <div>
                         <input type="text" id="buscarInput" name="q" class="input-buscar"
                                placeholder="Buscar placa, marca…" oninput="filtrarTabla()"
                                autocomplete="off" readonly
@@ -380,6 +433,16 @@
         </div>
     </div>
 
+    <!-- Modal de aviso (errores, ej. eliminación bloqueada) -->
+    <div id="modalAvisoVehiculo" class="modal-aviso-overlay">
+        <div class="modal-aviso-caja">
+            <div class="modal-aviso-icono"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <p class="modal-aviso-titulo">No se pudo completar la acción</p>
+            <p class="modal-aviso-texto" id="modalAvisoTexto"></p>
+            <button class="modal-aviso-btn" onclick="cerrarModalAviso()">Entendido</button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function filtrarTabla() {
@@ -442,6 +505,20 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirmar';
             }
+        }
+
+        function cerrarModalAviso() {
+            document.getElementById('modalAvisoVehiculo').style.display = 'none';
+        }
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+                <text>
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.getElementById('modalAvisoTexto').textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(mensajeError));
+                    document.getElementById('modalAvisoVehiculo').style.display = 'flex';
+                });
+                </text>
         }
     </script>
 </body>
