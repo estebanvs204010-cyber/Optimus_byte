@@ -758,8 +758,8 @@ namespace Optimus_byte.Controllers
                         StockMinimo = Convert.ToInt32(r["stock_minimo"]),
                         FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
                         ImagenUrl = r["imagen_url"]?.ToString(),
-                        marca = r["marca"]?.ToString(),    // ← nuevo
-                        modelo = r["modelo"]?.ToString(),
+                        marca = r["marca"]?.ToString() ?? "",    // ← nuevo
+                        modelo = r["modelo"]?.ToString() ?? "",
                         Activo = Convert.ToBoolean(r["activo"]) // ← nuevo
                     });
             }

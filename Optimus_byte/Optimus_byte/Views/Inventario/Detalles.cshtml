@@ -23,8 +23,6 @@
     var imgSrc = !string.IsNullOrEmpty(Model.ImagenUrl)
         ? Model.ImagenUrl
         : (imgDefaults.ContainsKey(Model.Categoria) ? imgDefaults[Model.Categoria] : "/img/defaults/repuesto.png");
-
-    string estrellaStr(double v) => v >= 1 ? (v >= 1.5 ? (v >= 2 ? (v >= 2.5 ? (v >= 3 ? (v >= 3.5 ? (v >= 4 ? (v >= 4.5 ? "★★★★★" : "★★★★½") : "★★★★") : "★★★½") : "★★★") : "★★½") : "★★") : "★½") : "★";
 }
 <!DOCTYPE html>
 <html lang="es">

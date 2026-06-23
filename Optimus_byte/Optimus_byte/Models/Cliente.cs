@@ -32,5 +32,8 @@ namespace Optimus_byte.Models
         [ForeignKey("IdUsuario")]
         public Usuario? Usuario { get; set; }
 
+        public string? NuevaContrasena { get; set; }
+        public string? ConfirmarNuevaContrasena { get; set; }
+
     }
 }
