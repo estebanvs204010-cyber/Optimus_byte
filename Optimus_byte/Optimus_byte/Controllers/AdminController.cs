@@ -109,8 +109,65 @@ namespace Optimus_byte.Controllers
 
             // CAMBIO 2: RepuestosBajoStockList para el badge/panel del Dashboard
             ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
-
+            ViewBag.Mecanicos = ObtenerMecanicos(conn);
             return View("~/Views/Admin/Dashboard.cshtml", vm);
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AprobarCita(int idCita, int idVehiculo, string servicio,
+    string observaciones, int? idMecanico, int kmIngreso)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+            int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
+
+            using var conn = _db.GetConnection();
+
+            // 1. Marcar cita como Aprobada
+            using (var cmd = new SqlCommand(@"
+        UPDATE CitasCliente
+        SET estado = 'Aprobada'
+        WHERE id_cita = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", idCita);
+                cmd.ExecuteNonQuery();
+            }
+
+            var tipoServicioValido = servicio.ToLower() switch
+            {
+                var s when s.Contains("aceite") ||
+                           s.Contains("filtro") ||
+                           s.Contains("alineaci") ||
+                           s.Contains("balance") ||
+                           s.Contains("revision") => "Preventivo",
+                _ => "Correctivo"
+            };
+
+
+            // 2. Crear Orden de Trabajo
+            int idOrden;
+            using (var cmd = new SqlCommand(@"
+        INSERT INTO OrdenesTrabajo
+            (id_vehiculo, id_mecanico, id_administrador,
+             tipo_servicio, descripcion_problema, km_ingreso)
+        OUTPUT INSERTED.id_orden
+        VALUES (@veh, @mec, @adm, @tipo, @desc, @km)", conn))
+            {
+                cmd.Parameters.AddWithValue("@veh", idVehiculo);
+                cmd.Parameters.AddWithValue("@mec", (object?)idMecanico ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@adm", idAdmin);
+                cmd.Parameters.AddWithValue("@tipo", tipoServicioValido);
+                cmd.Parameters.AddWithValue("@desc", observaciones ?? "Cita aprobada");
+                cmd.Parameters.AddWithValue("@km", kmIngreso);
+                idOrden = (int)cmd.ExecuteScalar();
+            }
+
+            // 3. Registrar estado inicial
+            RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada desde cita #" + idCita);
+
+            TempData["Exito"] = $"Cita aprobada. Orden de trabajo OT-{idOrden} creada.";
+            return RedirectToAction("Dashboard");
         }
 
         // ════════════════════════════════════════════════
@@ -372,20 +429,6 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, ordenId, idAdmin, nuevoEstado, obsEstado);
 
-            // CAMBIO 5: Notificar al mecánico registrando en EstadosOrden (ya cubierto arriba).
-            // Si en el futuro se agrega campo NotificacionMecanico a OrdenesTrabajo,
-            // descomentar el bloque siguiente:
-            //
-            // using (var cmdNotif = new SqlCommand(@"
-            //     UPDATE OrdenesTrabajo
-            //     SET NotificacionMecanico = @msg, FechaNotificacion = GETDATE()
-            //     WHERE id_orden = @id", conn))
-            // {
-            //     cmdNotif.Parameters.AddWithValue("@msg",
-            //         $"Repuesto '{repuestoNombre}' x{cantidad} aprobado por el admin.");
-            //     cmdNotif.Parameters.AddWithValue("@id", ordenId);
-            //     cmdNotif.ExecuteNonQuery();
-            // }
 
             TempData["Exito"] = $"Repuesto '{repuestoNombre}' × {cantidad} asignado a OT-{ordenId}. Stock actualizado.";
             return RedirectToAction("SolicitudesRepuesto");
