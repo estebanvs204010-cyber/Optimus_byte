@@ -7,9 +7,14 @@ namespace Optimus_byte.Controllers
 {
     public class VehiculosAdminController : Controller
     {
-        private readonly DbHelper _db;
-        public VehiculosAdminController(DbHelper db) => _db = db;
+      private readonly DbHelper _db;
+private readonly CorreoService _correoService;
 
+public VehiculosAdminController(DbHelper db, CorreoService correoService)
+{
+    _db = db;
+    _correoService = correoService;
+}
         private bool EsAdmin() =>
             HttpContext.Session.GetString("UsuarioRol") == "Admin";
 
@@ -63,7 +68,7 @@ namespace Optimus_byte.Controllers
 
         // ── Editar vehículo ───────────────────────────────────
         [HttpPost, ValidateAntiForgeryToken]
-        public IActionResult Editar(int IdVehiculo, string Placa, string Marca,
+        public async Task<IActionResult> Editar(int IdVehiculo, string Placa, string Marca,
             string Modelo, int Anio, string? Color, string? Vin, int KmActuales)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -100,10 +105,13 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@km", KmActuales);
                 cmd.Parameters.AddWithValue("@id", IdVehiculo);
                 cmd.ExecuteNonQuery();
+
             }
 
+            await VerificarRecordatorioMantenimiento(IdVehiculo, KmActuales);
+
             RegistrarAuditoria($"Editó vehículo placa {Placa.ToUpper()}");
-            TempData["Exito"] = $"Vehículo {Placa.ToUpper()} actualizado correctamente.";
+            TempData["Exito"] = $"Vehículo {Placa.ToUpper()} actualizado correctamente. Km recibido: {KmActuales}";
             return RedirectToAction("Index");
         }
 
@@ -180,6 +188,116 @@ namespace Optimus_byte.Controllers
             using var cmd = new SqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@id", id);
             return cmd.ExecuteScalar()?.ToString() ?? "";
+        }
+
+        private async Task VerificarRecordatorioMantenimiento(int idVehiculo, int kmActuales)
+        {
+            const int intervaloKm = 5000;
+            const int avisoAntesKm = 500;
+
+
+            int siguienteMantenimiento = ((kmActuales / intervaloKm) + 1) * intervaloKm;
+            int kmDesdeAviso = siguienteMantenimiento - avisoAntesKm;
+
+            if (kmActuales < kmDesdeAviso)
+                return;
+
+            int kilometrajeRecordatorio = siguienteMantenimiento;
+            using var conn = _db.GetConnection();
+
+            int yaExiste;
+            using (var cmdExiste = new SqlCommand(@"
+                SELECT COUNT(1)
+                FROM RecordatoriosMantenimiento
+                WHERE id_vehiculo = @idVehiculo
+                AND kilometraje_recordatorio = @kilometraje", conn))
+            {
+                cmdExiste.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+                cmdExiste.Parameters.AddWithValue("@kilometraje", kilometrajeRecordatorio);
+
+                yaExiste = Convert.ToInt32(cmdExiste.ExecuteScalar());
+            }
+
+            if (yaExiste > 0)
+                return;
+
+            string? correo = null;
+            string? cliente = null;
+            string? placa = null;
+            string? marca = null;
+            string? modelo = null;
+
+            using (var cmdDatos = new SqlCommand(@"
+                SELECT 
+                c.correo,
+                c.nombre_completo,
+                v.placa,
+                v.marca,
+                v.modelo
+                FROM Vehiculos v
+                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+                WHERE v.id_vehiculo = @idVehiculo", conn))
+            {
+                cmdDatos.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+
+                using var reader = cmdDatos.ExecuteReader();
+
+                if (!reader.Read())
+                    return;
+
+                correo = reader["correo"]?.ToString();
+                cliente = reader["nombre_completo"]?.ToString();
+                placa = reader["placa"]?.ToString();
+                marca = reader["marca"]?.ToString();
+                modelo = reader["modelo"]?.ToString();
+            }
+
+            if (string.IsNullOrWhiteSpace(correo))
+                return;
+
+            string servicio = "Mantenimiento preventivo / revisión por kilometraje";
+            string asunto = $"Recordatorio de mantenimiento - {placa}";
+
+            string cuerpo = $@"
+                <h2>Recordatorio de mantenimiento</h2>
+                <p>Hola <strong>{cliente}</strong>,</p>
+                <p>Tu vehículo <strong>{marca} {modelo}</strong> de placa <strong>{placa}</strong> llegó a los <strong>{kilometrajeRecordatorio:N0} km</strong>.</p>
+                <p>Te recomendamos realizar una revisión o cambio preventivo para mantener tu vehículo en buen estado.</p>
+                <p><strong>Servicio sugerido:</strong> {servicio}</p>
+                <br>
+                <p>Atentamente,</p>
+                <p><strong>Optimus Byte</strong></p>";
+
+            try
+            {
+                await _correoService.EnviarCorreoAsync(correo, asunto, cuerpo);
+
+                using var cmdInsert = new SqlCommand(@"
+                INSERT INTO RecordatoriosMantenimiento
+                (id_vehiculo, kilometraje_recordatorio, servicio, enviado, fecha_envio)
+                VALUES
+                (@idVehiculo, @kilometraje, @servicio, 1, GETDATE())", conn);
+
+                cmdInsert.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+                cmdInsert.Parameters.AddWithValue("@kilometraje", kilometrajeRecordatorio);
+                cmdInsert.Parameters.AddWithValue("@servicio", servicio);
+
+                cmdInsert.ExecuteNonQuery();
+            }
+            catch
+            {
+                using var cmdInsertError = new SqlCommand(@"
+                INSERT INTO RecordatoriosMantenimiento
+                (id_vehiculo, kilometraje_recordatorio, servicio, enviado, fecha_envio)
+                VALUES
+                (@idVehiculo, @kilometraje, @servicio, 0, NULL)", conn);
+
+                cmdInsertError.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+                cmdInsertError.Parameters.AddWithValue("@kilometraje", kilometrajeRecordatorio);
+                cmdInsertError.Parameters.AddWithValue("@servicio", servicio);
+
+                cmdInsertError.ExecuteNonQuery();
+            }
         }
 
         private void RegistrarAuditoria(string accion)
