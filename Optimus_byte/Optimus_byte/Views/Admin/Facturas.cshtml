@@ -447,6 +447,10 @@
                                             onclick="setFacturaPago(@f.IdFactura, @f.Total)">
                                         <i class="bi bi-cash-coin"></i>
                                     </button>
+                                    <a href="/Admin/PagarConPayU/@f.IdFactura" class="btn-accion btn-reactivar" title="Pagar con PayU">
+                                        <i class="bi bi-credit-card"></i>
+                                    </a>
+                                    <!-- Anular -->
                                     <button class="btn-accion btn-desactivar" title="Anular factura"
                                             data-bs-toggle="modal" data-bs-target="#modalAnular"
                                             onclick="setFacturaAnular(@f.IdFactura)">

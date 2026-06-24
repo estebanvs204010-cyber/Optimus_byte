@@ -10,7 +10,13 @@ namespace Optimus_byte.Controllers
     public class ClienteController : Controller
     {
         private readonly DbHelper _db;
-        public ClienteController(DbHelper db) => _db = db;
+        private readonly IConfiguration _config;
+
+        public ClienteController(DbHelper db, IConfiguration config)
+        {
+            _db = db;
+            _config = config;
+        }
 
         private bool EsCliente() =>
             HttpContext.Session.GetString("UsuarioRol") == "Cliente";
@@ -116,10 +122,11 @@ namespace Optimus_byte.Controllers
         }
 
         // Agregar Vehículo GET
-        public IActionResult AgregarVehiculo()
+        public IActionResult AgregarVehiculo(string? returnUrl)
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
-            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
+            if (!string.IsNullOrEmpty(returnUrl))
+                HttpContext.Session.SetString("VehiculoReturnUrl", returnUrl);
             return View("~/Views/Vehiculo/AgregarVehiculo.cshtml");
         }
 
@@ -182,9 +189,8 @@ namespace Optimus_byte.Controllers
 
             RegistrarAuditoria($"Registró vehículo placa {Placa.ToUpper()}");
             TempData["Exito"] = $"Vehículo {Placa.ToUpper()} registrado correctamente.";
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            if (!string.IsNullOrEmpty(returnUrl))
                 return Redirect(returnUrl);
-
             return RedirectToAction("MisVehiculos");
         }
 
@@ -312,9 +318,32 @@ namespace Optimus_byte.Controllers
             if (!EsCliente()) return RedirectToAction("Index", "Login");
 
             var idUsuario = GetIdUsuario();
-            string placa = "";
 
-            using (var conn = _db.GetConnection())
+            using var conn = _db.GetConnection();
+
+            // Verifica primero si el vehículo tiene órdenes de trabajo asociadas.
+            // Si las tiene, no se puede eliminar (rompería la integridad referencial
+            // y se perdería el historial de órdenes/facturas de ese vehículo).
+            int ordenesAsociadas;
+            using (var cmdCheck = new SqlCommand(@"
+                SELECT COUNT(1)
+                FROM OrdenesTrabajo o
+                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                WHERE v.id_vehiculo = @id AND c.id_usuario = @idUsuario", conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@id", id);
+                cmdCheck.Parameters.AddWithValue("@idUsuario", idUsuario);
+                ordenesAsociadas = (int)cmdCheck.ExecuteScalar()!;
+            }
+
+            if (ordenesAsociadas > 0)
+            {
+                TempData["Error"] = "No es posible eliminar este vehículo porque tiene órdenes de trabajo asociadas. Si ya no lo usas, puedes desactivarlo en su lugar.";
+                return RedirectToAction("MisVehiculos");
+            }
+
+            string placa;
             using (var cmd = new SqlCommand(@"
                 DELETE FROM Vehiculos
                 OUTPUT DELETED.placa
@@ -559,6 +588,107 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("EditarPerfil");
         }
 
+        // Mis Facturas
+        public IActionResult MisFacturas()
+        {
+            if (!EsCliente()) return RedirectToAction("Index", "Login");
+
+            var facturas = new List<dynamic>();
+            var idUsuario = GetIdUsuario();
+
+            using var conn = _db.GetConnection();
+            using var cmd = new SqlCommand(@"
+                SELECT f.id_factura, f.id_orden, f.total, f.estado_pago, f.fecha_emision
+                FROM Facturas f
+                INNER JOIN OrdenesTrabajo o ON f.id_orden = o.id_orden
+                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+                WHERE c.id_usuario = @idUsuario
+                ORDER BY f.fecha_emision DESC", conn);
+
+            cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                facturas.Add(new
+                {
+                    IdFactura = Convert.ToInt32(reader["id_factura"]),
+                    IdOrden = Convert.ToInt32(reader["id_orden"]),
+                    Total = Convert.ToDecimal(reader["total"]),
+                    EstadoPago = reader["estado_pago"].ToString(),
+                    FechaEmision = Convert.ToDateTime(reader["fecha_emision"])
+                });
+            }
+
+            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre");
+            ViewBag.Facturas = facturas;
+            return View("~/Views/Cliente/MisFacturas.cshtml");
+        }
+
+        // Pagar Factura con PayU
+        public IActionResult PagarFactura(int id)
+        {
+            if (!EsCliente()) return RedirectToAction("Index", "Login");
+
+            using var conn = _db.GetConnection();
+            decimal total = 0, iva = 0;
+            string correo = HttpContext.Session.GetString("UsuarioCorreo") ?? "";
+
+            using (var cmd = new SqlCommand(@"
+                SELECT total, iva FROM Facturas
+                WHERE id_factura = @id AND estado_pago = 'Pendiente'", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", id);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read())
+                {
+                    TempData["Error"] = "Factura no encontrada o ya pagada.";
+                    return RedirectToAction("MisFacturas");
+                }
+                total = Convert.ToDecimal(r["total"]);
+                iva = Convert.ToDecimal(r["iva"]);
+            }
+
+            string apiKey = _config["PayU:ApiKey"]!;
+            string merchantId = _config["PayU:MerchantId"]!;
+            string accountId = _config["PayU:AccountId"]!;
+            string reference = $"OB-{id}-{DateTime.Now:yyyyMMddHHmm}";
+            string amount = total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+            string currency = "COP";
+
+            string raw = $"{apiKey}~{merchantId}~{reference}~{amount}~{currency}";
+            string signature;
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(raw));
+                signature = string.Concat(hash.Select(b => b.ToString("x2")));
+            }
+
+            var vm = new PayUCheckoutViewModel
+            {
+                IdFactura = id,
+                Total = total,
+                Iva = iva,
+                Base = total - iva,
+                MerchantId = merchantId,
+                AccountId = accountId,
+                Description = $"Servicio de taller - Factura #{id}",
+                ReferenceCode = reference,
+                Amount = amount,
+                Tax = iva.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                TaxReturnBase = (total - iva).ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                Currency = currency,
+                Signature = signature,
+                Test = _config["PayU:Test"]!,
+                BuyerEmail = correo,
+                ResponseUrl = _config["PayU:ResponseUrl"]!,
+                ConfirmUrl = _config["PayU:ConfirmUrl"]!,
+                CheckoutUrl = _config["PayU:CheckoutUrl"]!
+            };
+
+            return View("~/Views/Cliente/PagarConPayU.cshtml", vm);
+        }
+
         // ── Helper: Auditoría ──────────────────────────────────────────────────
         private void RegistrarAuditoria(string accion)
         {
@@ -593,9 +723,9 @@ namespace Optimus_byte.Controllers
             return Json(new { ok });
         }
     }
-}
 
-public class VerificarContrasenaRequest
-{
-    public string Contrasena { get; set; } = "";
+    public class VerificarContrasenaRequest
+    {
+        public string Contrasena { get; set; } = "";
+    }
 }

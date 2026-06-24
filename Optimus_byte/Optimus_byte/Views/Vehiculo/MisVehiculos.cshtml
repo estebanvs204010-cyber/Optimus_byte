@@ -3,6 +3,7 @@
     Layout = null;
     var nombre = ViewBag.Nombre as string ?? "Cliente";
     var vehiculos = ViewBag.Vehiculos as List<dynamic> ?? new List<dynamic>();
+    var mensajeError = TempData["Error"] as string;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -198,7 +199,16 @@
             transition: var(--transicion);
             display: flex;
             align-items: center;
-            gap: 5px;
+        }
+
+        .modal-aviso-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
         }
 
             .vista-btn.active {
@@ -215,6 +225,54 @@
         .bg-green-soft {
             background: rgba(22,163,74,.08);
         }
+
+        .modal-aviso-caja {
+            background: #fff;
+            border-radius: 6px;
+            padding: 34px 30px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .modal-aviso-icono {
+            font-size: 2.4rem;
+            color: #dc2626;
+            margin-bottom: 14px;
+        }
+
+        .modal-aviso-titulo {
+            font-family: var(--fuente-titulo);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--marfil);
+            margin-bottom: 8px;
+        }
+
+        .modal-aviso-texto {
+            font-size: 0.86rem;
+            color: var(--texto-suave);
+            margin-bottom: 22px;
+            line-height: 1.5;
+        }
+
+        .modal-aviso-btn {
+            font-size: 0.78rem;
+            padding: 9px 26px;
+            border: none;
+            border-radius: 2px;
+            background: var(--dorado);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+            .modal-aviso-btn:hover {
+                opacity: 0.88;
+            }
     </style>
 </head>
 <body>
@@ -251,28 +309,30 @@
         {
             <div class="alerta alerta-ok mb-4"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
         }
-        @if (TempData["Error"] != null)
-        {
-            <div class="alerta alerta-err mb-4"><i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]</div>
-        }
 
         <!-- Stats -->
         <div class="stats-row">
             <div class="stat-card">
                 <div class="stat-icon bg-blue-soft"><i class="bi bi-car-front-fill text-primary"></i></div>
                 <div>
-                    <div class="stat-num">@vehiculos.Count</div>
-                    <div class="stat-label">Vehículos activos</div>
+                    <p class="section-title">Vehículos registrados</p>
+                    <p class="section-sub">@((vehiculos as IEnumerable<dynamic>)?.Count() ?? 0) vehículo(s) encontrado(s)</p>
+                </div>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div>
+                        <input type="text" id="buscarInput" name="q" class="input-buscar"
+                               placeholder="Buscar placa, marca…" oninput="filtrarTabla()"
+                               autocomplete="off" readonly
+                               onfocus="this.removeAttribute('readonly')" />
+                    </div>
+                    <a href="/Cliente/AgregarVehiculo" class="btn-agregar">
+                        <i class="bi bi-plus-lg"></i>Agregar
+                    </a>
+                    <a href="/Cliente/Portal" class="btn-volver">
+                        <i class="bi bi-arrow-left"></i>Volver
+                    </a>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon bg-green-soft"><i class="bi bi-shield-check text-success"></i></div>
-                <div>
-                    <div class="stat-num">Activos</div>
-                    <div class="stat-label">Estado de registro</div>
-                </div>
-            </div>
-        </div>
 
         <div class="panel-section">
             <div class="section-mini-header">
@@ -418,41 +478,53 @@
         </div>
     </main>
 
-    <!-- Modal verificación de contraseña -->
-    <div class="modal fade modal-mecanico" id="modalVerifEditar" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:12px;color:var(--texto)">
-                <div class="modal-header" style="border-bottom:1px solid var(--borde-input);">
-                    <h5 class="modal-title" style="font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--texto)">
-                        <i class="bi bi-shield-lock me-2" style="color:var(--dorado)"></i>Verificación
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p style="font-size:.82rem;color:var(--texto-suave);margin-bottom:14px">
-                        Ingresa tu contraseña para editar este vehículo.
-                    </p>
-                    <div class="field-group" style="margin-bottom:0">
-                        <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--texto-suave);font-weight:600;display:block;margin-bottom:6px">
-                            Contraseña actual
-                        </label>
-                        <input type="password" id="passEditarMis"
-                               class="input-custom"
-                               placeholder="Tu contraseña…"
-                               onkeydown="if(event.key==='Enter') confirmarVerifEditar()" />
-                        <p id="errorPassEditarMis" style="display:none;font-size:.75rem;color:#b91c1c;margin-top:6px">
-                            <i class="bi bi-exclamation-circle me-1"></i>Contraseña incorrecta
-                        </p>
-                    </div>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid var(--borde-input);">
-                    <button type="button" class="btn-volver" data-bs-dismiss="modal">Cancelar</button>
-                    <button id="btnConfirmarEditar" type="button"
-                            class="btn-guardar" onclick="confirmarVerifEditar()">
-                        <i class="bi bi-check-lg"></i><span>Confirmar</span>
-                    </button>
-                </div>
+        <div class="info-section">
+            <p class="info-title">Información del Taller</p>
+            <p class="info-sub">Contáctanos si necesitas agendar o tienes alguna duda</p>
+            <div class="info-grid">
+                <div class="info-item"><i class="bi bi-telephone-fill"></i><div class="info-item-txt"><strong>Teléfono</strong><span>+57 318 509 4530</span></div></div>
+                <div class="info-item"><i class="bi bi-envelope-fill"></i><div class="info-item-txt"><strong>Correo</strong><span>louisfonsea070&#64;gmail.com</span></div></div>
+                <div class="info-item"><i class="bi bi-clock-fill"></i><div class="info-item-txt"><strong>Horario</strong><span>Lun – Sáb · 8:00 am – 6:00 pm</span></div></div>
+                <div class="info-item"><i class="bi bi-geo-alt-fill"></i><div class="info-item-txt"><strong>Ubicación</strong><span>Colombia</span></div></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal verificación -->
+    <div id="modalVerifEditar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:4px;padding:32px;max-width:400px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+            <div style="font-size:1.8rem;margin-bottom:10px">🔐</div>
+            <p style="font-family:var(--fuente-titulo);font-size:1rem;font-weight:700;color:var(--marfil);margin-bottom:6px">Verificación de identidad</p>
+            <p style="font-size:0.83rem;color:var(--texto-suave);margin-bottom:18px">Ingresa tu contraseña para editar este vehículo.</p>
+
+            <input type="password" id="passEditarMis" placeholder="Tu contraseña..."
+                   style="width:100%;padding:9px 14px;font-size:0.88rem;border:1px solid var(--borde-input);border-radius:2px;outline:none;box-sizing:border-box"
+                   onkeydown="if(event.key==='Enter') confirmarVerifEditar()" />
+
+            <p id="errorPassEditarMis" style="display:none;font-size:0.75rem;color:#b91c1c;margin-top:6px">
+                <i class="bi bi-exclamation-circle me-1"></i>Contraseña incorrecta
+            </p>
+
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px">
+                <button onclick="cerrarVerificacion()"
+                        style="font-size:0.75rem;padding:8px 18px;border:1px solid var(--borde-input);border-radius:2px;background:transparent;color:var(--texto-suave);cursor:pointer">
+                    Cancelar
+                </button>
+                <button id="btnConfirmarEditar" onclick="confirmarVerifEditar()"
+                        style="font-size:0.75rem;padding:8px 18px;border:none;border-radius:2px;background:var(--dorado);color:#fff;cursor:pointer;font-weight:600">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de aviso (errores, ej. eliminación bloqueada) -->
+    <div id="modalAvisoVehiculo" class="modal-aviso-overlay">
+        <div class="modal-aviso-caja">
+            <div class="modal-aviso-icono"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <p class="modal-aviso-titulo">No se pudo completar la acción</p>
+            <p class="modal-aviso-texto" id="modalAvisoTexto"></p>
+            <button class="modal-aviso-btn" onclick="cerrarModalAviso()">Entendido</button>
         </div>
     </div>
 
@@ -526,6 +598,20 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-check-lg"></i><span>Confirmar</span>';
             }
+        }
+
+        function cerrarModalAviso() {
+            document.getElementById('modalAvisoVehiculo').style.display = 'none';
+        }
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+                <text>
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.getElementById('modalAvisoTexto').textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(mensajeError));
+                    document.getElementById('modalAvisoVehiculo').style.display = 'flex';
+                });
+                </text>
         }
     </script>
 </body>

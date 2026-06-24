@@ -314,7 +314,8 @@
 
 /* Imagen con zoom suave al hacer hover */
 .cat-card-img {
-    height: 120px;
+    background: linear-gradient(135deg, #e8edf5, #dde4f0);
+    height: 190px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -323,7 +324,15 @@
     transition: height 0.35s ease;
 }
 
-    .cat-card-img span {
+    .cat-card-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* llena el espacio */
+        object-position: center; /* centrada */
+        background: #fff; /* fondo blanco detrás de PNG transparentes */
+    }
+
+/*    .cat-card-img span {
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), filter 0.4s ease;
         display: inline-block;
     }
@@ -331,7 +340,7 @@
 .cat-card:hover .cat-card-img span {
     transform: scale(1.15);
     filter: drop-shadow(0 4px 12px rgba(37, 99, 235, 0.25));
-}
+}*/
 
 /* Animación del gradiente deslizante */
 @@keyframes slideGradient {

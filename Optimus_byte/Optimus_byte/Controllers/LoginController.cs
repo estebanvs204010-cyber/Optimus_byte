@@ -18,7 +18,8 @@ namespace Optimus_byte.Controllers
         public IActionResult Index(string? returnUrl)
         {
             if (HttpContext.Session.GetString("UsuarioId") != null)
-                return RedirigirPorRol(HttpContext.Session.GetString("UsuarioRol")!);
+                return RedirigirPorRol(HttpContext.Session.GetString("UsuarioRol")!, returnUrl);
+
             ViewBag.ReturnUrl = returnUrl;
             return View("~/Views/Login/Index.cshtml");
         }
@@ -29,13 +30,16 @@ namespace Optimus_byte.Controllers
         public IActionResult Index(LoginViewModel model, string? returnUrl)
         {
             if (!ModelState.IsValid)
+            {
+                ViewBag.ReturnUrl = returnUrl;
                 return View("~/Views/Login/Index.cshtml", model);
+            }
 
-            int    idUsuario    = 0;
+            int    idUsuario      = 0;
             string nombreCompleto = "";
             string contrasenaHash = "";
-            string nombreRol    = "";
-            bool   activo       = false;
+            string nombreRol      = "";
+            bool   activo         = false;
 
             // Buscar usuario con su rol
             using (var conn = _db.GetConnection())
@@ -49,18 +53,17 @@ namespace Optimus_byte.Controllers
                 using var reader = cmd.ExecuteReader();
                 if (reader.Read())
                 {
-                    idUsuario     = Convert.ToInt32(reader["id_usuario"]);
+                    idUsuario      = Convert.ToInt32(reader["id_usuario"]);
                     nombreCompleto = reader["nombre_completo"].ToString()!;
                     contrasenaHash = reader["contrasena_hash"].ToString()!;
-                    activo        = Convert.ToBoolean(reader["activo"]);
-                    nombreRol     = reader["nombre"].ToString()!;
+                    activo         = Convert.ToBoolean(reader["activo"]);
+                    nombreRol      = reader["nombre"].ToString()!;
                 }
             }
 
             // Validar credenciales
             if (idUsuario == 0 || !activo || !BC.Verify(model.Contrasena, contrasenaHash))
             {
-                // Registrar intento fallido
                 using (var conn = _db.GetConnection())
                 using (var cmd = new SqlCommand(
                     "INSERT INTO IntentosFallidos (correo, bloqueado) VALUES (@correo, 0)", conn))
@@ -70,6 +73,7 @@ namespace Optimus_byte.Controllers
                 }
 
                 ModelState.AddModelError("", "Correo o contraseña incorrectos.");
+                ViewBag.ReturnUrl = returnUrl;
                 return View("~/Views/Login/Index.cshtml", model);
             }
 
@@ -89,23 +93,26 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@modulo", "Autenticación");
                 cmd.ExecuteNonQuery();
             }
-            ViewBag.ReturnUrl = returnUrl;
+
             return RedirigirPorRol(nombreRol, returnUrl);
         }
 
         // Helper de redirección
         private IActionResult RedirigirPorRol(string rol, string? returnUrl = null)
         {
+            // Admin y Mecánico siempre van a su panel
+            if (rol == "Admin")
+                return RedirectToAction("Index", "Usuarios");
+
+            if (rol == "Mecanico")
+                return RedirectToAction("MisOrdenes", "Mecanico");
+
+            // Solo Cliente respeta el returnUrl
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
 
-            return rol switch
-            {
-                "Admin" => RedirectToAction("Index", "Usuarios"),
-                "Mecanico" => RedirectToAction("MisOrdenes", "Mecanico"),
-                "Cliente" => RedirectToAction("Portal", "Cliente"),
-                _ => RedirectToAction("Index", "Home")
-            };
+            // Cliente sin returnUrl va a su portal
+            return RedirectToAction("Portal", "Cliente");
         }
 
         // GET: /Login/Logout
