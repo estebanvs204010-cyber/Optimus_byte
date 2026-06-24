@@ -479,6 +479,52 @@ namespace Optimus_byte.Controllers
                     return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
                 }
 
+                var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "img", "Perfiles");
+                Directory.CreateDirectory(carpeta);
+
+                var nombreArchivo = $"{Guid.NewGuid()}{ext}";
+                var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
+
+                using var stream = new FileStream(rutaCompleta, FileMode.Create);
+                await vm.FotoArchivo.CopyToAsync(stream);
+
+                nuevaFotoUrl = $"/img/Perfiles/{nombreArchivo}";
+            }
+
+            // 3. Actualizar BD
+            using (var conn = _db.GetConnection())
+            {
+                // Usuarios: solo nombre y correo
+                using var cmdU = new SqlCommand(
+                    "UPDATE Usuarios SET nombre_completo = @nombre, correo = @correo WHERE id_usuario = @id",
+                    conn);
+                cmdU.Parameters.AddWithValue("@nombre", vm.NombreCompleto.Trim());
+                cmdU.Parameters.AddWithValue("@correo", vm.Correo.Trim().ToLower());
+                cmdU.Parameters.AddWithValue("@id", idUsuario);
+                cmdU.ExecuteNonQuery();
+
+                // Clientes: teléfono, dirección y foto (si hay nueva)
+                var sqlCliente = nuevaFotoUrl != null
+                    ? "UPDATE Clientes SET telefono = @tel, direccion = @dir, foto_url = @foto WHERE id_usuario = @id"
+                    : "UPDATE Clientes SET telefono = @tel, direccion = @dir WHERE id_usuario = @id";
+
+                using var cmdC = new SqlCommand(sqlCliente, conn);
+                cmdC.Parameters.AddWithValue("@tel", vm.Telefono.Trim());
+                cmdC.Parameters.AddWithValue("@dir", vm.Direccion.Trim());
+                if (nuevaFotoUrl != null)
+                    cmdC.Parameters.AddWithValue("@foto", nuevaFotoUrl);
+                cmdC.Parameters.AddWithValue("@id", idUsuario);
+                cmdC.ExecuteNonQuery();
+            }
+
+            // 4. Actualizar nombre en sesión
+            HttpContext.Session.SetString("UsuarioNombre", vm.NombreCompleto.Trim());
+
+            RegistrarAuditoria("Actualizó su perfil");
+            TempData["Exito"] = "Perfil actualizado correctamente.";
+            return RedirectToAction("EditarPerfil");
+        }
+
         // Mis Facturas
         public IActionResult MisFacturas()
         {
@@ -579,51 +625,6 @@ namespace Optimus_byte.Controllers
 
             return View("~/Views/Cliente/PagarConPayU.cshtml", vm);
         }
-                var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "img", "Perfiles");
-                Directory.CreateDirectory(carpeta);
-
-                var nombreArchivo = $"{Guid.NewGuid()}{ext}";
-                var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
-
-                using var stream = new FileStream(rutaCompleta, FileMode.Create);
-                await vm.FotoArchivo.CopyToAsync(stream);
-
-                nuevaFotoUrl = $"/img/Perfiles/{nombreArchivo}";
-            }
-
-            // 3. Actualizar BD
-            using (var conn = _db.GetConnection())
-            {
-                // Usuarios: solo nombre y correo
-                using var cmdU = new SqlCommand(
-                    "UPDATE Usuarios SET nombre_completo = @nombre, correo = @correo WHERE id_usuario = @id",
-                    conn);
-                cmdU.Parameters.AddWithValue("@nombre", vm.NombreCompleto.Trim());
-                cmdU.Parameters.AddWithValue("@correo", vm.Correo.Trim().ToLower());
-                cmdU.Parameters.AddWithValue("@id", idUsuario);
-                cmdU.ExecuteNonQuery();
-
-                // Clientes: teléfono, dirección y foto (si hay nueva)
-                var sqlCliente = nuevaFotoUrl != null
-                    ? "UPDATE Clientes SET telefono = @tel, direccion = @dir, foto_url = @foto WHERE id_usuario = @id"
-                    : "UPDATE Clientes SET telefono = @tel, direccion = @dir WHERE id_usuario = @id";
-
-                using var cmdC = new SqlCommand(sqlCliente, conn);
-                cmdC.Parameters.AddWithValue("@tel", vm.Telefono.Trim());
-                cmdC.Parameters.AddWithValue("@dir", vm.Direccion.Trim());
-                if (nuevaFotoUrl != null)
-                    cmdC.Parameters.AddWithValue("@foto", nuevaFotoUrl);
-                cmdC.Parameters.AddWithValue("@id", idUsuario);
-                cmdC.ExecuteNonQuery();
-            }
-
-            // 4. Actualizar nombre en sesión
-            HttpContext.Session.SetString("UsuarioNombre", vm.NombreCompleto.Trim());
-
-            RegistrarAuditoria("Actualizó su perfil");
-            TempData["Exito"] = "Perfil actualizado correctamente.";
-            return RedirectToAction("EditarPerfil");
-        }
 
         // ── Helper: Auditoría ──────────────────────────────────────────────────
         private void RegistrarAuditoria(string accion)
@@ -659,9 +660,9 @@ namespace Optimus_byte.Controllers
             return Json(new { ok });
         }
     }
-}
 
-public class VerificarContrasenaRequest
-{
-    public string Contrasena { get; set; } = "";
+    public class VerificarContrasenaRequest
+    {
+        public string Contrasena { get; set; } = "";
+    }
 }

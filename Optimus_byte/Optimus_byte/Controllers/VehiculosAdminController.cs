@@ -1,20 +1,21 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Optimus_byte.DATA;
 using Optimus_byte.Models.ViewModels;
+using Optimus_byte.Services;
 
 namespace Optimus_byte.Controllers
 {
     public class VehiculosAdminController : Controller
     {
-      private readonly DbHelper _db;
-private readonly CorreoService _correoService;
+        private readonly DbHelper _db;
+        private readonly EmailService _correoService;
 
-public VehiculosAdminController(DbHelper db, CorreoService correoService)
-{
-    _db = db;
-    _correoService = correoService;
-}
+        public VehiculosAdminController(DbHelper db, EmailService correoService)
+        {
+            _db = db;
+            _correoService = correoService;
+        }
         private bool EsAdmin() =>
             HttpContext.Session.GetString("UsuarioRol") == "Admin";
 
@@ -270,7 +271,7 @@ public VehiculosAdminController(DbHelper db, CorreoService correoService)
 
             try
             {
-                await _correoService.EnviarCorreoAsync(correo, asunto, cuerpo);
+                await _correoService.EnviarCorreoAsync(correo, cliente ?? "", asunto, cuerpo);
 
                 using var cmdInsert = new SqlCommand(@"
                 INSERT INTO RecordatoriosMantenimiento

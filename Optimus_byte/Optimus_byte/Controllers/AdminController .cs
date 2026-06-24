@@ -13,12 +13,15 @@ namespace Optimus_byte.Controllers
         private readonly DbHelper _db;
         private readonly EmailService _email;
         private readonly IConfiguration _config;
-public AdminController(DbHelper db, EmailService email, IConfiguration config)
-{
-    _db = db;
-    _email = email;
-    _config = config;
-}
+        private readonly IWebHostEnvironment _env;
+
+        public AdminController(DbHelper db, EmailService email, IConfiguration config, IWebHostEnvironment env)
+        {
+            _db = db;
+            _email = email;
+            _config = config;
+            _env = env;
+        }
 
 
         private bool EsAdmin() =>
@@ -1611,7 +1614,7 @@ public AdminController(DbHelper db, EmailService email, IConfiguration config)
                 using var cmd = new SqlCommand(@"
                     SELECT id_repuesto, nombre, referencia, stock_actual, stock_minimo
                     FROM Repuestos
-                    WHERE activo == 1 AND stock_actual < stock_minimo
+                    WHERE activo = 1 AND stock_actual < stock_minimo
                     ORDER BY stock_actual ASC", conn);
                 using var r = cmd.ExecuteReader();  
                 while (r.Read())
