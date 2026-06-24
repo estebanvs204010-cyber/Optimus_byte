@@ -3,7 +3,6 @@
     ViewData["Title"] = "Mi Perfil";
     Layout = null;
     var nombre = ViewBag.Nombre as string ?? "Cliente";
-    var inicial = nombre.Length > 0 ? nombre[0].ToString().ToUpper() : "C";
     var fotoUrl = Model.FotoUrl;
 }
 <!DOCTYPE html>
@@ -16,30 +15,27 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/Portal.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
     <style>
-        /* ── Layout general ──────────────────────────────────────────── */
+        /* ── Perfil card ── */
         .perfil-wrap {
-            max-width: 820px;
-            margin: 0 auto 48px;
+            max-width: 860px;
         }
 
-        /* ── Tarjeta de avatar + foto ────────────────────────────────── */
         .foto-card {
-            background: #fff;
+            background: #ffffff;
             border: 1px solid var(--borde-input);
-            border-radius: 4px;
-            padding: 32px 28px;
-            box-shadow: 0 2px 12px rgba(37,99,235,0.06);
+            border-radius: 8px;
+            padding: 28px 24px;
             display: flex;
             align-items: center;
-            gap: 28px;
+            gap: 24px;
             margin-bottom: 20px;
         }
 
         .foto-avatar {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid var(--dorado);
@@ -47,33 +43,33 @@
         }
 
         .foto-initials {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
-            background: var(--dorado);
-            color: #fff;
-            font-size: 2.2rem;
-            font-weight: 700;
+            background: var(--dorado-suave);
+            border: 3px solid var(--dorado);
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
             font-family: var(--fuente-titulo);
-            border: 3px solid var(--dorado);
+            font-size: 2rem;
+            color: var(--dorado);
+            font-weight: 700;
+            flex-shrink: 0;
         }
 
         .foto-info h3 {
             font-family: var(--fuente-titulo);
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: 400;
-            color: var(--marfil);
+            color: var(--texto);
             margin-bottom: 4px;
         }
 
         .foto-info p {
             font-size: 0.78rem;
             color: var(--texto-suave);
-            margin: 0 0 12px;
+            margin: 0 0 14px;
         }
 
         .foto-upload-label {
@@ -87,56 +83,57 @@
             color: var(--dorado);
             border: 1px solid var(--borde-input);
             padding: 7px 14px;
-            border-radius: 2px;
+            border-radius: 4px;
             cursor: pointer;
             transition: var(--transicion);
         }
 
-        .foto-upload-label:hover {
-            background: var(--dorado-suave);
+            .foto-upload-label:hover {
+                background: var(--dorado-suave);
+            }
+
+        #fotoInput {
+            display: none;
         }
 
-        #fotoInput { display: none; }
-
-        .foto-preview-hint {
+        .foto-hint {
             font-size: 0.68rem;
             color: var(--texto-suave);
             margin-top: 6px;
             font-style: italic;
         }
 
-        /* ── Tarjeta de formulario ───────────────────────────────────── */
-        .form-card {
-            background: #fff;
+        /* ── Tarjetas de sección ── */
+        .form-section {
+            background: #ffffff;
             border: 1px solid var(--borde-input);
-            border-radius: 4px;
-            padding: 32px 28px;
-            box-shadow: 0 2px 12px rgba(37,99,235,0.06);
+            border-radius: 8px;
+            padding: 28px 24px;
             margin-bottom: 20px;
         }
 
-        .section-title {
+        .form-section-title {
             font-size: 0.65rem;
             letter-spacing: 0.14em;
             text-transform: uppercase;
             font-weight: 700;
             color: var(--dorado);
-            margin-bottom: 18px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .section-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--borde-input);
-        }
+            .form-section-title::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: var(--borde-input);
+            }
 
         .form-label-custom {
             font-size: 0.72rem;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--texto-suave);
             font-weight: 600;
@@ -144,52 +141,29 @@
             display: block;
         }
 
-        .input-custom {
-            width: 100%;
-            padding: 9px 14px;
-            font-size: 0.88rem;
-            border: 1px solid var(--borde-input);
-            border-radius: 2px;
-            background: var(--grafito-med);
-            color: var(--texto-claro);
-            outline: none;
-            transition: var(--transicion);
-        }
-
-        .input-custom:focus {
-            border-color: var(--dorado);
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.07);
-        }
-
-        .input-custom:disabled,
-        .input-readonly {
-            opacity: 0.55;
-            cursor: not-allowed;
-            background: var(--grafito-med);
-        }
-
-        .field-group { margin-bottom: 18px; }
-
         .readonly-badge {
-            font-size: 0.62rem;
+            font-size: 0.6rem;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            background: rgba(100,116,139,0.12);
+            background: rgba(100,116,139,0.10);
             color: var(--texto-suave);
-            border-radius: 2px;
+            border-radius: 3px;
             padding: 2px 7px;
             margin-left: 8px;
             vertical-align: middle;
         }
 
-        /* ── Sección de contraseña de confirmación ───────────────────── */
+        .field-group {
+            margin-bottom: 18px;
+        }
+
+        /* ── Confirm card ── */
         .confirm-card {
-            background: rgba(37,99,235,0.04);
-            border: 1px solid rgba(37,99,235,0.15);
+            background: var(--dorado-suave);
+            border: 1px solid rgba(37,99,235,0.18);
             border-left: 3px solid var(--dorado);
-            border-radius: 4px;
-            padding: 22px 28px;
+            border-radius: 8px;
+            padding: 22px 24px;
             margin-bottom: 20px;
         }
 
@@ -208,17 +182,18 @@
         .confirm-desc {
             font-size: 0.78rem;
             color: var(--texto-suave);
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
 
+        /* ── Pass wrap ── */
         .pass-wrap {
             position: relative;
-            max-width: 360px;
+            max-width: 380px;
         }
 
-        .pass-wrap .input-custom {
-            padding-right: 44px;
-        }
+            .pass-wrap .input-custom {
+                padding-right: 44px;
+            }
 
         .toggle-pass {
             position: absolute;
@@ -231,19 +206,20 @@
             cursor: pointer;
             font-size: 1rem;
             padding: 0;
-            line-height: 1;
         }
 
-        .toggle-pass:hover { color: var(--dorado); }
+            .toggle-pass:hover {
+                color: var(--dorado);
+            }
 
-        /* ── Alertas ─────────────────────────────────────────────────── */
-        .alerta-err {
-            background: rgba(220,38,38,0.07);
+        /* ── Alertas ── */
+        .alerta-perfil-err {
+            background: rgba(220,38,38,0.06);
             border: 1px solid rgba(220,38,38,0.2);
             border-left: 3px solid #dc2626;
             color: #b91c1c;
             padding: 12px 16px;
-            border-radius: 2px;
+            border-radius: 4px;
             font-size: 0.83rem;
             margin-bottom: 20px;
             display: flex;
@@ -251,13 +227,13 @@
             gap: 8px;
         }
 
-        .alerta-ok {
-            background: rgba(22,163,74,0.07);
+        .alerta-perfil-ok {
+            background: rgba(22,163,74,0.06);
             border: 1px solid rgba(22,163,74,0.2);
             border-left: 3px solid #16a34a;
             color: #15803d;
             padding: 12px 16px;
-            border-radius: 2px;
+            border-radius: 4px;
             font-size: 0.83rem;
             margin-bottom: 20px;
             display: flex;
@@ -265,51 +241,7 @@
             gap: 8px;
         }
 
-        /* ── Botones ─────────────────────────────────────────────────── */
-        .btn-guardar {
-            font-size: 0.72rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: #fff;
-            background: var(--dorado);
-            border: none;
-            padding: 10px 28px;
-            border-radius: 2px;
-            cursor: pointer;
-            transition: var(--transicion);
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .btn-guardar:hover { opacity: 0.85; }
-
-        .btn-guardar:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-cancelar {
-            font-size: 0.72rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--dorado);
-            text-decoration: none;
-            border: 1px solid var(--borde-input);
-            padding: 9px 16px;
-            border-radius: 2px;
-            transition: var(--transicion);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-cancelar:hover {
-            background: var(--dorado-suave);
-            color: var(--dorado);
-        }
-
-        /* ── Spinner de carga ────────────────────────────────────────── */
+        /* ── Spinner ── */
         .spinner-overlay {
             display: none;
             position: fixed;
@@ -322,221 +254,260 @@
             gap: 14px;
         }
 
-        .spinner-overlay.visible {
-            display: flex;
-        }
+            .spinner-overlay.visible {
+                display: flex;
+            }
 
-        .spinner-overlay p {
-            color: #fff;
-            font-size: 0.82rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin: 0;
-        }
+            .spinner-overlay p {
+                color: #fff;
+                font-size: 0.82rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                margin: 0;
+            }
     </style>
 </head>
 <body>
+
     <!-- Topbar -->
-    <div class="topbar">
+    <div class="admin-topbar">
         <div class="d-flex align-items-center gap-3">
             <span class="brand">⚙ OPTIMUS-BYTE</span>
-            <span class="badge-rol">Cliente</span>
+            <span class="badge-admin">Cliente</span>
         </div>
         <div class="d-flex align-items-center gap-3">
-            <span class="user-name"><i class="bi bi-person-circle me-1"></i>@nombre</span>
+            <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@nombre</span>
             <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
         </div>
     </div>
 
-    <div class="page">
-        <!-- Sidebar -->
-        @await Html.PartialAsync("_SidebarPartial")
+    <!-- Sidebar -->
+    @await Html.PartialAsync("~/Views/Shared/_ClienteSidebar.cshtml")
 
-        <!-- Contenido principal -->
-        <main class="content-area">
-            <!-- Barra de bienvenida -->
-            <div class="welcome-bar">
-                <div class="avatar">@inicial</div>
-                <div class="welcome-txt">
-                    <h2>Mi Perfil</h2>
-                    <p>Mantén tus datos actualizados para una mejor atención.</p>
+    <!-- Contenido -->
+    <main class="admin-content">
+
+        <div class="section-header">
+            <div>
+                <h1 class="section-title">Mi Perfil</h1>
+                <p class="section-sub">Mantén tus datos actualizados para una mejor atención</p>
+            </div>
+        </div>
+
+        <div class="perfil-wrap">
+
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <div class="alerta-perfil-err">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    @Model.Error
                 </div>
-            </div>
+            }
+            @if (TempData["Exito"] != null)
+            {
+                <div class="alerta-perfil-ok">
+                    <i class="bi bi-check-circle-fill"></i>
+                    @TempData["Exito"]
+                </div>
+            }
 
-            <div class="perfil-wrap">
+            <form asp-controller="Cliente" asp-action="EditarPerfil"
+                  method="post" enctype="multipart/form-data"
+                  id="formPerfil" autocomplete="off">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="IdUsuario" />
+                <input type="hidden" asp-for="IdCliente" />
+                <input type="hidden" asp-for="TipoDocumento" />
+                <input type="hidden" asp-for="NumeroDocumento" />
+                <input type="hidden" asp-for="FotoUrl" />
 
-                <!-- ── Alertas globales ─────────────────────────────────── -->
-                @if (!string.IsNullOrEmpty(Model.Error))
-                {
-                    <div class="alerta-err">
-                        <i class="bi bi-exclamation-circle-fill"></i>
-                        @Model.Error
+                <!-- Foto de perfil -->
+                <div class="foto-card">
+                    <div id="avatarContainer">
+                        @if (!string.IsNullOrEmpty(fotoUrl))
+                        {
+                            <img id="fotoPreview" src="@fotoUrl" alt="Foto de perfil" class="foto-avatar" />
+                        }
+                        else
+                        {
+                            <img src="~/img/defaults/Default.png" alt="Foto de perfil" class="foto-avatar" />
+                        }
                     </div>
-                }
-                @if (TempData["Exito"] != null)
-                {
-                    <div class="alerta-ok">
-                        <i class="bi bi-check-circle-fill"></i>
-                        @TempData["Exito"]
+
+                    <div class="foto-info">
+                        <h3>@nombre</h3>
+                        <p>@Model.TipoDocumento · @Model.NumeroDocumento</p>
+                        <label class="foto-upload-label" for="fotoInput">
+                            <i class="bi bi-camera-fill"></i> Cambiar foto
+                        </label>
+                        <input type="file" id="fotoInput" name="FotoArchivo"
+                               accept=".jpg,.jpeg,.png,.webp" />
+                        <p class="foto-hint" id="fotoHint">JPG, PNG o WEBP · máx. 2 MB</p>
                     </div>
-                }
+                </div>
 
-                <form asp-controller="Cliente" asp-action="EditarPerfil"
-                      method="post" enctype="multipart/form-data"
-                      id="formPerfil" autocomplete="off">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" asp-for="IdUsuario" />
-                    <input type="hidden" asp-for="IdCliente" />
-                    <input type="hidden" asp-for="TipoDocumento" />
-                    <input type="hidden" asp-for="NumeroDocumento" />
-                    <input type="hidden" asp-for="FotoUrl" />
-                    <input asp-for="NuevaContrasena" type="password" />
-                    <input asp-for="ConfirmarNuevaContrasena" type="password" />
+                <!-- Datos personales -->
+                <div class="form-section">
+                    <p class="form-section-title"><i class="bi bi-person-fill"></i> Datos personales</p>
 
-                    <!-- ── Foto de perfil ──────────────────────────────────── -->
-                    <div class="foto-card">
-                        <!-- Avatar (foto o iniciales) -->
-                        <div id="avatarContainer">
-                            @if (!string.IsNullOrEmpty(fotoUrl))
-                            {
-                                <img id="fotoPreview" src="@fotoUrl" alt="Foto de perfil" class="foto-avatar" />
-                            }
-                            else
-                            {
-                                <img src="~/img/defaults/Default.png" alt="Foto de perfil" class="foto-avatar" />
-                            }
+                    <div class="row g-3">
+                        <div class="col-md-6 field-group">
+                            <label class="form-label-custom">Nombre completo *</label>
+                            <input asp-for="NombreCompleto" class="input-custom"
+                                   placeholder="Tu nombre completo" />
+                            <span asp-validation-for="NombreCompleto"
+                                  class="text-danger" style="font-size:0.75rem"></span>
                         </div>
 
-                        <div class="foto-info">
-                            <h3>@nombre</h3>
-                            <p>@Model.TipoDocumento · @Model.NumeroDocumento</p>
+                        <div class="col-md-6 field-group">
+                            <label class="form-label-custom">Correo electrónico *</label>
+                            <input asp-for="Correo" type="email" class="input-custom"
+                                   placeholder="correo@ejemplo.com" />
+                            <span asp-validation-for="Correo"
+                                  class="text-danger" style="font-size:0.75rem"></span>
+                        </div>
 
-                            <label class="foto-upload-label" for="fotoInput">
-                                <i class="bi bi-camera-fill"></i>
-                                Cambiar foto
+                        <div class="col-md-6 field-group">
+                            <label class="form-label-custom">Teléfono *</label>
+                            <input asp-for="Telefono" type="tel" class="input-custom"
+                                   placeholder="Ej: 3001234567" />
+                            <span asp-validation-for="Telefono"
+                                  class="text-danger" style="font-size:0.75rem"></span>
+                        </div>
+
+                        <div class="col-md-6 field-group">
+                            <label class="form-label-custom">Dirección *</label>
+                            <input asp-for="Direccion" class="input-custom"
+                                   placeholder="Calle, barrio, ciudad" />
+                            <span asp-validation-for="Direccion"
+                                  class="text-danger" style="font-size:0.75rem"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Identificación (solo lectura) -->
+                <div class="form-section">
+                    <p class="form-section-title">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        Identificación
+                        <span class="readonly-badge">No editable</span>
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-md-4 field-group">
+                            <label class="form-label-custom">Tipo de documento</label>
+                            <input value="@Model.TipoDocumento" class="input-custom" disabled />
+                        </div>
+                        <div class="col-md-8 field-group">
+                            <label class="form-label-custom">Número de documento</label>
+                            <input value="@Model.NumeroDocumento" class="input-custom" disabled />
+                        </div>
+                    </div>
+
+                    <p style="font-size:0.72rem;color:var(--texto-suave);margin:0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Para modificar tu documento comunícate con el administrador del taller.
+                    </p>
+                </div>
+
+                <!-- Cambiar contraseña -->
+                <div class="form-section">
+                    <p class="form-section-title">
+                        <i class="bi bi-key-fill"></i> Cambiar contraseña
+                    </p>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch d-inline-flex align-items-center gap-2">
+                            <input class="form-check-input" type="checkbox" id="toggleCambioPass"
+                                   style="width:2.4em;height:1.3em;cursor:pointer;" />
+                            <label class="form-check-label" for="toggleCambioPass"
+                                   style="font-size:0.78rem;color:var(--texto-suave);cursor:pointer;">
+                                Quiero cambiar mi contraseña
                             </label>
-                            <input type="file" id="fotoInput" name="FotoArchivo"
-                                   accept=".jpg,.jpeg,.png,.webp" />
-                            <p class="foto-preview-hint" id="fotoHint">
-                                JPG, PNG o WEBP · máx. 2 MB
-                            </p>
                         </div>
                     </div>
 
-                    <!-- ── Datos personales ────────────────────────────────── -->
-                    <div class="form-card">
-                        <p class="section-title"><i class="bi bi-person-fill"></i> Datos personales</p>
-
+                    <div id="panelCambioPass" style="display:none;">
                         <div class="row g-3">
                             <div class="col-md-6 field-group">
-                                <label class="form-label-custom">Nombre completo *</label>
-                                <input asp-for="NombreCompleto" class="input-custom"
-                                       placeholder="Tu nombre completo" />
-                                <span asp-validation-for="NombreCompleto"
+                                <label class="form-label-custom">Nueva contraseña</label>
+                                <div class="pass-wrap">
+                                    <input asp-for="NuevaContrasena" type="password"
+                                           id="inputNuevaPass" class="input-custom"
+                                           placeholder="Mínimo 6 caracteres"
+                                           autocomplete="new-password" />
+                                    <button type="button" class="toggle-pass"
+                                            onclick="toggleVisPass('inputNuevaPass','iconNuevaPass')">
+                                        <i class="bi bi-eye" id="iconNuevaPass"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="NuevaContrasena"
                                       class="text-danger" style="font-size:0.75rem"></span>
                             </div>
 
                             <div class="col-md-6 field-group">
-                                <label class="form-label-custom">
-                                    Correo electrónico *
-                                </label>
-                                <input asp-for="Correo" type="email" class="input-custom"
-                                       placeholder="correo@ejemplo.com" />
-                                <span asp-validation-for="Correo"
+                                <label class="form-label-custom">Confirmar nueva contraseña</label>
+                                <div class="pass-wrap">
+                                    <input asp-for="ConfirmarNuevaContrasena" type="password"
+                                           id="inputConfirmPass" class="input-custom"
+                                           placeholder="Repite la nueva contraseña"
+                                           autocomplete="new-password" />
+                                    <button type="button" class="toggle-pass"
+                                            onclick="toggleVisPass('inputConfirmPass','iconConfirmPass')">
+                                        <i class="bi bi-eye" id="iconConfirmPass"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="ConfirmarNuevaContrasena"
                                       class="text-danger" style="font-size:0.75rem"></span>
-                            </div>
-
-                            <div class="col-md-6 field-group">
-                                <label class="form-label-custom">Teléfono *</label>
-                                <input asp-for="Telefono" type="tel" class="input-custom"
-                                       placeholder="Ej: 3001234567" />
-                                <span asp-validation-for="Telefono"
-                                      class="text-danger" style="font-size:0.75rem"></span>
-                            </div>
-
-                            <div class="col-md-6 field-group">
-                                <label class="form-label-custom">Dirección *</label>
-                                <input asp-for="Direccion" class="input-custom"
-                                       placeholder="Calle, barrio, ciudad" />
-                                <span asp-validation-for="Direccion"
-                                      class="text-danger" style="font-size:0.75rem"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ── Identificación (solo lectura) ───────────────────── -->
-                    <div class="form-card">
-                        <p class="section-title">
-                            <i class="bi bi-shield-lock-fill"></i>
-                            Identificación
-                            <span class="readonly-badge">No editable</span>
-                        </p>
-
-                        <div class="row g-3">
-                            <div class="col-md-4 field-group">
-                                <label class="form-label-custom">Tipo de documento</label>
-                                <input value="@Model.TipoDocumento"
-                                       class="input-custom input-readonly"
-                                       disabled />
-                            </div>
-                            <div class="col-md-8 field-group">
-                                <label class="form-label-custom">Número de documento</label>
-                                <input value="@Model.NumeroDocumento"
-                                       class="input-custom input-readonly"
-                                       disabled />
+                                <p id="passMatchMsg" style="font-size:0.75rem;margin-top:4px;display:none;"></p>
                             </div>
                         </div>
 
-                        <p style="font-size:0.72rem;color:var(--texto-suave);margin:0">
+                        <p style="font-size:0.72rem;color:var(--texto-suave);margin-top:4px;">
                             <i class="bi bi-info-circle me-1"></i>
-                            Para modificar tu documento de identidad comunícate con el administrador del taller.
+                            Deja estos campos vacíos si no deseas cambiar tu contraseña.
                         </p>
                     </div>
+                </div>
 
-                    <!-- ── Confirmación de contraseña ──────────────────────── -->
-                    <div class="confirm-card">
-                        <p class="confirm-title">
-                            <i class="bi bi-lock-fill"></i>
-                            Confirmar cambios
-                        </p>
-                        <p class="confirm-desc">
-                            Por seguridad, ingresa tu contraseña actual para guardar cualquier modificación.
-                        </p>
-
-                        <div class="pass-wrap">
-                            <input asp-for="ContrasenaActual"
-                                   type="password"
-                                   id="inputContrasena"
-                                   class="input-custom"
-                                   placeholder="Tu contraseña actual"
-                                   autocomplete="current-password" />
-                            <button type="button" class="toggle-pass" id="togglePass"
-                                    aria-label="Mostrar/ocultar contraseña">
-                                <i class="bi bi-eye" id="iconPass"></i>
-                            </button>
-                        </div>
-                        <span asp-validation-for="ContrasenaActual"
-                              class="text-danger" style="font-size:0.75rem;display:block;margin-top:4px"></span>
-                    </div>
-
-                    <!-- ── Botones de acción ───────────────────────────────── -->
-                    <div class="d-flex align-items-center gap-3">
-                        <button type="submit" class="btn-guardar" id="btnGuardar">
-                            <i class="bi bi-check-lg"></i>
-                            Guardar cambios
+                <!-- Confirmar con contraseña actual -->
+                <div class="confirm-card">
+                    <p class="confirm-title">
+                        <i class="bi bi-lock-fill"></i> Confirmar cambios
+                    </p>
+                    <p class="confirm-desc">
+                        Por seguridad, ingresa tu contraseña actual para guardar cualquier modificación.
+                    </p>
+                    <div class="pass-wrap">
+                        <input asp-for="ContrasenaActual" type="password"
+                               id="inputContrasena" class="input-custom"
+                               placeholder="Tu contraseña actual"
+                               autocomplete="current-password" />
+                        <button type="button" class="toggle-pass" id="togglePass">
+                            <i class="bi bi-eye" id="iconPass"></i>
                         </button>
-                        <a href="/Cliente/Portal" class="btn-cancelar">
-                            <i class="bi bi-arrow-left"></i>
-                            Cancelar
-                        </a>
                     </div>
+                    <span asp-validation-for="ContrasenaActual"
+                          class="text-danger" style="font-size:0.75rem;display:block;margin-top:4px"></span>
+                </div>
 
-                </form>
-            </div>
-        </main>
-    </div>
+                <!-- Botones -->
+                <div class="d-flex align-items-center gap-3">
+                    <button type="submit" class="btn-guardar" id="btnGuardar">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Guardar cambios</span>
+                    </button>
+                    <a href="/Cliente/Portal" class="btn-volver">
+                        <i class="bi bi-arrow-left me-1"></i>Cancelar
+                    </a>
+                </div>
 
-    <!-- Spinner de guardado -->
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Spinner -->
     <div class="spinner-overlay" id="spinnerOverlay">
         <div class="spinner-border text-light" role="status" style="width:3rem;height:3rem;"></div>
         <p>Guardando cambios…</p>
@@ -545,66 +516,94 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     @await Html.PartialAsync("_ValidationScriptsPartial")
     <script>
-        // ── Preview de foto ───────────────────────────────────────────────────
-        const fotoInput   = document.getElementById('fotoInput');
-        const fotoPreview = document.getElementById('fotoPreview');
-        const fotoHint    = document.getElementById('fotoHint');
-
-        fotoInput.addEventListener('change', function () {
+        // ── Preview foto ──────────────────────────────────────────
+        document.getElementById('fotoInput').addEventListener('change', function () {
             const file = this.files[0];
             if (!file) return;
-
-            const maxMB = 2;
-            if (file.size > maxMB * 1024 * 1024) {
-                fotoHint.textContent = '⚠ La imagen supera los 2 MB.';
-                fotoHint.style.color = '#dc2626';
+            const hint = document.getElementById('fotoHint');
+            if (file.size > 2 * 1024 * 1024) {
+                hint.textContent = '⚠ La imagen supera los 2 MB.';
+                hint.style.color = '#dc2626';
                 this.value = '';
                 return;
             }
-
             const ext = file.name.split('.').pop().toLowerCase();
             if (!['jpg','jpeg','png','webp'].includes(ext)) {
-                fotoHint.textContent = '⚠ Formato no permitido. Usa JPG, PNG o WEBP.';
-                fotoHint.style.color = '#dc2626';
+                hint.textContent = '⚠ Formato no permitido. Usa JPG, PNG o WEBP.';
+                hint.style.color = '#dc2626';
                 this.value = '';
                 return;
             }
-
             const reader = new FileReader();
             reader.onload = (e) => {
-                // Reemplazar el elemento de previsualización
                 const container = document.getElementById('avatarContainer');
                 let img = container.querySelector('img');
                 if (!img) {
                     img = document.createElement('img');
-                    img.id        = 'fotoPreview';
-                    img.alt       = 'Foto de perfil';
                     img.className = 'foto-avatar';
+                    img.alt = 'Foto de perfil';
                     container.innerHTML = '';
                     container.appendChild(img);
                 }
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
-
-            fotoHint.textContent = `Foto seleccionada: ${file.name}`;
-            fotoHint.style.color = '';
+            hint.textContent = `Foto seleccionada: ${file.name}`;
+            hint.style.color = '';
         });
 
-        // ── Mostrar/ocultar contraseña ────────────────────────────────────────
-        document.getElementById('togglePass').addEventListener('click', function () {
-            const input = document.getElementById('inputContrasena');
-            const icon  = document.getElementById('iconPass');
+        // ── Toggle contraseña ─────────────────────────────────────
+        function toggleVisPass(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon  = document.getElementById(iconId);
             if (input.type === 'password') {
-                input.type  = 'text';
+                input.type = 'text';
                 icon.className = 'bi bi-eye-slash';
             } else {
-                input.type  = 'password';
+                input.type = 'password';
                 icon.className = 'bi bi-eye';
+            }
+        }
+
+        document.getElementById('togglePass').addEventListener('click', function () {
+            toggleVisPass('inputContrasena', 'iconPass');
+        });
+
+        // ── Panel cambio de contraseña ────────────────────────────
+        const chkCambio  = document.getElementById('toggleCambioPass');
+        const panelCambio = document.getElementById('panelCambioPass');
+        const inputNueva = document.getElementById('inputNuevaPass');
+        const inputConf  = document.getElementById('inputConfirmPass');
+
+        chkCambio.addEventListener('change', function () {
+            panelCambio.style.display = this.checked ? 'block' : 'none';
+            if (!this.checked) {
+                inputNueva.value = '';
+                inputConf.value  = '';
+                document.getElementById('passMatchMsg').style.display = 'none';
             }
         });
 
-        // ── Spinner al enviar ─────────────────────────────────────────────────
+        function checkPassMatch() {
+            const msg = document.getElementById('passMatchMsg');
+            if (!chkCambio.checked || inputConf.value === '') {
+                msg.style.display = 'none';
+                return;
+            }
+            if (inputNueva.value === inputConf.value) {
+                msg.textContent = '✓ Las contraseñas coinciden';
+                msg.style.color = '#16a34a';
+            } else {
+                msg.textContent = '✗ Las contraseñas no coinciden';
+                msg.style.color = '#dc2626';
+            }
+            msg.style.display = 'block';
+        }
+
+        inputNueva.addEventListener('input', checkPassMatch);
+        inputConf.addEventListener('input', checkPassMatch);
+
+        // ── Spinner al enviar ─────────────────────────────────────
         document.getElementById('formPerfil').addEventListener('submit', function () {
             const pass = document.getElementById('inputContrasena').value.trim();
             if (pass.length > 0) {

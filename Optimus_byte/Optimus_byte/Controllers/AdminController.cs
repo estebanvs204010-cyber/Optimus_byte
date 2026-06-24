@@ -783,12 +783,12 @@ namespace Optimus_byte.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GuardarRepuesto(
-    int? idRepuesto, string nombre, string referencia,
-    string? descripcion, string categoria, decimal precioUnitario,
-    int stockActual, int stockMinimo,
-    string? marca, string? modelo,
-    string? imagenUrlActual,
-    IFormFile? imagenRepuesto)
+            int? idRepuesto, string nombre, string referencia,
+            string? descripcion, string categoria, decimal precioUnitario,
+            int stockActual, int stockMinimo,
+            string? marca, string? modelo,
+            string? imagenUrlActual,
+            IFormFile? imagenRepuesto)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
