@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using Optimus_byte.DATA;
 using Optimus_byte.Models;
+using Optimus_byte.Models.ViewModels;
 using BC = BCrypt.Net.BCrypt;
 
 namespace Optimus_byte.Controllers
@@ -9,7 +10,13 @@ namespace Optimus_byte.Controllers
     public class ClienteController : Controller
     {
         private readonly DbHelper _db;
-        public ClienteController(DbHelper db) => _db = db;
+        private readonly IConfiguration _config;
+
+        public ClienteController(DbHelper db, IConfiguration config)
+        {
+            _db = db;
+            _config = config;
+        }
 
         private bool EsCliente() =>
             HttpContext.Session.GetString("UsuarioRol") == "Cliente";
@@ -138,79 +145,6 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@color", (object?)Color ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@vin", (object?)Vin ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@km", KmActuales);
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
                 cmd.ExecuteNonQuery();
             }
 
@@ -362,7 +296,7 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisVehiculos");
         }
 
-        // ─── Mis Órdenes (con fecha_entrega_estimada) ─────────────────────────────
+        // Mis Órdenes
         public IActionResult MisOrdenes()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
@@ -371,23 +305,15 @@ namespace Optimus_byte.Controllers
 
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(@"
-        SELECT o.id_orden,
-               v.placa,
-               v.marca,
-               v.modelo,
-               o.tipo_servicio,
-               o.descripcion_problema,
-               o.diagnostico,
-               o.observaciones,
-               o.estado,
-               o.fecha_apertura,
-               o.fecha_cierre,
-               o.fecha_entrega_estimada
-        FROM OrdenesTrabajo o
-        INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
-        INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
-        WHERE c.id_usuario = @idUsuario
-        ORDER BY o.fecha_apertura DESC", conn))
+                SELECT o.id_orden, v.placa, v.marca, v.modelo,
+                       o.tipo_servicio, o.descripcion_problema, o.diagnostico,
+                       o.observaciones, o.estado, o.fecha_apertura,
+                       o.fecha_cierre, o.fecha_entrega_estimada
+                FROM OrdenesTrabajo o
+                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                WHERE c.id_usuario = @idUsuario
+                ORDER BY o.fecha_apertura DESC", conn))
             {
                 cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
                 using var reader = cmd.ExecuteReader();
@@ -405,12 +331,8 @@ namespace Optimus_byte.Controllers
                         Observaciones = reader["observaciones"]?.ToString() ?? "",
                         Estado = reader["estado"].ToString()!,
                         FechaApertura = Convert.ToDateTime(reader["fecha_apertura"]),
-                        FechaCierre = reader["fecha_cierre"] == DBNull.Value
-                                                    ? (DateTime?)null
-                                                    : Convert.ToDateTime(reader["fecha_cierre"]),
-                        FechaEntregaEstimada = reader["fecha_entrega_estimada"] == DBNull.Value
-                                                    ? (DateTime?)null
-                                                    : Convert.ToDateTime(reader["fecha_entrega_estimada"])
+                        FechaCierre = reader["fecha_cierre"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["fecha_cierre"]),
+                        FechaEntregaEstimada = reader["fecha_entrega_estimada"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["fecha_entrega_estimada"])
                     });
                 }
             }
@@ -420,35 +342,26 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/MisOrdenes.cshtml");
         }
 
+        // Mis Facturas
         public IActionResult MisFacturas()
         {
-            if (!EsCliente())
-                return RedirectToAction("Index", "Login");
+            if (!EsCliente()) return RedirectToAction("Index", "Login");
 
             var facturas = new List<dynamic>();
             var idUsuario = GetIdUsuario();
 
             using var conn = _db.GetConnection();
-
             using var cmd = new SqlCommand(@"
-        SELECT
-            f.id_factura,
-            f.id_orden,
-            f.total,
-            f.estado_pago,
-            f.fecha_emision
-        FROM Facturas f
-        INNER JOIN OrdenesTrabajo o ON f.id_orden = o.id_orden
-        INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
-        INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
-        WHERE c.id_usuario = @idUsuario
-        ORDER BY f.fecha_emision DESC
-    ", conn);
+                SELECT f.id_factura, f.id_orden, f.total, f.estado_pago, f.fecha_emision
+                FROM Facturas f
+                INNER JOIN OrdenesTrabajo o ON f.id_orden = o.id_orden
+                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+                WHERE c.id_usuario = @idUsuario
+                ORDER BY f.fecha_emision DESC", conn);
 
             cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
-
             using var reader = cmd.ExecuteReader();
-
             while (reader.Read())
             {
                 facturas.Add(new
@@ -463,45 +376,71 @@ namespace Optimus_byte.Controllers
 
             ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre");
             ViewBag.Facturas = facturas;
-
             return View("~/Views/Cliente/MisFacturas.cshtml");
         }
 
+        // Pagar Factura con PayU
         public IActionResult PagarFactura(int id)
         {
-            if (!EsCliente())
-                return RedirectToAction("Index", "Login");
+            if (!EsCliente()) return RedirectToAction("Index", "Login");
 
             using var conn = _db.GetConnection();
+            decimal total = 0, iva = 0;
+            string correo = HttpContext.Session.GetString("UsuarioCorreo") ?? "";
 
-            using var cmd = new SqlCommand(@"
-        SELECT
-            id_factura,
-            id_orden,
-            total,
-            estado_pago,
-            fecha_emision
-        FROM Facturas
-        WHERE id_factura = @id
-    ", conn);
-
-            cmd.Parameters.AddWithValue("@id", id);
-
-            using var reader = cmd.ExecuteReader();
-
-            if (!reader.Read())
+            using (var cmd = new SqlCommand(@"
+                SELECT total, iva FROM Facturas
+                WHERE id_factura = @id AND estado_pago = 'Pendiente'", conn))
             {
-                TempData["Error"] = "Factura no encontrada.";
-                return RedirectToAction("MisFacturas");
+                cmd.Parameters.AddWithValue("@id", id);
+                using var r = cmd.ExecuteReader();
+                if (!r.Read())
+                {
+                    TempData["Error"] = "Factura no encontrada o ya pagada.";
+                    return RedirectToAction("MisFacturas");
+                }
+                total = Convert.ToDecimal(r["total"]);
+                iva = Convert.ToDecimal(r["iva"]);
             }
 
-            ViewBag.IdFactura = Convert.ToInt32(reader["id_factura"]);
-            ViewBag.IdOrden = Convert.ToInt32(reader["id_orden"]);
-            ViewBag.Total = Convert.ToDecimal(reader["total"]);
-            ViewBag.EstadoPago = reader["estado_pago"].ToString();
-            ViewBag.FechaEmision = Convert.ToDateTime(reader["fecha_emision"]);
+            string apiKey = _config["PayU:ApiKey"]!;
+            string merchantId = _config["PayU:MerchantId"]!;
+            string accountId = _config["PayU:AccountId"]!;
+            string reference = $"OB-{id}-{DateTime.Now:yyyyMMddHHmm}";
+            string amount = total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+            string currency = "COP";
 
-            return View("~/Views/Cliente/PagarFactura.cshtml");
+            string raw = $"{apiKey}~{merchantId}~{reference}~{amount}~{currency}";
+            string signature;
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(raw));
+                signature = string.Concat(hash.Select(b => b.ToString("x2")));
+            }
+
+            var vm = new PayUCheckoutViewModel
+            {
+                IdFactura = id,
+                Total = total,
+                Iva = iva,
+                Base = total - iva,
+                MerchantId = merchantId,
+                AccountId = accountId,
+                Description = $"Servicio de taller - Factura #{id}",
+                ReferenceCode = reference,
+                Amount = amount,
+                Tax = iva.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                TaxReturnBase = (total - iva).ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                Currency = currency,
+                Signature = signature,
+                Test = _config["PayU:Test"]!,
+                BuyerEmail = correo,
+                ResponseUrl = _config["PayU:ResponseUrl"]!,
+                ConfirmUrl = _config["PayU:ConfirmUrl"]!,
+                CheckoutUrl = _config["PayU:CheckoutUrl"]!
+            };
+
+            return View("~/Views/Cliente/PagarConPayU.cshtml", vm);
         }
 
         // Helper auditoría

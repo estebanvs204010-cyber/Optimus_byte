@@ -28,6 +28,7 @@
         else
         {
             <table class="table table-bordered table-striped">
+
                 <thead>
                     <tr>
                         <th>Factura</th>
@@ -38,6 +39,7 @@
                         <th>Acciones</th>
                     </tr>
                 </thead>
+
                 <tbody>
 
                     @foreach (var f in facturas)
@@ -50,10 +52,11 @@
                             <td>@f.FechaEmision.ToString("dd/MM/yyyy")</td>
 
                             <td>
+
                                 @if (f.EstadoPago == "Pendiente")
                                 {
-                                    <a href="/Cliente/PagarFactura/@f.IdFactura"
-                                       class="btn btn-success btn-sm">
+                                    <a class="btn btn-success"
+                                       href="/Cliente/PagarFactura/@f.IdFactura">
                                         Pagar
                                     </a>
                                 }
@@ -63,11 +66,14 @@
                                         Pagada
                                     </span>
                                 }
+
                             </td>
+
                         </tr>
                     }
 
                 </tbody>
+
             </table>
         }
 

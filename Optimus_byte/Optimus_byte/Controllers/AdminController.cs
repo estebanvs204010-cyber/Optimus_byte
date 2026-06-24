@@ -7,22 +7,25 @@ using Optimus_byte.Models.ViewModels;
 
 namespace Optimus_byte.Controllers
 {
+
     public class AdminController : Controller
     {
         private readonly DbHelper _db;
         private readonly EmailService _email;
-        public AdminController(DbHelper db, EmailService email)
-        {
-            _db = db;
-            _email = email;
-        }
+        private readonly IConfiguration _config;
+public AdminController(DbHelper db, EmailService email, IConfiguration config)
+{
+    _db = db;
+    _email = email;
+    _config = config;
+}
 
         private bool EsAdmin() =>
             HttpContext.Session.GetString("UsuarioRol") == "Admin";
 
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         // DASHBOARD
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public IActionResult Dashboard()
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -91,15 +94,15 @@ namespace Optimus_byte.Controllers
                     });
             }
 
-            // Campanita en dashboard también
+            // Campanita en dashboard tambiÃ©n
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
 
             return View("~/Views/Admin/Dashboard.cshtml", vm);
         }
 
-        // ════════════════════════════════════════════════
-        // ÓRDENES DE TRABAJO — Lista
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // Ã“RDENES DE TRABAJO â€” Lista
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public IActionResult Ordenes(string? estado, string? buscar)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -179,9 +182,9 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Admin/Ordenes.cshtml", lista);
         }
 
-        // ════════════════════════════════════════════════
-        // NOTIFICACIONES — Solicitudes de repuesto
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // NOTIFICACIONES â€” Solicitudes de repuesto
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public IActionResult SolicitudesRepuesto()
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -213,9 +216,9 @@ namespace Optimus_byte.Controllers
             return Json(new { count });
         }
 
-        // ════════════════════════════════════════════════
-        // ACEPTAR SOLICITUD → descuenta stock + asigna repuesto a la orden
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // ACEPTAR SOLICITUD â†’ descuenta stock + asigna repuesto a la orden
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AceptarSolicitudRepuesto(int solicitudId, int ordenId,
@@ -249,7 +252,7 @@ namespace Optimus_byte.Controllers
 
             if (idRepuesto == 0)
             {
-                TempData["Error"] = $"No se encontró '{repuestoNombre}' en inventario. Verifica el nombre.";
+                TempData["Error"] = $"No se encontrÃ³ '{repuestoNombre}' en inventario. Verifica el nombre.";
                 return RedirectToAction("Inventario");
             }
 
@@ -270,7 +273,7 @@ namespace Optimus_byte.Controllers
                 int filas = cmdStock.ExecuteNonQuery();
                 if (filas == 0)
                 {
-                    TempData["Error"] = "No se pudo descontar el stock. Inténtalo de nuevo.";
+                    TempData["Error"] = "No se pudo descontar el stock. IntÃ©ntalo de nuevo.";
                     return RedirectToAction("Inventario");
                 }
             }
@@ -278,7 +281,7 @@ namespace Optimus_byte.Controllers
             // 3. Registrar movimiento de inventario
             RegistrarMovimiento(conn, idRepuesto, idAdmin, ordenId,
                 "Salida", cantidad, stockActual,
-                $"Asignado a OT-{ordenId} por solicitud de mecánico");
+                $"Asignado a OT-{ordenId} por solicitud de mecÃ¡nico");
 
             // 4. Insertar o actualizar en OrdenRepuestos
             int yaExiste = EjecutarScalar<int>(conn,
@@ -317,18 +320,18 @@ namespace Optimus_byte.Controllers
                 cmdAten.ExecuteNonQuery();
             }
 
-            // 6. Registrar en EstadosOrden para que el mecánico lo vea en mensajes
+            // 6. Registrar en EstadosOrden para que el mecÃ¡nico lo vea en mensajes
             RegistrarEstado(conn, ordenId, idAdmin,
                 "En proceso",
-                $"Repuesto '{repuestoNombre}' × {cantidad} asignado a esta orden por el administrador.");
+                $"Repuesto '{repuestoNombre}' Ã— {cantidad} asignado a esta orden por el administrador.");
 
-            TempData["Exito"] = $"Repuesto '{repuestoNombre}' × {cantidad} asignado a OT-{ordenId}. Stock actualizado.";
+            TempData["Exito"] = $"Repuesto '{repuestoNombre}' Ã— {cantidad} asignado a OT-{ordenId}. Stock actualizado.";
             return RedirectToAction("Inventario");
         }
 
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         // RECHAZAR SOLICITUD
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RechazarSolicitudRepuesto(int solicitudId)
@@ -355,7 +358,7 @@ namespace Optimus_byte.Controllers
                 }
             }
 
-            // Marcar como atendida (rechazada = atendida también para limpiar la lista)
+            // Marcar como atendida (rechazada = atendida tambiÃ©n para limpiar la lista)
             using (var cmdRech = new SqlCommand(@"
                 UPDATE SolicitudesRepuesto
                 SET atendida = 1
@@ -365,7 +368,7 @@ namespace Optimus_byte.Controllers
                 cmdRech.ExecuteNonQuery();
             }
 
-            // Notificar al mecánico via EstadosOrden
+            // Notificar al mecÃ¡nico via EstadosOrden
             if (idOrden > 0)
             {
                 RegistrarEstado(conn, idOrden, idAdmin,
@@ -373,13 +376,13 @@ namespace Optimus_byte.Controllers
                     $"Solicitud de '{nombreRep}' fue rechazada por el administrador. Por favor contactar para alternativa.");
             }
 
-            TempData["Exito"] = "Solicitud rechazada. El mecánico fue notificado.";
+            TempData["Exito"] = "Solicitud rechazada. El mecÃ¡nico fue notificado.";
             return RedirectToAction("Inventario");
         }
 
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         // DETALLE ORDEN
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public IActionResult OrdenDetalle(int id)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -472,7 +475,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Admin/OrdenDetalle.cshtml", vm);
         }
 
-        // POST: Crear orden  ← AQUÍ va el correo
+        // POST: Crear orden  â† AQUÃ va el correo
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearOrden(int idVehiculo, int? idMecanico,
@@ -500,9 +503,21 @@ namespace Optimus_byte.Controllers
                 idOrden = (int)cmd.ExecuteScalar();
             }
 
+
+            using (var cmdKm = new SqlCommand(@"
+                UPDATE Vehiculos
+                SET km_actuales = @km
+                WHERE id_vehiculo = @idVehiculo", conn))
+            {
+                cmdKm.Parameters.AddWithValue("@km", kmIngreso);
+                cmdKm.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+                cmdKm.ExecuteNonQuery();
+            }
+
+            await VerificarRecordatorioMantenimiento(idVehiculo, kmIngreso);
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada");
 
-            // ── Enviar correo al cliente ──────────────────────────────
+            // â”€â”€ Enviar correo al cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             string correoCliente = "";
             string nombreCliente = "";
             string placa = "";
@@ -532,17 +547,17 @@ namespace Optimus_byte.Controllers
                 await _email.EnviarCorreoAsync(
                     correoCliente,
                     nombreCliente,
-                    "Nueva orden de trabajo — Taller Optimus Byte",
+                    "Nueva orden de trabajo â€” Taller Optimus Byte",
                     $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
                             background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
                         <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
                         <h2>Hola {nombreCliente},</h2>
-                        <p>Se ha creado una orden de trabajo para tu vehículo
+                        <p>Se ha creado una orden de trabajo para tu vehÃ­culo
                            <strong style='color:#f0a500;'>{placa}</strong>.</p>
                         <p>Puedes seguir el estado de tu orden desde tu portal.</p>
                         <hr style='border-color:#f0a500;'>
                         <p style='color:#aaaaaa;font-size:12px;'>
-                            Taller Optimus Byte — Sistema de gestión automotriz
+                            Taller Optimus Byte â€” Sistema de gestiÃ³n automotriz
                         </p>
                     </div>"
                 );
@@ -551,13 +566,13 @@ namespace Optimus_byte.Controllers
             {
                 Console.WriteLine($"Error correo orden: {ex.Message}");
             }
-            // ─────────────────────────────────────────────────────────
+            // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
             TempData["Exito"] = $"Orden #{idOrden} creada correctamente.";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
         }
 
-        // POST: Cambiar estado de orden  ← AQUÍ también va correo de estado
+        // POST: Cambiar estado de orden  â† AQUÃ tambiÃ©n va correo de estado
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CambiarEstado(int idOrden, string nuevoEstado,
@@ -586,7 +601,7 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, nuevoEstado, observacion ?? "");
 
-            // ── Enviar correo al cliente sobre cambio de estado ───────
+            // â”€â”€ Enviar correo al cliente sobre cambio de estado â”€â”€â”€â”€â”€â”€â”€
             string correoCliente = "";
             string nombreCliente = "";
             string placa = "";
@@ -616,19 +631,19 @@ namespace Optimus_byte.Controllers
                 await _email.EnviarCorreoAsync(
                     correoCliente,
                     nombreCliente,
-                    $"Estado actualizado: {nuevoEstado} — Taller Optimus Byte",
+                    $"Estado actualizado: {nuevoEstado} â€” Taller Optimus Byte",
                     $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
                             background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
                         <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
                         <h2>Hola {nombreCliente},</h2>
-                        <p>El estado de tu vehículo
-                           <strong style='color:#f0a500;'>{placa}</strong> cambió a:</p>
+                        <p>El estado de tu vehÃ­culo
+                           <strong style='color:#f0a500;'>{placa}</strong> cambiÃ³ a:</p>
                         <h2 style='color:#f0a500;text-align:center;'>{nuevoEstado}</h2>
                         {(string.IsNullOrEmpty(observacion) ? "" :
-                            $"<p><strong>Observación:</strong> {observacion}</p>")}
+                            $"<p><strong>ObservaciÃ³n:</strong> {observacion}</p>")}
                         <hr style='border-color:#f0a500;'>
                         <p style='color:#aaaaaa;font-size:12px;'>
-                            Taller Optimus Byte — Sistema de gestión automotriz
+                            Taller Optimus Byte â€” Sistema de gestiÃ³n automotriz
                         </p>
                     </div>"
                 );
@@ -637,7 +652,7 @@ namespace Optimus_byte.Controllers
             {
                 Console.WriteLine($"Error correo estado: {ex.Message}");
             }
-            // ─────────────────────────────────────────────────────────
+            // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
             TempData["Exito"] = $"Estado actualizado a: {nuevoEstado}";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
@@ -659,13 +674,13 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@id", idOrden);
             cmd.ExecuteNonQuery();
 
-            TempData["Exito"] = "Diagnóstico guardado.";
+            TempData["Exito"] = "DiagnÃ³stico guardado.";
             return RedirectToAction("OrdenDetalle", new { id = idOrden });
         }
 
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         // INVENTARIO
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public IActionResult Inventario(string? buscar, string? categoria)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -795,9 +810,9 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("Inventario");
         }
 
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         // FACTURAS
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public IActionResult Facturas(string? estado, string? buscar)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
@@ -849,7 +864,7 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Admin/Facturas.cshtml", lista);
         }
 
-        // POST: Crear factura desde orden  ← AQUÍ también va correo de factura
+        // POST: Crear factura desde orden  â† AQUÃ tambiÃ©n va correo de factura
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CrearFactura(int idOrden, decimal subtotal, decimal iva)
@@ -877,7 +892,7 @@ namespace Optimus_byte.Controllers
             cmd.Parameters.AddWithValue("@tot", total);
             cmd.ExecuteNonQuery();
 
-            // ── Enviar correo de factura al cliente ───────────────────
+            // â”€â”€ Enviar correo de factura al cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             string correoCliente = "";
             string nombreCliente = "";
             string placa = "";
@@ -907,12 +922,12 @@ namespace Optimus_byte.Controllers
                 await _email.EnviarCorreoAsync(
                     correoCliente,
                     nombreCliente,
-                    "Tu factura está lista — Taller Optimus Byte",
+                    "Tu factura estÃ¡ lista â€” Taller Optimus Byte",
                     $@"<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
                             background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
                         <h1 style='color:#f0a500;text-align:center;'>Taller Optimus Byte</h1>
                         <h2>Hola {nombreCliente},</h2>
-                        <p>Se ha generado tu factura para el vehículo
+                        <p>Se ha generado tu factura para el vehÃ­culo
                            <strong style='color:#f0a500;'>{placa}</strong>.</p>
                         <table style='width:100%;border-collapse:collapse;margin-top:20px;'>
                             <tr style='background:#f0a500;color:#000;'>
@@ -939,7 +954,7 @@ namespace Optimus_byte.Controllers
                         </p>
                         <hr style='border-color:#f0a500;'>
                         <p style='color:#aaaaaa;font-size:12px;'>
-                            Taller Optimus Byte — Sistema de gestión automotriz
+                            Taller Optimus Byte â€” Sistema de gestiÃ³n automotriz
                         </p>
                     </div>"
                 );
@@ -948,7 +963,7 @@ namespace Optimus_byte.Controllers
             {
                 Console.WriteLine($"Error correo factura: {ex.Message}");
             }
-            // ─────────────────────────────────────────────────────────
+            // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
             TempData["Exito"] = $"Factura creada por ${total:N0}.";
             return RedirectToAction("Facturas");
@@ -1005,9 +1020,266 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("Facturas");
         }
 
-        // ════════════════════════════════════════════════
+        // GET: /Admin/PagarConPayU/5
+        public IActionResult PagarConPayU(int id)
+        {
+            if (!EsAdmin()) return RedirectToAction("Index", "Login");
+
+            using var conn = _db.GetConnection();
+            decimal total = 0, iva = 0;
+            string cliente = "", correo = "";
+
+            using (var cmd = new SqlCommand(@"
+        SELECT f.total, f.iva,
+               u.nombre_completo, u.correo
+        FROM Facturas f
+        JOIN Ordenes_Trabajo o ON o.id_orden = f.id_orden
+        JOIN Usuarios u ON u.id_usuario = o.id_cliente
+        WHERE f.id_factura = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", id);
+                using var r = cmd.ExecuteReader();
+                if (r.Read())
+                {
+                    total = Convert.ToDecimal(r["total"]);
+                    iva = Convert.ToDecimal(r["iva"]);
+                    cliente = r["nombre_completo"].ToString()!;
+                    correo = r["correo"].ToString()!;
+                }
+            }
+
+            string apiKey = _config["PayU:ApiKey"]!;
+            string merchantId = _config["PayU:MerchantId"]!;
+            string accountId = _config["PayU:AccountId"]!;
+            string reference = $"OB-{id}-{DateTime.Now:yyyyMMddHHmm}";
+            string amount = total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+            string currency = "COP";
+
+            // Firma MD5: apiKey~merchantId~reference~amount~currency
+            string rawSignature = $"{apiKey}~{merchantId}~{reference}~{amount}~{currency}";
+            string signature;
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawSignature));
+                signature = string.Concat(hash.Select(b => b.ToString("x2")));
+            }
+
+            var vm = new PayUCheckoutViewModel
+            {
+                IdFactura = id,
+                Total = total,
+                Iva = iva,
+                Base = total - iva,
+                MerchantId = merchantId,
+                AccountId = accountId,
+                Description = $"Servicio de taller - Factura #{id}",
+                ReferenceCode = reference,
+                Amount = amount,
+                Tax = iva.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                TaxReturnBase = (total - iva).ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                Currency = currency,
+                Signature = signature,
+                Test = _config["PayU:Test"]!,
+                BuyerEmail = correo,
+                ResponseUrl = _config["PayU:ResponseUrl"]!,
+                ConfirmUrl = _config["PayU:ConfirmUrl"]!,
+                CheckoutUrl = _config["PayU:CheckoutUrl"]!
+            };
+
+            return View("~/Views/Admin/PagarConPayU.cshtml", vm);
+        }
+
+        // GET: /Admin/PayURespuesta  (PayU redirige al usuario aquí)
+        public IActionResult PayURespuesta()
+        {
+            string estado = Request.Query["transactionState"]!;
+            string referencia = Request.Query["referenceCode"]!;
+            string transaccionId = Request.Query["transactionId"]!;
+            string monto = Request.Query["TX_VALUE"]!;
+            string mensaje = Request.Query["message"]!;
+
+            ViewBag.Estado = estado;
+            ViewBag.Referencia = referencia;
+            ViewBag.TransaccionId = transaccionId;
+            ViewBag.Monto = monto;
+            ViewBag.Mensaje = mensaje;
+            ViewBag.Exitoso = estado == "4"; // 4 = Aprobado en PayU
+
+            // Si fue aprobado, actualizar la factura en la DB
+            if (estado == "4" && referencia != null)
+            {
+                // La referencia es "OB-{idFactura}-{fecha}"
+                string[] partes = referencia.Split('-');
+                if (partes.Length >= 2 && int.TryParse(partes[1], out int idFactura))
+                {
+                    using var conn = _db.GetConnection();
+                    using var cmd = new SqlCommand(@"
+                UPDATE Facturas
+                SET estado_pago = 'Pagado', metodo_pago = 'PayU', fecha_pago = GETDATE()
+                WHERE id_factura = @id AND estado_pago = 'Pendiente'", conn);
+                    cmd.Parameters.AddWithValue("@id", idFactura);
+                    cmd.ExecuteNonQuery();
+
+                    using var cmd2 = new SqlCommand(@"
+                INSERT INTO Pagos (id_factura, monto, metodo, referencia_transaccion, observaciones)
+                VALUES (@fac, @monto, 'PayU', @ref, @obs)", conn);
+                    cmd2.Parameters.AddWithValue("@fac", idFactura);
+                    cmd2.Parameters.AddWithValue("@monto", decimal.TryParse(monto,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out decimal m) ? m : 0);
+                    cmd2.Parameters.AddWithValue("@ref", transaccionId ?? "");
+                    cmd2.Parameters.AddWithValue("@obs", $"Pago PayU - {mensaje}");
+                    cmd2.ExecuteNonQuery();
+                }
+            }
+
+            return View("~/Views/Admin/PayURespuesta.cshtml");
+        }
+
+        // POST: /Admin/PayUConfirmacion  (webhook de PayU, sin respuesta visual)
+        [HttpPost]
+        public IActionResult PayUConfirmacion()
+        {
+            return Ok();
+        }
+
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         // HELPERS PRIVADOS
-        // ════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        private async Task VerificarRecordatorioMantenimiento(int idVehiculo, int kmActuales)
+        {
+            const int intervaloKm = 5000;
+            const int avisoAntesKm = 500;
+
+            int kilometrajeRecordatorio;
+
+            if (kmActuales % intervaloKm == 0)
+            {
+                kilometrajeRecordatorio = kmActuales;
+            }
+            else
+            {
+                kilometrajeRecordatorio = ((kmActuales / intervaloKm) + 1) * intervaloKm;
+            }
+
+            int kmDesdeAviso = kilometrajeRecordatorio - avisoAntesKm;
+
+            if (kmActuales < kmDesdeAviso)
+                return;
+
+            using var conn = _db.GetConnection();
+
+            int yaEnviado;
+            using (var cmdExiste = new SqlCommand(@"
+                SELECT COUNT(1)
+                FROM RecordatoriosMantenimiento
+                WHERE id_vehiculo = @idVehiculo
+                  AND kilometraje_recordatorio = @kilometraje
+                  AND enviado = 1", conn))
+            {
+                cmdExiste.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+                cmdExiste.Parameters.AddWithValue("@kilometraje", kilometrajeRecordatorio);
+                yaEnviado = Convert.ToInt32(cmdExiste.ExecuteScalar());
+            }
+
+            if (yaEnviado > 0)
+                return;
+
+            string correo = "";
+            string cliente = "";
+            string placa = "";
+            string marca = "";
+            string modelo = "";
+
+            using (var cmdDatos = new SqlCommand(@"
+                SELECT 
+                    c.correo,
+                    c.nombre_completo,
+                    v.placa,
+                    v.marca,
+                    v.modelo
+                FROM Vehiculos v
+                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+                WHERE v.id_vehiculo = @idVehiculo", conn))
+            {
+                cmdDatos.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+
+                using var reader = cmdDatos.ExecuteReader();
+
+                if (!reader.Read())
+                    return;
+
+                correo = reader["correo"]?.ToString() ?? "";
+                cliente = reader["nombre_completo"]?.ToString() ?? "";
+                placa = reader["placa"]?.ToString() ?? "";
+                marca = reader["marca"]?.ToString() ?? "";
+                modelo = reader["modelo"]?.ToString() ?? "";
+            }
+
+            if (string.IsNullOrWhiteSpace(correo))
+                return;
+
+            string servicio = "Mantenimiento preventivo / revision por kilometraje";
+            string asunto = $"Recordatorio de mantenimiento - {placa}";
+
+            string cuerpo = $@"
+                <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                            background:#1a1a2e;color:#ffffff;padding:30px;border-radius:10px;'>
+                    <h1 style='color:#f0a500;text-align:center;'>Optimus Byte</h1>
+                    <h2>Hola {cliente},</h2>
+                    <p>Tu vehiculo <strong style='color:#f0a500;'>{marca} {modelo}</strong>
+                       de placa <strong style='color:#f0a500;'>{placa}</strong>
+                       esta proximo a llegar a los <strong>{kilometrajeRecordatorio:N0} km</strong>.</p>
+                    <p>Actualmente registra <strong>{kmActuales:N0} km</strong>, por eso te recomendamos agendar la revision con anticipacion.</p>
+                    <p><strong>Servicio sugerido:</strong> {servicio}</p>
+                    <hr style='border-color:#f0a500;'>
+                    <p style='color:#aaaaaa;font-size:12px;'>
+                        Taller Optimus Byte - Sistema de gestion automotriz
+                    </p>
+                </div>";
+
+            bool enviado = false;
+
+            try
+            {
+                await _email.EnviarCorreoAsync(correo, cliente, asunto, cuerpo);
+                enviado = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error recordatorio mantenimiento: {ex.Message}");
+            }
+
+            using var cmdGuardar = new SqlCommand(@"
+                IF EXISTS (
+                    SELECT 1
+                    FROM RecordatoriosMantenimiento
+                    WHERE id_vehiculo = @idVehiculo
+                      AND kilometraje_recordatorio = @kilometraje
+                )
+                BEGIN
+                    UPDATE RecordatoriosMantenimiento
+                    SET enviado = @enviado,
+                        fecha_envio = CASE WHEN @enviado = 1 THEN GETDATE() ELSE fecha_envio END
+                    WHERE id_vehiculo = @idVehiculo
+                      AND kilometraje_recordatorio = @kilometraje
+                END
+                ELSE
+                BEGIN
+                    INSERT INTO RecordatoriosMantenimiento
+                        (id_vehiculo, kilometraje_recordatorio, servicio, enviado, fecha_envio)
+                    VALUES
+                        (@idVehiculo, @kilometraje, @servicio, @enviado,
+                         CASE WHEN @enviado = 1 THEN GETDATE() ELSE NULL END)
+                END", conn);
+
+            cmdGuardar.Parameters.AddWithValue("@idVehiculo", idVehiculo);
+            cmdGuardar.Parameters.AddWithValue("@kilometraje", kilometrajeRecordatorio);
+            cmdGuardar.Parameters.AddWithValue("@servicio", servicio);
+            cmdGuardar.Parameters.AddWithValue("@enviado", enviado);
+
+            cmdGuardar.ExecuteNonQuery();
+        }
         private T EjecutarScalar<T>(SqlConnection conn, string sql)
         {
             using var cmd = new SqlCommand(sql, conn);
@@ -1058,7 +1330,7 @@ namespace Optimus_byte.Controllers
                         Atendida = Convert.ToBoolean(r["atendida"])
                     });
             }
-            catch { /* tabla puede no existir aún */ }
+            catch { /* tabla puede no existir aÃºn */ }
             return lista;
         }
 
@@ -1099,5 +1371,3 @@ namespace Optimus_byte.Controllers
         }
     }
 }
-
-
