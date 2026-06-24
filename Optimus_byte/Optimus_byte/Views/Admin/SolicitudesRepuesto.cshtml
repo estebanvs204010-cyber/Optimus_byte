@@ -1,7 +1,10 @@
-﻿@model List<Optimus_byte.Models.SolicitudRepuesto>
+﻿@model List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>
 @{
     ViewData["Title"] = "Solicitudes de Repuesto";
-    Layout = null;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int total = Model?.Count ?? 0;
+    int pendientes = Model?.Count(s => !s.Atendida) ?? 0;
+    int atendidas = Model?.Count(s => s.Atendida) ?? 0;
 }
 
 <!DOCTYPE html>
@@ -10,163 +13,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Solicitudes de Repuesto — Optimus Byte</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+<body>
+@section Styles {
     <style>
-        :root {
-            --bg-primary: #0d0d1a;
-            --bg-card: #12122a;
-            --bg-row: #1a1a35;
-            --bg-hover: #1f1f42;
-            --accent: #4fc3f7;
-            --accent-glow: rgba(79,195,247,.25);
-            --success: #43e97b;
-            --warning: #f7c948;
-            --danger: #f76c6c;
-            --muted: #8888aa;
-            --border: rgba(79,195,247,.18);
-            --text: #e8e8f5;
-            --text-dim: #b0b0cc;
-            --radius: 10px;
-            --font: 'Segoe UI', system-ui, sans-serif;
-        }
-
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            background: var(--bg-primary);
-            color: var(--text);
-            font-family: var(--font);
-            min-height: 100vh;
-        }
-
-        /* ── TOP BAR ── */
-        .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 32px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .topbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--accent);
-            letter-spacing: .04em;
-        }
-
-            .topbar-brand i {
-                font-size: 1.3rem;
-            }
-
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 18px;
-            border-radius: var(--radius);
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-dim);
-            font-size: .85rem;
-            text-decoration: none;
-            transition: all .2s;
-        }
-
-            .btn-back:hover {
-                background: var(--bg-hover);
-                color: var(--accent);
-                border-color: var(--accent);
-            }
-
-        /* ── MAIN ── */
-        .main {
-            padding: 36px 32px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .page-header {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            margin-bottom: 28px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .page-title {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-            .page-title span {
-                color: var(--accent);
-            }
-
-        .stats-row {
-            display: flex;
-            gap: 14px;
-            flex-wrap: wrap;
-            margin-bottom: 28px;
-        }
-
-        .stat-chip {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 18px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 50px;
-            font-size: .85rem;
-            color: var(--text-dim);
-        }
-
-            .stat-chip .num {
-                font-weight: 700;
-                font-size: 1rem;
-            }
-
-            .stat-chip.pending .num {
-                color: var(--warning);
-            }
-
-            .stat-chip.done .num {
-                color: var(--success);
-            }
-
-            .stat-chip.total .num {
-                color: var(--accent);
-            }
-
-        /* ── FILTER TABS ── */
         .tabs {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             margin-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0;
+            border-bottom: 1px solid var(--borde-input);
         }
 
         .tab-btn {
-            padding: 9px 20px;
+            padding: 8px 18px;
             border: none;
             background: transparent;
-            color: var(--muted);
-            font-size: .88rem;
+            color: var(--texto-suave);
+            font-size: .85rem;
             font-weight: 600;
             cursor: pointer;
             border-bottom: 2px solid transparent;
@@ -175,124 +44,56 @@
         }
 
             .tab-btn:hover {
-                color: var(--text);
+                color: var(--marfil);
             }
 
             .tab-btn.active {
-                color: var(--accent);
-                border-bottom-color: var(--accent);
+                color: var(--dorado);
+                border-bottom-color: var(--dorado);
             }
 
-        /* ── TABLE ── */
-        .table-wrap {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead tr {
-            background: rgba(79,195,247,.07);
-            border-bottom: 1px solid var(--border);
-        }
-
-        th {
-            padding: 13px 16px;
-            text-align: left;
-            font-size: .78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: var(--muted);
-            white-space: nowrap;
-        }
-
-        tbody tr {
-            border-bottom: 1px solid rgba(255,255,255,.04);
-            transition: background .15s;
-        }
-
-            tbody tr:last-child {
-                border-bottom: none;
-            }
-
-            tbody tr:hover {
-                background: var(--bg-hover);
-            }
-
-        td {
-            padding: 14px 16px;
-            font-size: .88rem;
-            color: var(--text-dim);
-            vertical-align: middle;
-        }
-
-            td.text-main {
-                color: var(--text);
-                font-weight: 600;
-            }
-
-        /* ── BADGES ── */
-        .badge {
+        .badge-sol {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 4px 11px;
+            padding: 3px 10px;
             border-radius: 50px;
-            font-size: .75rem;
+            font-size: .72rem;
             font-weight: 700;
             letter-spacing: .03em;
         }
 
-        .badge-pending {
-            background: rgba(247,201,72,.15);
-            color: var(--warning);
-            border: 1px solid rgba(247,201,72,.3);
+        .badge-pendiente-sol {
+            background: rgba(234,179,8,.1);
+            border: 1px solid rgba(234,179,8,.3);
+            color: #a16207;
         }
 
-        .badge-done {
-            background: rgba(67,233,123,.12);
-            color: var(--success);
-            border: 1px solid rgba(67,233,123,.3);
+        .badge-atendida-sol {
+            background: rgba(22,163,74,.08);
+            border: 1px solid rgba(22,163,74,.2);
+            color: #15803d;
         }
 
-        .badge-libre {
-            background: rgba(247,108,108,.12);
-            color: var(--danger);
-            border: 1px solid rgba(247,108,108,.3);
+        .badge-libre-sol {
+            background: rgba(239,68,68,.1);
+            border: 1px solid rgba(239,68,68,.25);
+            color: #dc2626;
         }
 
-        .badge-inv {
-            background: rgba(79,195,247,.12);
-            color: var(--accent);
-            border: 1px solid rgba(79,195,247,.3);
+        .badge-inv-sol {
+            background: rgba(37,99,235,.08);
+            border: 1px solid rgba(37,99,235,.2);
+            color: var(--dorado);
         }
 
-        /* ── ORIGEN CHIP ── */
-        .origen-chip {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: .82rem;
-        }
-
-            .origen-chip i {
-                font-size: .78rem;
-            }
-
-        /* ── ACTIONS ── */
-        .btn-action {
+        .btn-sol {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 7px 14px;
-            border-radius: 7px;
-            font-size: .8rem;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: .78rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
@@ -300,354 +101,256 @@
             text-decoration: none;
         }
 
-        .btn-accept {
-            background: rgba(67,233,123,.15);
-            color: var(--success);
-            border: 1px solid rgba(67,233,123,.35);
+        .btn-sol-accept {
+            background: rgba(22,163,74,.1);
+            color: #15803d;
+            border: 1px solid rgba(22,163,74,.3);
         }
 
-            .btn-accept:hover {
-                background: rgba(67,233,123,.28);
-                transform: translateY(-1px);
+            .btn-sol-accept:hover {
+                background: rgba(22,163,74,.2);
             }
 
-        .btn-reject {
-            background: rgba(247,108,108,.12);
-            color: var(--danger);
-            border: 1px solid rgba(247,108,108,.3);
-            margin-left: 6px;
+        .btn-sol-reject {
+            background: rgba(239,68,68,.08);
+            color: #dc2626;
+            border: 1px solid rgba(239,68,68,.25);
         }
 
-            .btn-reject:hover {
-                background: rgba(247,108,108,.25);
-                transform: translateY(-1px);
+            .btn-sol-reject:hover {
+                background: rgba(239,68,68,.18);
             }
 
-        .btn-disabled {
-            background: rgba(255,255,255,.04);
-            color: var(--muted);
-            border: 1px solid rgba(255,255,255,.07);
+        .btn-sol-disabled {
+            background: rgba(100,116,139,.07);
+            color: #94a3b8;
+            border: 1px solid rgba(100,116,139,.15);
             cursor: default;
-            opacity: .7;
+            opacity: .75;
         }
 
-        /* ── EMPTY STATE ── */
-        .empty-state {
-            text-align: center;
-            padding: 72px 20px;
-            color: var(--muted);
+        .btn-sol-crear {
+            background: rgba(37,99,235,.1);
+            color: var(--dorado);
+            border: 1px solid rgba(37,99,235,.25);
         }
 
-            .empty-state i {
-                font-size: 3rem;
-                margin-bottom: 16px;
-                color: var(--border);
+            .btn-sol-crear:hover {
+                background: rgba(37,99,235,.2);
             }
 
-            .empty-state p {
-                font-size: 1rem;
-            }
-
-        /* ── TOAST ── */
-        #toast {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 14px 22px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            color: var(--text);
-            font-size: .9rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,.5);
-            transform: translateY(80px);
-            opacity: 0;
-            transition: all .35s cubic-bezier(.34,1.56,.64,1);
-            z-index: 999;
-            max-width: 320px;
-        }
-
-            #toast.show {
-                transform: translateY(0);
-                opacity: 1;
-            }
-
-            #toast.success {
-                border-color: var(--success);
-                color: var(--success);
-            }
-
-            #toast.error {
-                border-color: var(--danger);
-                color: var(--danger);
-            }
-
-        @@media (max-width: 768px) {
-            .main {
-                padding: 20px 16px;
-            }
-
-            .topbar {
-                padding: 14px 16px;
-            }
-
-            .page-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            th, td {
-                padding: 10px 10px;
-            }
-
-            .btn-action span {
-                display: none;
-            }
+        .fila-atendida {
+            opacity: .6;
         }
     </style>
-</head>
-<body>
+}
 
-    <!-- TOP BAR -->
-    <div class="topbar">
-        <div class="topbar-brand">
-            <i class="fas fa-bolt"></i>
-            Optimus Byte — Admin
-        </div>
-        <a href="/Admin/Dashboard" class="btn-back">
-            <i class="fas fa-arrow-left"></i> Volver al Panel
-        </a>
+<div class="section-header">
+    <div>
+        <h1 class="section-title">Solicitudes de Repuesto</h1>
+        <p class="section-sub">Gestiona las solicitudes enviadas por los mecánicos</p>
     </div>
+</div>
 
-    <!-- MAIN -->
-    <div class="main">
+@if (TempData["Exito"] != null)
+{
+    <div class="alerta alerta-ok"><i class="bi bi-check-circle-fill me-2"></i>@TempData["Exito"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alerta alerta-err"><i class="bi bi-x-circle-fill me-2"></i>@TempData["Error"]</div>
+}
 
-        <!-- Header -->
-        <div class="page-header">
-            <div>
-                <h1 class="page-title">Solicitudes de <span>Repuesto</span></h1>
-                <p style="color:var(--muted);font-size:.88rem;margin-top:4px;">
-                    Gestiona las solicitudes enviadas por los mecánicos
-                </p>
-            </div>
+@* Stats *@
+<div class="stats-row" style="margin-bottom:20px">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(37,99,235,.08)">
+            <i class="bi bi-list-ul" style="color:var(--dorado)"></i>
         </div>
-
-        <!-- Stats -->
-        @{
-            int total = Model?.Count ?? 0;
-            int pendiente = Model?.Count(s => !s.Atendida) ?? 0;
-            int atendida = Model?.Count(s => s.Atendida) ?? 0;
-        }
-        <div class="stats-row">
-            <div class="stat-chip total">
-                <i class="fas fa-list-ul" style="color:var(--accent)"></i>
-                Total: <span class="num">@total</span>
-            </div>
-            <div class="stat-chip pending">
-                <i class="fas fa-hourglass-half" style="color:var(--warning)"></i>
-                Pendientes: <span class="num">@pendiente</span>
-            </div>
-            <div class="stat-chip done">
-                <i class="fas fa-check-circle" style="color:var(--success)"></i>
-                Atendidas: <span class="num">@atendida</span>
-            </div>
+        <div><div class="stat-num">@total</div><div class="stat-label">Total</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(234,179,8,.08)">
+            <i class="bi bi-hourglass-split" style="color:#a16207"></i>
         </div>
-
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" onclick="filtrar('todas', this)">Todas</button>
-            <button class="tab-btn" onclick="filtrar('pendientes', this)">Pendientes</button>
-            <button class="tab-btn" onclick="filtrar('atendidas', this)">Atendidas</button>
-            <button class="tab-btn" onclick="filtrar('libre', this)">Sin inventario</button>
+        <div><div class="stat-num">@pendientes</div><div class="stat-label">Pendientes</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(22,163,74,.08)">
+            <i class="bi bi-check-circle-fill" style="color:#15803d"></i>
         </div>
+        <div><div class="stat-num">@atendidas</div><div class="stat-label">Atendidas</div></div>
+    </div>
+</div>
 
-        <!-- Table -->
-        <div class="table-wrap">
-            @if (Model == null || !Model.Any())
-            {
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <p>No hay solicitudes de repuesto registradas.</p>
-                </div>
-            }
-            else
-            {
-                <table id="tabla-solicitudes">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Orden</th>
-                            <th>Mecánico</th>
-                            <th>Repuesto solicitado</th>
-                            <th>Origen</th>
-                            <th>Cantidad</th>
-                            <th>Fecha</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var s in Model.OrderByDescending(x => x.FechaSolicitud))
-                        {
-                            bool esLibre = s.NombreRepuesto?.StartsWith("[Sin inventario]") ?? false;
-                            string nombre = esLibre
-                            ? s.NombreRepuesto!.Replace("[Sin inventario]", "").Trim()
-                            : (s.NombreRepuesto ?? "—");
-                            string rowClass = s.Atendida ? "row-atendida" : "row-pendiente";
+@* Tabs *@
+<div class="tabs">
+    <button class="tab-btn active" onclick="filtrar('todas',this)">Todas</button>
+    <button class="tab-btn" onclick="filtrar('pendientes',this)">Pendientes</button>
+    <button class="tab-btn" onclick="filtrar('atendidas',this)">Atendidas</button>
+    <button class="tab-btn" onclick="filtrar('libre',this)">Sin inventario</button>
+</div>
 
-                            <tr class="@rowClass" data-libre="@esLibre.ToString().ToLower()">
-                                <td style="color:var(--muted);font-size:.8rem;">@s.Id</td>
+@* Tabla *@
+<div class="tabla-wrapper">
+    @if (Model == null || !Model.Any())
+    {
+        <div class="tabla-vacia">
+            <i class="bi bi-inbox" style="font-size:3rem;color:#334155"></i>
+            <p class="mt-2">No hay solicitudes de repuesto registradas.</p>
+        </div>
+    }
+    else
+    {
+        <table class="tabla-usuarios" id="tablaSolicitudes">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Orden</th>
+                    <th>Mecánico</th>
+                    <th>Repuesto solicitado</th>
+                    <th>Origen</th>
+                    <th>Cant.</th>
+                    <th>Motivo</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.OrderByDescending(x => x.FechaSolicitud))
+                {
+                    bool esLibre = s.NombreRepuesto?.StartsWith("[Sin inventario]") ?? false;
+                    string nombre = esLibre
+                    ? s.NombreRepuesto!.Replace("[Sin inventario]", "").Trim()
+                    : (s.NombreRepuesto ?? "—");
+                    string rowClass = s.Atendida ? "fila-atendida" : "";
 
-                                <td class="text-main">
-                                    <a href="/Admin/DetalleOrden/@s.OrdenId"
-                                       style="color:var(--accent);text-decoration:none;">
-                                        #@s.OrdenId
+                    <tr class="@rowClass"
+                        data-atendida="@s.Atendida.ToString().ToLower()"
+                        data-libre="@esLibre.ToString().ToLower()">
+
+                        <td style="color:var(--texto-suave);font-size:.8rem">@s.IdSolicitud</td>
+
+                        <td>
+                            <a href="/Admin/OrdenDetalle/@s.IdOrden"
+                               style="color:var(--dorado);font-weight:600;text-decoration:none">
+                                #@s.IdOrden
+                            </a>
+                        </td>
+
+                        <td>@(s.MecanicoNombre ?? "—")</td>
+
+                        <td style="font-weight:600;color:var(--marfil)">@nombre</td>
+
+                        <td>
+                            @if (esLibre)
+                            {
+                                <span class="badge-sol badge-libre-sol">
+                                    <i class="bi bi-pencil-fill"></i> Texto libre
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge-sol badge-inv-sol">
+                                    <i class="bi bi-boxes"></i> Inventario
+                                </span>
+                            }
+                        </td>
+
+                        <td>@s.Cantidad</td>
+
+                        <td style="font-size:.8rem;color:var(--texto-suave);max-width:180px">
+                            @(string.IsNullOrWhiteSpace(s.Motivo) ? "—" : s.Motivo)
+                        </td>
+
+                        <td style="white-space:nowrap;font-size:.8rem;color:var(--texto-suave)">
+                            @s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")
+                        </td>
+
+                        <td>
+                            @if (s.Atendida)
+                            {
+                                <span class="badge-sol badge-atendida-sol">
+                                    <i class="bi bi-check-lg"></i> Atendida
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge-sol badge-pendiente-sol">
+                                    <i class="bi bi-clock"></i> Pendiente
+                                </span>
+                            }
+                        </td>
+
+                        <td class="td-acciones" style="white-space:nowrap">
+                            @if (!s.Atendida)
+                            {
+                                @if (esLibre)
+                                {
+                                    <a href="/Admin/Inventario" class="btn-sol btn-sol-crear" title="Ir a inventario a crear el repuesto">
+                                        <i class="bi bi-plus-circle"></i> <span>Crear repuesto</span>
                                     </a>
-                                </td>
+                                }
+                                else
+                                {
+                                    <form method="post" action="/Admin/AceptarSolicitudRepuesto"
+                                          style="display:inline"
+                                          onsubmit="return confirm('¿Aceptar y descontar stock?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                                        <input type="hidden" name="ordenId" value="@s.IdOrden" />
+                                        <input type="hidden" name="repuestoNombre" value="@nombre" />
+                                        <input type="hidden" name="cantidad" value="@s.Cantidad" />
+                                        <button type="submit" class="btn-sol btn-sol-accept">
+                                            <i class="bi bi-check2"></i> <span>Aceptar</span>
+                                        </button>
+                                    </form>
+                                }
 
-                                <td>@(s.NombreMecanico ?? "—")</td>
+                                <form method="post" action="/Admin/RechazarSolicitudRepuesto"
+                                      style="display:inline"
+                                      onsubmit="return confirm('¿Rechazar esta solicitud?')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                                    <button type="submit" class="btn-sol btn-sol-reject">
+                                        <i class="bi bi-x-lg"></i> <span>Rechazar</span>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="btn-sol btn-sol-disabled">
+                                    <i class="bi bi-lock-fill"></i> <span>Cerrada</span>
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
 
-                                <td class="text-main">@nombre</td>
-
-                                <td>
-                                    @if (esLibre)
-                                    {
-                                        <span class="badge badge-libre">
-                                            <i class="fas fa-pencil-alt"></i> Texto libre
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-inv">
-                                            <i class="fas fa-boxes"></i> Inventario
-                                        </span>
-                                    }
-                                </td>
-
-                                <td>@s.Cantidad</td>
-
-                                <td style="white-space:nowrap;font-size:.82rem;">
-                                    @s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")
-                                </td>
-
-                                <td>
-                                    @if (s.Atendida)
-                                    {
-                                        <span class="badge badge-done">
-                                            <i class="fas fa-check"></i> Atendida
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-pending">
-                                            <i class="fas fa-clock"></i> Pendiente
-                                        </span>
-                                    }
-                                </td>
-
-                                <td>
-                                    @if (!s.Atendida)
-                                    {
-                                        @if (esLibre)
-                                        {
-                                            <!-- Repuesto no está en inventario: enviar al admin a crearlo primero -->
-                                            <a href="/Admin/NuevoRepuesto?nombre=@Uri.EscapeDataString(nombre)"
-                                               class="btn-action btn-accept"
-                                               title="Crear repuesto en inventario y luego aceptar">
-                                                <i class="fas fa-plus"></i>
-                                                <span>Crear repuesto</span>
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <form method="post" action="/Admin/AceptarSolicitudRepuesto"
-                                                  style="display:inline"
-                                                  onsubmit="return confirmar(this, 'aceptar')">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="solicitudId" value="@s.Id" />
-                                                <button type="submit" class="btn-action btn-accept">
-                                                    <i class="fas fa-check"></i>
-                                                    <span>Aceptar</span>
-                                                </button>
-                                            </form>
-                                        }
-
-                                        <form method="post" action="/Admin/RechazarSolicitudRepuesto"
-                                              style="display:inline"
-                                              onsubmit="return confirmar(this, 'rechazar')">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="solicitudId" value="@s.Id" />
-                                            <button type="submit" class="btn-action btn-reject">
-                                                <i class="fas fa-times"></i>
-                                                <span>Rechazar</span>
-                                            </button>
-                                        </form>
-                                    }
-                                    else
-                                    {
-                                        <span class="btn-action btn-disabled">
-                                            <i class="fas fa-lock"></i>
-                                            <span>Cerrada</span>
-                                        </span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        </div>
-    </div>
-
-    <!-- TOAST -->
-    <div id="toast"></div>
-
+@section Scripts {
     <script>
-        /* ── FILTRO TABS ── */
         function filtrar(tipo, btn) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            document.querySelectorAll('#tabla-solicitudes tbody tr').forEach(tr => {
-                const pendiente = tr.classList.contains('row-pendiente');
-                const atendida  = tr.classList.contains('row-atendida');
-                const libre     = tr.dataset.libre === 'true';
+            document.querySelectorAll('#tablaSolicitudes tbody tr').forEach(tr => {
+                const atendida = tr.dataset.atendida === 'true';
+                const libre    = tr.dataset.libre    === 'true';
 
                 let show = false;
                 if      (tipo === 'todas')      show = true;
-                else if (tipo === 'pendientes') show = pendiente;
+                else if (tipo === 'pendientes') show = !atendida;
                 else if (tipo === 'atendidas')  show = atendida;
                 else if (tipo === 'libre')      show = libre;
 
                 tr.style.display = show ? '' : 'none';
             });
         }
-
-        /* ── CONFIRMACIÓN ── */
-        function confirmar(form, accion) {
-            return confirm(`¿Seguro que deseas ${accion} esta solicitud?`);
-        }
-
-        /* ── TOAST desde TempData ── */
-        @if (TempData["Mensaje"] != null)
-        {
-                <text>
-                mostrarToast(@Html.Raw(Json.Serialize(TempData["Mensaje"])), 'success');
-                </text>
-        }
-        @if (TempData["Error"] != null)
-        {
-                <text>
-                mostrarToast(@Html.Raw(Json.Serialize(TempData["Error"])), 'error');
-                </text>
-        }
-
-        function mostrarToast(msg, tipo) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.className   = 'show ' + tipo;
-            setTimeout(() => { t.className = ''; }, 4000);
-        }
     </script>
+}
 </body>
-</html>

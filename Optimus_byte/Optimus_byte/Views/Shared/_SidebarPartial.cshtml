@@ -1,0 +1,73 @@
+﻿@{
+    string rol = Context.Session.GetString("UsuarioRol") ?? "";
+}
+
+<aside class="ob-sidebar" id="obSidebar">
+    <div class="ob-sidebar-title">Optimus-Byte</div>
+
+    @if (rol == "Admin")
+    {
+        <a asp-controller="Usuarios" asp-action="Index">
+            <i class="bi bi-people-fill"></i> Usuarios
+        </a>
+        <a asp-controller="Admin" asp-action="Ordenes">
+            <i class="bi bi-clipboard2-check"></i> Órdenes
+        </a>
+        <a asp-controller="Admin" asp-action="Inventario">
+            <i class="bi bi-box-seam"></i> Inventario
+        </a>
+        <a asp-controller="Admin" asp-action="Facturas">
+            <i class="bi bi-receipt"></i> Facturas
+        </a>
+        <a asp-controller="Admin" asp-action="Dashboard">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a asp-controller="VehiculosAdmin" asp-action="Index">
+            <i class="bi bi-car-front-fill"></i> Vehículos
+        </a>
+        <a asp-controller="Admin" asp-action="SolicitudesRepuesto">
+            <i class="bi bi-bell-fill"></i> Solicitudes
+        </a>
+    }
+    else if (rol == "Mecanico")
+    {
+        <a asp-controller="Mecanico" asp-action="MisOrdenes">
+            <i class="bi bi-clipboard2-check"></i> Mis Órdenes
+        </a>
+        <a asp-controller="Mecanico" asp-action="SolicitarRepuesto">
+            <i class="bi bi-box-seam"></i> Solicitar Repuesto
+        </a>
+        <a asp-controller="Perfil" asp-action="Index">
+            <i class="bi bi-person-circle"></i> Mi Perfil
+        </a>
+    }
+    else if (rol == "Cliente")
+    {
+        <a asp-controller="Cliente" asp-action="Portal">
+            <i class="bi bi-house-door-fill"></i> Inicio
+        </a>
+        <a asp-controller="Vehiculo" asp-action="MisVehiculos">
+            <i class="bi bi-car-front-fill"></i> Mis Vehículos
+        </a>
+        <a asp-controller="Cliente" asp-action="MisOrdenes">
+            <i class="bi bi-clipboard2-check"></i> Mis Órdenes
+        </a>
+        <a asp-controller="Cliente" asp-action="MisFacturas">
+            <i class="bi bi-receipt"></i> Mis Facturas
+        </a>
+        <a asp-controller="Citas" asp-action="Index">
+            <i class="bi bi-calendar-check"></i> Agendar Cita
+        </a>
+        <a asp-controller="Perfil" asp-action="Index">
+            <i class="bi bi-person-circle"></i> Mi Perfil
+        </a>
+    }
+    else
+    {
+        <!-- Sin sesión — sidebar público -->
+        <a asp-controller="Home" asp-action="Index">Inicio</a>
+        <a asp-controller="Inventario" asp-action="Index">Catálogo</a>
+        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
+        <a asp-controller="Citas" asp-action="Index">Citas</a>
+    }
+</aside>

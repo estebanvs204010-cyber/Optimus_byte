@@ -21,11 +21,11 @@ namespace Optimus_byte.Controllers
                 return View(new CitasClientePageViewModel { RequiereLogin = true });
             }
 
-            if (rol != "Cliente")
-            {
-                TempData["Error"] = "Solo los clientes pueden agendar citas desde esta vista.";
-                return RedirectToAction("Index", "Home");
-            }
+            //if (rol != "Cliente")
+            //{
+            //    TempData["Error"] = "Solo los clientes pueden agendar citas desde esta vista.";
+            //    return RedirectToAction("Index", "Home");
+            //}
 
             using var conn = _db.GetConnection();
             AsegurarTablaCitas(conn);

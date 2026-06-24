@@ -14,6 +14,10 @@
     <title>OPTIMUS-BYTE — Órdenes</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
     <link href="~/css/usuarios.css" rel="stylesheet" />
     <style>
         .badge-estado {
@@ -95,14 +99,15 @@
             padding: 0 3px;
             line-height: 1;
         }
+
         /* Panel notificaciones */
         .notif-panel {
             display: none;
             position: fixed;
             top: 54px;
             right: 18px;
-            width: 340px;
-            max-height: 420px;
+            width: 360px;
+            max-height: 480px;
             overflow-y: auto;
             background: #fff;
             border: 1px solid var(--borde-input);
@@ -248,10 +253,21 @@
         {
             @foreach (var s in solicitudes)
             {
+                bool esLibre = s.NombreRepuesto?.StartsWith("[Sin inventario]") ?? false;
+                string nombreMostrar = esLibre
+                ? s.NombreRepuesto!.Replace("[Sin inventario]", "").Trim()
+                : (s.NombreRepuesto ?? "—");
+
                 <div class="notif-item">
                     <div class="notif-titulo">
                         <i class="bi bi-box-seam me-1" style="color:#f97316"></i>
-                        @s.NombreRepuesto
+                        @if (esLibre)
+                        {
+                            <span style="font-size:.63rem;background:rgba(239,68,68,.1);color:#ef4444;
+                                                     border:1px solid rgba(239,68,68,.25);border-radius:10px;
+                                                     padding:1px 6px;margin-right:4px">Sin inventario</span>
+                        }
+                        @nombreMostrar
                         <span style="color:#94a3b8;font-weight:400"> × @s.Cantidad</span>
                     </div>
                     <div class="notif-sub">
@@ -259,18 +275,54 @@
                     </div>
                     @if (!string.IsNullOrWhiteSpace(s.Motivo))
                     {
-                        <div class="notif-sub" style="margin-top:2px;font-style:italic">@s.Motivo</div>
+                        <div class="notif-sub" style="margin-top:2px;font-style:italic">
+                            <i class="bi bi-chat-left-text me-1"></i>@s.Motivo
+                        </div>
                     }
                     <div class="notif-hora">@s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")</div>
-                    <form asp-controller="Admin" asp-action="AtenderSolicitud" method="post"
-                          style="margin-top:6px">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="idSolicitud" value="@s.IdSolicitud" />
-                        <button type="submit"
-                                style="font-size:.68rem;padding:3px 10px;background:#22c55e;color:#fff;border:none;border-radius:4px;cursor:pointer">
-                            <i class="bi bi-check2 me-1"></i>Marcar atendida
-                        </button>
-                    </form>
+
+                    @* ── Botones Aceptar / Rechazar ── *@
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                        @if (esLibre)
+                        {
+                            <a href="/Admin/Inventario"
+                               style="font-size:.68rem;padding:4px 10px;background:#3b82f6;color:#fff;
+                                                  border-radius:4px;text-decoration:none;
+                                                  display:inline-flex;align-items:center;gap:4px">
+                                <i class="bi bi-plus-circle"></i> Crear en inventario
+                            </a>
+                        }
+                        else
+                        {
+                            <form asp-controller="Admin" asp-action="AceptarSolicitudRepuesto" method="post"
+                                  style="display:inline"
+                                  onsubmit="return confirm('¿Aceptar y descontar stock de este repuesto?')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                                <input type="hidden" name="ordenId" value="@s.IdOrden" />
+                                <input type="hidden" name="repuestoNombre" value="@nombreMostrar" />
+                                <input type="hidden" name="cantidad" value="@s.Cantidad" />
+                                <button type="submit"
+                                        style="font-size:.68rem;padding:4px 10px;background:#22c55e;
+                                                           color:#fff;border:none;border-radius:4px;cursor:pointer;
+                                                           display:inline-flex;align-items:center;gap:4px">
+                                    <i class="bi bi-check2"></i> Aceptar
+                                </button>
+                            </form>
+                        }
+                        <form asp-controller="Admin" asp-action="RechazarSolicitudRepuesto" method="post"
+                              style="display:inline"
+                              onsubmit="return confirm('¿Rechazar esta solicitud?')">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                            <button type="submit"
+                                    style="font-size:.68rem;padding:4px 10px;background:#ef4444;
+                                                   color:#fff;border:none;border-radius:4px;cursor:pointer;
+                                                   display:inline-flex;align-items:center;gap:4px">
+                                <i class="bi bi-x-lg"></i> Rechazar
+                            </button>
+                        </form>
+                    </div>
                 </div>
             }
             <div style="padding:10px 16px;text-align:right">
@@ -290,6 +342,17 @@
             <a href="/Admin/Facturas" class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
             <a href="/Admin/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
             <a href="/VehiculosAdmin/Index" class="nav-link"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
+            <a href="/Admin/SolicitudesRepuesto" class="nav-link" style="position:relative">
+                <i class="bi bi-bell-fill"></i>
+                <span>Solicitudes</span>
+                @if (totalSolicitudes > 0)
+                {
+                    <span style="position:absolute;top:6px;right:10px;background:#ef4444;color:#fff;
+                                     font-size:.55rem;font-weight:700;min-width:15px;height:15px;
+                                     border-radius:8px;display:flex;align-items:center;
+                                     justify-content:center;padding:0 3px">@totalSolicitudes</span>
+                }
+            </a>
         </nav>
     </div>
 
@@ -525,24 +588,24 @@
         // Sonido al cargar si hay solicitudes
         @if (totalSolicitudes > 0)
         {
-                <text>
-                (function () {
-                    try {
-                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                        [523, 659, 784].forEach((freq, i) => {
-                            const o = ctx.createOscillator();
-                            const g = ctx.createGain();
-                            o.connect(g); g.connect(ctx.destination);
-                            o.frequency.value = freq;
-                            o.type = 'sine';
-                            g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12);
-                            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
-                            o.start(ctx.currentTime + i * 0.12);
-                            o.stop(ctx.currentTime + i * 0.12 + 0.3);
-                        });
-                    } catch (e) { /* sin audio */ }
-                })();
-                </text>
+                    <text>
+                    (function () {
+                        try {
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            [523, 659, 784].forEach((freq, i) => {
+                                const o = ctx.createOscillator();
+                                const g = ctx.createGain();
+                                o.connect(g); g.connect(ctx.destination);
+                                o.frequency.value = freq;
+                                o.type = 'sine';
+                                g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12);
+                                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
+                                o.start(ctx.currentTime + i * 0.12);
+                                o.stop(ctx.currentTime + i * 0.12 + 0.3);
+                            });
+                        } catch (e) { /* sin audio */ }
+                    })();
+                    </text>
         }
 
         // Polling cada 30 seg para actualizar el badge sin recargar

@@ -13,7 +13,7 @@ namespace Optimus_byte.Models.ViewModels
         public int     ProximasCitas      { get; set; }
         public int     RepuestosBajoStock { get; set; }
         public decimal IngresosMes        { get; set; }
-       
+
         public List<OrdenResumenViewModel> OrdenesRecientes { get; set; } = new();
         public List<RepuestoCriticoViewModel> RepuestosCriticos { get; set; } = new();
         public List<CitaClienteViewModel>      CitasRecientes    { get; set; } = new();
@@ -88,7 +88,13 @@ namespace Optimus_byte.Models.ViewModels
         public int StockActual { get; set; }
         public int StockMinimo { get; set; }
         public DateTime FechaRegistro { get; set; }
+        public bool Activo { get; set; }
+        public string? ImagenUrl { get; set; }
+        public string? Modelo { get; set; }
+
         public bool BajoStock => StockActual <= StockMinimo;
+        public string marca { get; set; } = string.Empty;
+        public string modelo { get; set; } = string.Empty;
     }
 
     public class RepuestoCriticoViewModel
@@ -127,5 +133,37 @@ namespace Optimus_byte.Models.ViewModels
         public string MecanicoNombre { get; set; } = "";
         public DateTime FechaSolicitud { get; set; }
         public bool Atendida { get; set; }
+    }
+    public class PayUCheckoutViewModel
+    {
+        public int IdFactura { get; set; }
+        public decimal Total { get; set; }
+        public decimal Iva { get; set; }
+        public decimal Base { get; set; }
+        public string MerchantId { get; set; } = "";
+        public string AccountId { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string ReferenceCode { get; set; } = "";
+        public string Amount { get; set; } = "";
+        public string Tax { get; set; } = "";
+        public string TaxReturnBase { get; set; } = "";
+        public string Currency { get; set; } = "COP";
+        public string Signature { get; set; } = "";
+        public string Test { get; set; } = "1";
+        public string BuyerEmail { get; set; } = "";
+        public string ResponseUrl { get; set; } = "";
+        public string ConfirmUrl { get; set; } = "";
+        public string CheckoutUrl { get; set; } = "";
+    }
+}
+
+namespace Optimus_byte.Controllers
+{
+    public class CalificacionViewModel
+    {
+        public int Estrellas { get; set; }
+        public string Comentario { get; set; } = "";
+        public DateTime Fecha { get; set; }
+        public string NombreUsuario { get; set; } = "";
     }
 }

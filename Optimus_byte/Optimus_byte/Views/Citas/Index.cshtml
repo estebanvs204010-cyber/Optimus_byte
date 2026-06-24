@@ -10,9 +10,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OPTIMUS-BYTE - Agendar cita</title>
-    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
-    <link href="~/css/citas.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/citas.css" asp-append-version="true" />
 </head>
 <body>
     <main class="citas-page">
@@ -36,7 +38,7 @@
                 <h1>Inicia sesión para agendar tu cita</h1>
                 <p>Para reservar una atención en el taller necesitamos saber quién eres y qué vehículo vas a traer.</p>
                 <div class="login-actions">
-                    <a asp-controller="Login" asp-action="Index" class="btn-main">
+                    <a href="/Login/Index?returnUrl=/Citas/Index" class="btn-main">
                         <i class="bi bi-box-arrow-in-right"></i>
                         Iniciar sesión
                     </a>
@@ -80,7 +82,8 @@
                             <i class="bi bi-car-front-fill"></i>
                             <h3>Primero registra un vehículo</h3>
                             <p>Necesitas tener un vehículo activo para poder solicitar una cita.</p>
-                            <a asp-controller="Cliente" asp-action="AgregarVehiculo" class="btn-main">
+                            <a asp-controller="Cliente" asp-action="AgregarVehiculo"
+                                asp-route-returnUrl="/Citas/Index">
                                 Registrar vehículo
                             </a>
                         </div>

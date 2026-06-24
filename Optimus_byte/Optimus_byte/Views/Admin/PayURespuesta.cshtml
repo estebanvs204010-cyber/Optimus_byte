@@ -1,0 +1,128 @@
+﻿@{
+    Layout = null; bool ok = (bool)(ViewBag.Exitoso ?? false);
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Respuesta Pago — OPTIMUS-BYTE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="~/css/usuarios.css" rel="stylesheet" />
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--carbon);
+        }
+
+        .rw {
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+        }
+
+        .rcard {
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 6px 32px rgba(0,0,0,.2);
+            text-align: center;
+            padding: 48px 36px;
+        }
+
+        .ico {
+            font-size: 3.5rem;
+            margin-bottom: 16px;
+        }
+
+        .titulo {
+            font-family: var(--fuente-titulo);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .sub {
+            font-size: .85rem;
+            color: var(--texto-suave);
+            margin-bottom: 28px;
+        }
+
+        .detalle {
+            background: #f8f9ff;
+            border: 1px solid var(--borde-input);
+            border-radius: 6px;
+            padding: 16px 20px;
+            text-align: left;
+            margin-bottom: 28px;
+        }
+
+            .detalle .row-d {
+                display: flex;
+                justify-content: space-between;
+                padding: 5px 0;
+                font-size: .8rem;
+            }
+
+                .detalle .row-d span:first-child {
+                    color: var(--texto-suave);
+                }
+
+                .detalle .row-d span:last-child {
+                    font-weight: 600;
+                }
+
+        .btn-volver {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--dorado);
+            color: #fff;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 6px;
+            font-size: .85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: opacity .2s;
+        }
+
+            .btn-volver:hover {
+                opacity: .85;
+                color: #fff;
+            }
+    </style>
+</head>
+<body>
+    <div class="rw">
+        <div class="rcard">
+            @if (ok)
+            {
+                <div class="ico" style="color:#16a34a"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="titulo" style="color:#15803d">¡Pago aprobado!</div>
+                <div class="sub">Tu pago fue procesado exitosamente por PayU.</div>
+            }
+            else
+            {
+                <div class="ico" style="color:#dc2626"><i class="bi bi-x-circle-fill"></i></div>
+                <div class="titulo" style="color:#b91c1c">Pago no completado</div>
+                <div class="sub">El pago no fue aprobado. Intenta de nuevo o usa otro método.</div>
+            }
+
+            <div class="detalle">
+                <div class="row-d"><span>Referencia</span><span>@ViewBag.Referencia</span></div>
+                <div class="row-d"><span>Transacción</span><span>@ViewBag.TransaccionId</span></div>
+                <div class="row-d"><span>Mensaje</span><span>@ViewBag.Mensaje</span></div>
+            </div>
+
+            <a href="/Admin/Facturas" class="btn-volver">
+                <i class="bi bi-receipt"></i> Ver facturas
+            </a>
+        </div>
+    </div>
+</body>
+</html>

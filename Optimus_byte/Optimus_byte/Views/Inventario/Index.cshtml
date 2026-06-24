@@ -1,8 +1,10 @@
 @{
     Layout = null;
     ViewData["Title"] = "Catálogo de Repuestos";
+    var nombre   = Context.Session.GetString("UsuarioNombre");
+    var rol      = Context.Session.GetString("UsuarioRol");
+    bool logueado = !string.IsNullOrEmpty(nombre);
 }
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,179 +12,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Optimus-Byte</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/catalogo.css" asp-append-version="true" />
     <style>
-        .logo-img {
-            height: 48px !important;
-            width: auto !important;
-            max-width: 200px !important;
-            display: block !important;
-        }
-
-        .barra-superior {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 80px !important;
-            background-color: #ffffff !important;
-            border-bottom: 1px solid rgba(37,99,235,0.15) !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 20px !important;
-            padding: 0 32px !important;
-            z-index: 1200 !important;
-            box-shadow: 0 1px 40px rgba(37,99,235,0.08) !important;
-        }
-
-        .boton-menu {
-            background: transparent !important;
-            color: #2563eb !important;
-            border: 1px solid rgba(37,99,235,0.15) !important;
-            width: 44px !important;
-            height: 44px !important;
-            font-size: 18px !important;
-            border-radius: 4px !important;
-            cursor: pointer !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-
-        .nav-acciones {
-            margin-left: auto !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 12px !important;
-        }
-
-        .ob-btn-ingresar {
-            color: #1e3a8a;
-            text-decoration: none;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            padding: 9px 22px;
-            border: 1.5px solid #1e3a8a;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            background: transparent;
-        }
-
-            .ob-btn-ingresar:hover {
-                background: #1e3a8a;
-                color: #ffffff;
-                box-shadow: 0 2px 12px rgba(30,58,138,0.07);
-            }
-
-        .ob-btn-registro {
-            color: #ffffff;
-            text-decoration: none;
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            padding: 9px 22px;
-            background: #1e3a8a;
-            border: 1.5px solid #1e3a8a;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-
-            .ob-btn-registro:hover {
-                background: #1a2332;
-                border-color: #1a2332;
-                color: #ffffff;
-                box-shadow: 0 8px 32px rgba(30,58,138,0.11);
-            }
-
+        /* Ajuste del contenido para no quedar bajo el navbar del home */
+        .cat-layout { padding-top: 72px !important; }
+        /* Botón cotización en navbar */
         .nb-cotizacion {
-            display: flex !important;
-            align-items: center !important;
-            gap: 8px !important;
-            border: 1px solid #2563eb !important;
-            color: #2563eb !important;
-            padding: 7px 16px !important;
-            border-radius: 4px !important;
-            font-size: .75rem !important;
-            letter-spacing: .1em !important;
-            text-transform: uppercase !important;
-            cursor: pointer !important;
-            background: transparent !important;
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--dorado, #d97706);
+            color: var(--dorado, #d97706);
+            padding: 7px 16px;
+            border-radius: 4px;
+            font-size: .75rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            background: transparent;
+            transition: .2s;
         }
-
-        .barra-lateral {
-            position: fixed !important;
-            top: 80px !important;
-            left: -280px !important;
-            width: 280px !important;
-            height: calc(100vh - 80px) !important;
-            background: #ffffff !important;
-            border-right: 1px solid rgba(37,99,235,0.15) !important;
-            padding: 36px 0 !important;
-            transition: left 0.3s ease !important;
-            z-index: 1000 !important;
-            overflow-y: auto !important;
+        .nb-cotizacion:hover { background: var(--dorado, #d97706); color: #fff; }
+        .carrito-badge {
+            background: var(--dorado, #d97706);
+            color: #fff;
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            font-size: .62rem; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
         }
-
-        .barra-lateral.activa {
-            left: 0 !important;
-            box-shadow: 4px 0 40px rgba(37,99,235,0.1) !important;
-        }
-
-        .barra-lateral h2 {
-            color: #2563eb !important;
-            font-size: 1.1rem !important;
-            letter-spacing: 0.08em !important;
-            text-transform: uppercase !important;
-            padding: 0 28px 24px !important;
-            margin: 0 !important;
-            border-bottom: 1px solid rgba(37,99,235,0.15) !important;
-            margin-bottom: 12px !important;
-        }
-
-        .barra-lateral a {
-            display: flex !important;
-            align-items: center !important;
-            color: #64748b !important;
-            text-decoration: none !important;
-            padding: 13px 28px !important;
-            font-size: 0.82rem !important;
-            letter-spacing: 0.1em !important;
-            text-transform: uppercase !important;
-            transition: all 0.3s ease !important;
-            border-left: 2px solid transparent !important;
-        }
-
-        .barra-lateral a:hover,
-        .barra-lateral a.activo-sidebar {
-            color: #2563eb !important;
-            background: rgba(37,99,235,0.08) !important;
-            border-left-color: #2563eb !important;
-        }
-
-        .cat-layout {
-            padding-top: 80px !important;
-        }
-
-        body { margin: 0 !important; padding: 0 !important; }
     </style>
 </head>
-
 <body>
 
-    <!-- ══ NAVBAR ══════════════════════════════════════════ -->
-    <header class="barra-superior">
-        <button class="boton-menu" onclick="mostrarMenu()">☰</button>
+    <!-- ══ NAVBAR (igual al Home) ══ -->
+    <nav class="ob-navbar">
+        <button class="ob-hamburger" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
 
-        <a class="logo-proyecto" asp-controller="Home" asp-action="Index">
-            <img src="~/img/putin.png" alt="Optimus-Byte" class="logo-img" />
+        <a class="ob-nav-logo" asp-controller="Home" asp-action="Index">
+            <img src="~/img/putin.png" alt="Optimus-Byte" />
         </a>
 
         <button class="nb-cotizacion" id="toggleCarrito">
@@ -190,23 +68,44 @@
             <span class="carrito-badge" id="badgeCount">0</span>
         </button>
 
-        <div class="nav-acciones">
-            <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">Ingresar</a>
-            <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrar</a>
+        <div class="ob-nav-acciones">
+            @if (!logueado)
+            {
+                <a class="ob-btn-ingresar"
+                   href="/Login/Index?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
+                    Ingresar
+                </a>
+                <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrarse</a>
+            }
+            else
+            {
+                @await Html.PartialAsync("_MenuUsuarioPartial")
+            }
         </div>
-    </header>
+    </nav>
 
-    <!-- ══ BARRA LATERAL ═══════════════════════════════════ -->
-    <aside class="barra-lateral" id="barraLateral">
-        <h2>Optimus-Byte</h2>
-        <a asp-controller="Home" asp-action="Index">Inicio</a>
-        <a asp-controller="Inventario" asp-action="Index" class="activo-sidebar">Catálogo</a>
-        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
-        <a asp-controller="Citas" asp-action="Index">Citas</a>
-        <a asp-controller="Home" asp-action="Sobre">Acerca de</a>
+    <!-- ══ SIDEBAR (igual al Home) ══ -->
+    <aside class="ob-sidebar" id="obSidebar">
+        <div class="ob-sidebar-title">Optimus-Byte</div>
+        <a asp-controller="Home" asp-action="Index">
+            <i class="fas fa-house"></i> Inicio
+        </a>
+        <a asp-controller="Inventario" asp-action="Index" class="activo-sidebar">
+            <i class="fas fa-boxes-stacked"></i> Catálogo
+        </a>
+        <a asp-controller="Servicios" asp-action="Index">
+            <i class="fas fa-screwdriver-wrench"></i> Servicios
+        </a>
+        <a asp-controller="Citas" asp-action="Index">
+            <i class="fas fa-calendar-check"></i> Citas
+        </a>
+        <a asp-controller="Home" asp-action="Sobre">
+            <i class="fas fa-circle-info"></i> Acerca de
+        </a>
     </aside>
+    <div class="ob-overlay" id="obOverlay" onclick="closeSidebar()"></div>
 
-    <!-- ══ LAYOUT: SIDEBAR CATEGORÍAS + MAIN ══════════════ -->
+    <!-- ══ LAYOUT: SIDEBAR CATEGORÍAS + MAIN ══ -->
     <div class="cat-layout" id="contenidoPrincipal">
 
         <aside class="cat-sb">
@@ -218,13 +117,9 @@
                 </button>
             </div>
             <div class="cat-sb-cat-title">Categorías</div>
-            <div class="cat-sb-cat on" onclick="filtrar('todos', this)">Todos los productos <span class="arr">→</span></div>
-            <div class="cat-sb-cat" onclick="filtrar('Motor', this)">Motor <span class="arr">→</span></div>
-            <div class="cat-sb-cat" onclick="filtrar('Frenos', this)">Frenos <span class="arr">→</span></div>
-            <div class="cat-sb-cat" onclick="filtrar('Filtros', this)">Filtros <span class="arr">→</span></div>
-            <div class="cat-sb-cat" onclick="filtrar('Eléctrico', this)">Eléctrico <span class="arr">→</span></div>
-            <div class="cat-sb-cat" onclick="filtrar('Suspensión', this)">Suspensión <span class="arr">→</span></div>
-            <div class="cat-sb-cat" onclick="filtrar('Lubricantes', this)">Lubricantes <span class="arr">→</span></div>
+            <div id="listaCategorias">
+                <div class="cat-sb-cat on" onclick="filtrar('todos', this)">Todos los productos <span class="arr">→</span></div>
+            </div>
         </aside>
 
         <main class="cat-main">
@@ -238,13 +133,19 @@
                         <option value="precio-asc">Precio ↑</option>
                         <option value="precio-desc">Precio ↓</option>
                     </select>
+                    <select class="cat-sort-sel" id="filtroMarca" onchange="filtrarMarca()">
+                        <option value="todas">Todas las marcas</option>
+                    </select>
+                    <select class="cat-sort-sel" id="filtroModelo" onchange="filtrarModelo()">
+                        <option value="todos">Todos los modelos</option>
+                    </select>
                 </div>
             </div>
 
             <div class="cat-carrito-panel" id="carritoPanel" style="display:none;">
                 <div class="cat-carrito-panel-hdr">
                     <span>Mi cotización</span>
-                    <span style="cursor:pointer;" onclick="toggleCarrito()" >✕ cerrar</span>
+                    <span style="cursor:pointer;" onclick="toggleCarrito()">✕ cerrar</span>
                 </div>
                 <div id="carritoItems"></div>
                 <div class="cat-carrito-total">
@@ -260,10 +161,26 @@
 
     <script src="~/js/catalogo.js" asp-append-version="true"></script>
     <script>
-        function mostrarMenu() {
-            document.getElementById('barraLateral').classList.toggle('activa');
+        // Sidebar del home
+        function toggleSidebar() {
+            document.getElementById('obSidebar').classList.toggle('activa');
+            document.getElementById('obOverlay').classList.toggle('activa');
+        }
+        function closeSidebar() {
+            document.getElementById('obSidebar').classList.remove('activa');
+            document.getElementById('obOverlay').classList.remove('activa');
+        }
+        // Dropdown usuario
+                       function toggleMenu(btn) {
+            const menu = document.getElementById('menuUsuario');
+            menu.classList.toggle('abierto');
+            document.addEventListener('click', function cerrar(e) {
+                if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                    menu.classList.remove('abierto');
+                    document.removeEventListener('click', cerrar);
+                }
+            });
         }
     </script>
-
 </body>
 </html>

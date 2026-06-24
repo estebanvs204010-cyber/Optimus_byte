@@ -2,6 +2,12 @@
 @{
     ViewData["Title"] = "Inventario";
     Layout = null;
+    var solicitudes = ViewBag.SolicitudesPendientes as List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>
+                      ?? new List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>();
+    var stockBajo = Model.Where(r => r.BajoStock).ToList();
+    int totalSolicitudes = solicitudes.Count;
+    int totalStockBajo = stockBajo.Count;
+    int totalNotif = totalSolicitudes + totalStockBajo;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -10,11 +16,156 @@
     <title>OPTIMUS-BYTE — Inventario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+
     <link href="~/css/usuarios.css" rel="stylesheet" />
     <style>
-        .stock-ok  { color: #15803d; }
-        .stock-low { color: #dc2626; font-weight: 600; }
-        .badge-cat { display:inline-block;padding:2px 9px;border-radius:2px;font-size:.68rem;letter-spacing:.06em;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18);color:var(--dorado); }
+        .stock-ok {
+            color: #15803d;
+        }
+
+        .stock-low {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .badge-cat {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 2px;
+            font-size: .68rem;
+            letter-spacing: .06em;
+            background: rgba(37,99,235,.07);
+            border: 1px solid rgba(37,99,235,.18);
+            color: var(--dorado);
+        }
+
+        /* ── Campanita ── */
+        .bell-btn {
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            color: var(--texto-suave);
+            font-size: 1.25rem;
+            transition: color .2s;
+        }
+
+            .bell-btn:hover {
+                color: var(--dorado);
+            }
+
+        .bell-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ef4444;
+            color: #fff;
+            font-size: .6rem;
+            font-weight: 700;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            line-height: 1;
+        }
+        /* ── Panel notificaciones ── */
+        .notif-panel {
+            display: none;
+            position: fixed;
+            top: 54px;
+            right: 18px;
+            width: 370px;
+            max-height: 500px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.12);
+            z-index: 9999;
+        }
+
+            .notif-panel.open {
+                display: block;
+            }
+
+        .notif-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--borde-input);
+            font-size: .75rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--dorado);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notif-section-title {
+            padding: 8px 16px 4px;
+            font-size: .65rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+            background: var(--grafito-med);
+            border-bottom: 1px solid var(--borde-input);
+        }
+
+        .notif-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(0,0,0,.04);
+            font-size: .82rem;
+        }
+
+            .notif-item:last-child {
+                border-bottom: none;
+            }
+
+        .notif-titulo {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .notif-sub {
+            color: #64748b;
+            font-size: .76rem;
+        }
+
+        .notif-hora {
+            color: #94a3b8;
+            font-size: .7rem;
+            margin-top: 4px;
+        }
+
+        .notif-empty {
+            padding: 24px 16px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: .82rem;
+        }
+
+        .stock-alerta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(220,38,38,.08);
+            border: 1px solid rgba(220,38,38,.25);
+            color: #b91c1c;
+            border-radius: 4px;
+            font-size: .7rem;
+            font-weight: 600;
+            padding: 3px 9px;
+        }
     </style>
 </head>
 <body>
@@ -25,19 +176,141 @@
             <span class="badge-admin">Admin</span>
         </div>
         <div class="d-flex align-items-center gap-3">
+
+            @* ── CAMPANITA ── *@
+            <button class="bell-btn" id="btnCampana" title="Notificaciones" onclick="toggleNotif()">
+                <i class="bi bi-bell-fill"></i>
+                @if (totalNotif > 0)
+                {
+                    <span class="bell-badge" id="bellBadge">@totalNotif</span>
+                }
+            </button>
+
             <span class="admin-name"><i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")</span>
             <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
         </div>
     </div>
 
+    @* ── Panel de notificaciones ── *@
+    <div class="notif-panel" id="notifPanel">
+        <div class="notif-header">
+            <span><i class="bi bi-bell me-1"></i>Notificaciones</span>
+            @if (totalNotif > 0)
+            {
+                <span style="background:#ef4444;color:#fff;font-size:.65rem;padding:2px 7px;border-radius:10px">
+                    @totalNotif pendiente(s)
+                </span>
+            }
+        </div>
+
+        @* — Solicitudes de repuesto — *@
+        @if (solicitudes.Any())
+        {
+            <div class="notif-section-title"><i class="bi bi-box-seam me-1"></i>Solicitudes de repuesto (@totalSolicitudes)</div>
+            @foreach (var s in solicitudes)
+            {
+                bool esLibre = s.NombreRepuesto?.StartsWith("[Sin inventario]") ?? false;
+                string nombreMostrar = esLibre ? s.NombreRepuesto!.Replace("[Sin inventario]", "").Trim() : (s.NombreRepuesto ?? "—");
+                <div class="notif-item">
+                    <div class="notif-titulo">
+                        <i class="bi bi-box-seam me-1" style="color:#f97316"></i>
+                        @if (esLibre)
+                        {
+                            <span style="font-size:.63rem;background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:1px 6px;margin-right:4px">Sin inventario</span>
+                        }
+                        @nombreMostrar <span style="color:#94a3b8;font-weight:400"> × @s.Cantidad</span>
+                    </div>
+                    <div class="notif-sub">OT-@s.IdOrden &nbsp;·&nbsp; @s.MecanicoNombre</div>
+                    @if (!string.IsNullOrWhiteSpace(s.Motivo))
+                    {
+                        <div class="notif-sub" style="margin-top:2px;font-style:italic"><i class="bi bi-chat-left-text me-1"></i>@s.Motivo</div>
+                    }
+                    <div class="notif-hora">@s.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")</div>
+                    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                        @if (esLibre)
+                        {
+                            <a href="/Admin/Inventario" style="font-size:.68rem;padding:4px 10px;background:#3b82f6;color:#fff;border-radius:4px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                                <i class="bi bi-plus-circle"></i> Crear en inventario
+                            </a>
+                        }
+                        else
+                        {
+                            <form asp-controller="Admin" asp-action="AceptarSolicitudRepuesto" method="post" style="display:inline" onsubmit="return confirm('¿Aceptar y descontar stock de este repuesto?')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                                <input type="hidden" name="ordenId" value="@s.IdOrden" />
+                                <input type="hidden" name="repuestoNombre" value="@nombreMostrar" />
+                                <input type="hidden" name="cantidad" value="@s.Cantidad" />
+                                <button type="submit" style="font-size:.68rem;padding:4px 10px;background:#22c55e;color:#fff;border:none;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+                                    <i class="bi bi-check2"></i> Aceptar
+                                </button>
+                            </form>
+                        }
+                        <form asp-controller="Admin" asp-action="RechazarSolicitudRepuesto" method="post" style="display:inline" onsubmit="return confirm('¿Rechazar esta solicitud?')">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
+                            <button type="submit" style="font-size:.68rem;padding:4px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+                                <i class="bi bi-x-lg"></i> Rechazar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+
+        @* — Stock bajo (persistente) — *@
+        @if (stockBajo.Any())
+        {
+            <div class="notif-section-title"><i class="bi bi-exclamation-triangle-fill me-1" style="color:#dc2626"></i>Stock bajo (@totalStockBajo repuesto(s))</div>
+            @foreach (var r in stockBajo)
+            {
+                <div class="notif-item">
+                    <div class="notif-titulo">
+                        <span class="stock-alerta-chip"><i class="bi bi-exclamation-triangle-fill"></i>STOCK BAJO</span>
+                        <span style="margin-left:6px">@r.Nombre</span>
+                    </div>
+                    <div class="notif-sub" style="margin-top:4px">
+                        Actual: <strong style="color:#dc2626">@r.StockActual</strong> &nbsp;·&nbsp; Mínimo: @r.StockMinimo
+                        &nbsp;·&nbsp; Ref: <span style="font-family:monospace">@r.Referencia</span>
+                    </div>
+                </div>
+            }
+        }
+
+        @if (totalNotif == 0)
+        {
+            <div class="notif-empty">
+                <i class="bi bi-check-circle" style="font-size:1.8rem;display:block;margin-bottom:8px;color:#22c55e"></i>
+                Sin notificaciones pendientes
+            </div>
+        }
+
+        @if (solicitudes.Any())
+        {
+            <div style="padding:10px 16px;text-align:right">
+                <a href="/Admin/SolicitudesRepuesto" style="font-size:.76rem;color:var(--dorado);text-decoration:none">
+                    Ver todas las solicitudes <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        }
+    </div>
+
     <div class="admin-sidebar">
         <nav class="sidebar-nav">
-            <a href="/Usuarios"         class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
-            <a href="/Admin/Ordenes"    class="nav-link"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
+            <a href="/Usuarios" class="nav-link"><i class="bi bi-people-fill"></i><span>Usuarios</span></a>
+            <a href="/Admin/Ordenes" class="nav-link"><i class="bi bi-clipboard2-check"></i><span>Órdenes</span></a>
             <a href="/Admin/Inventario" class="nav-link active"><i class="bi bi-box-seam"></i><span>Inventario</span></a>
-            <a href="/Admin/Facturas"   class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
-            <a href="/Admin/Dashboard"  class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-            <a href="/VehiculosAdmin/Index" class="nav-link active"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
+            <a href="/Admin/Facturas" class="nav-link"><i class="bi bi-receipt"></i><span>Facturas</span></a>
+            <a href="/Admin/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+            <a href="/VehiculosAdmin/Index" class="nav-link"><i class="bi bi-car-front-fill"></i><span>Vehículos</span></a>
+            <a href="/Admin/SolicitudesRepuesto" class="nav-link" style="position:relative">
+                <i class="bi bi-bell-fill"></i>
+                <span>Solicitudes</span>
+                @if (totalSolicitudes > 0)
+                {
+                    <span style="position:absolute;top:6px;right:10px;background:#ef4444;color:#fff;font-size:.55rem;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px">@totalSolicitudes</span>
+                }
+            </a>
         </nav>
     </div>
 
@@ -51,7 +324,29 @@
             <button class="btn-nuevo" data-bs-toggle="modal" data-bs-target="#modalRepuesto" onclick="prepararModal(null)">
                 <i class="bi bi-plus-lg me-2"></i>Nuevo repuesto
             </button>
+            <a asp-controller="Inventario" asp-action="Index" class="btn-nuevo">
+                <i class="fas fa-eye"></i> Ver Catálogo Principal
+            </a>
+            <button class="btn-nuevo" data-bs-toggle="modal"
+                    data-bs-target="#modalImagenesCategoria"
+                    style="background:transparent;
+               border:1.5px solid var(--dorado);
+               color:var(--dorado);
+               margin-left:10px;">
+                <i class="bi bi-images"></i> EDITAR IMÁGENES 
+            </button>
         </div>
+
+        @* Banner persistente stock bajo *@
+        @if (stockBajo.Any())
+        {
+            <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.25);border-radius:6px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <i class="bi bi-exclamation-triangle-fill" style="color:#dc2626;font-size:1.1rem"></i>
+                <span style="font-size:.82rem;color:#b91c1c;font-weight:600">
+                    @totalStockBajo repuesto(s) por debajo del stock mínimo. Actualiza el stock para que desaparezca esta alerta.
+                </span>
+            </div>
+        }
 
         @if (TempData["Exito"] != null)
         {
@@ -90,33 +385,66 @@
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>Foto</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
                         <th>Repuesto</th>
                         <th>Referencia</th>
-                        <th>Categoría</th>
-                        <th>Precio unit.</th>
+                        <th>Categoria</th>
+                        <th>Precio</th>
                         <th>Stock actual</th>
-                        <th>Stock mín.</th>
+                        <th>stock min</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var r in Model)
                     {
-                        <tr class="@(r.BajoStock ? "fila-inactiva" : "")">
+                        <tr class="@(!r.Activo ? "fila-inactiva" : r.BajoStock ? "fila-bajo-stock" : "")">
                             <td>@r.IdRepuesto</td>
                             <td>
-                                <strong>@r.Nombre</strong>
-                                @if (!string.IsNullOrEmpty(r.Descripcion))
+                                @if (!string.IsNullOrEmpty(r.ImagenUrl))
                                 {
-                                    <div style="font-size:.73rem;color:var(--texto-suave)">@r.Descripcion</div>
+                                    <img src="@r.ImagenUrl" alt="@r.Nombre"
+                                         style="width:46px;height:46px;object-fit:cover;
+                            border-radius:5px;border:1px solid var(--borde-input);" />
+                                }
+                                else
+                                {
+                                    <div style="width:46px;height:46px;border-radius:5px;
+                            border:1px dashed var(--borde-input);
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:1.2rem;background:#f8fafc;">
+                                        🔩
+                                    </div>
                                 }
                             </td>
-                            <td style="font-family:monospace;font-size:.82rem">@r.Referencia</td>
+                            <td>@r.marca</td>
+                            <td>@r.modelo</td>
+                            <td>
+                                <strong>@r.Nombre</strong>
+                                @if (!r.Activo)
+                                {
+                                    <span style="display:inline-block;margin-left:6px;padding:1px 8px;
+                                                 border-radius:10px;font-size:.65rem;font-weight:600;
+                                                 background:rgba(220,38,38,0.08);color:#dc2626;
+                                                 border:1px solid rgba(220,38,38,0.2);">
+                                        Desactivado
+                                    </span>
+                                }
+                                @if (!string.IsNullOrEmpty(r.Descripcion))
+                                {
+                                    <div style="font-size:.73rem;color:var(--texto-suave)">
+                                        @r.Descripcion
+                                    </div>
+                                }
+                            </td>
+                            <td>@r.Referencia</td>
                             <td><span class="badge-cat">@r.Categoria</span></td>
                             <td>$@r.PrecioUnitario.ToString("N0")</td>
                             <td>
-                                <span class="@(r.BajoStock ? "stock-low" : "stock-ok")">
-                                    @if (r.BajoStock)
+                                <span class="@(r.BajoStock && r.Activo ? "stock-low" : "stock-ok")">
+                                    @if (r.BajoStock && r.Activo)
                                     {
                                         <i class="bi bi-exclamation-triangle-fill me-1" style="font-size:.75rem"></i>
                                     }
@@ -124,17 +452,50 @@
                                 </span>
                             </td>
                             <td>@r.StockMinimo</td>
+
                             <td class="td-acciones">
-                                <button class="btn-accion btn-editar" title="Editar"
-                                    onclick="prepararModal(@r.IdRepuesto,'@r.Nombre.Replace("'","\\'")', '@r.Referencia', '@r.Descripcion.Replace("'","\\'")', '@r.Categoria', @r.PrecioUnitario, @r.StockActual, @r.StockMinimo)"
-                                    data-bs-toggle="modal" data-bs-target="#modalRepuesto">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <form asp-controller="Admin" asp-action="DesactivarRepuesto"
+                                @if (r.Activo)
+                                {
+                                    @* Botón Editar *@
+                                    <button class="btn-accion btn-editar" title="Editar"
+                                            onclick="prepararModal(@r.IdRepuesto,'@Html.Raw(r.Nombre.Replace("'","\\\'"))','@Html.Raw(r.Referencia.Replace("'","\\\'"))','@Html.Raw((r.Descripcion??"").Replace("'","\\\'"))','@Html.Raw(r.Categoria.Replace("'","\\\'"))',@r.PrecioUnitario.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture),@r.StockActual,@r.StockMinimo,'@Html.Raw((r.ImagenUrl??"").Replace("'","\\\'"))','@Html.Raw((r.marca??"").Replace("'","\\\'"))','@Html.Raw((r.modelo??"").Replace("'","\\\'"))')"
+                                            data-bs-toggle="modal" data-bs-target="#modalRepuesto">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+
+                                    @* Botón Desactivar *@
+                                    <form asp-controller="Admin" asp-action="DesactivarRepuesto"
+                                          asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
+                                          onsubmit="return confirm('¿Desactivar @Html.Raw(r.Nombre)?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-accion btn-desactivar" title="Desactivar">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    @* Botón Reactivar *@
+                                    <form asp-controller="Admin" asp-action="ReactivarRepuesto"
+                                          asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
+                                          onsubmit="return confirm('¿Reactivar @Html.Raw(r.Nombre)?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-accion btn-activar" title="Reactivar"
+                                                style="background:rgba(22,163,74,0.1);color:#15803d;
+                           border:1px solid rgba(22,163,74,0.25);">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                    </form>
+                                }
+
+                                @* Botón Eliminar permanente — visible siempre (activo o no) *@
+                                <form asp-controller="Admin" asp-action="EliminarRepuesto"
                                       asp-route-id="@r.IdRepuesto" method="post" class="d-inline"
-                                      onsubmit="return confirm('¿Desactivar el repuesto @r.Nombre?')">
+                                      onsubmit="return confirm('⚠️ ¿Eliminar permanentemente @Html.Raw(r.Nombre)? Esta acción NO se puede deshacer.')">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-accion btn-desactivar" title="Desactivar">
+                                    <button type="submit" class="btn-accion btn-eliminar" title="Eliminar permanente"
+                                            style="background:rgba(220,38,38,0.1);color:#dc2626;
+                           border:1px solid rgba(220,38,38,0.25);">
                                         <i class="bi bi-trash-fill"></i>
                                     </button>
                                 </form>
@@ -163,9 +524,10 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form asp-controller="Admin" asp-action="GuardarRepuesto" method="post">
+                <form asp-controller="Admin" asp-action="GuardarRepuesto" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="idRepuesto" id="inputIdRepuesto" value="0" />
+
                     <div class="modal-body" style="padding:24px">
                         <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:16px">
                             <div class="form-group-custom">
@@ -196,12 +558,78 @@
                                 <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Stock mínimo *</label>
                                 <input type="number" name="stockMinimo" id="inputMin" class="input-custom" style="padding-left:14px" required min="0" />
                             </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Marca</label>
+                                <input type="text" name="marca" id="inputMarca" class="input-custom" style="padding-left:14px" placeholder="Ej: Bosch, NGK..." />
+                            </div>
+                            <div class="form-group-custom">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">Modelo compatible</label>
+                                <input type="text" name="modelo" id="inputModelo" class="input-custom" style="padding-left:14px" placeholder="Ej: Chevrolet Sail 2018..." />
+                            </div>
+
+                            <!-- Foto del repuesto -->
+                            <div class="form-group-custom" style="grid-column:1/-1">
+                                <label style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--texto-suave)">
+                                    Foto del repuesto
+                                </label>
+
+                                <!-- Preview de imagen actual o nueva -->
+                                <div id="previewZone" style="margin-bottom:10px;display:none;">
+                                    <img id="previewImagen" src="" alt="preview"
+                                         style="max-height:110px;border-radius:6px;border:1px solid var(--borde-input);object-fit:cover;" />
+                                    <button type="button" onclick="quitarImagen()"
+                                            style="display:block;margin-top:6px;font-size:.7rem;color:#dc2626;
+                       background:none;border:none;cursor:pointer;padding:0;">
+                                        ✕ Quitar imagen
+                                    </button>
+                                </div>
+
+                                <input type="file" name="imagenRepuesto" id="inputImagen"
+                                       class="input-custom" style="padding-left:14px"
+                                       accept="image/png,image/jpeg,image/webp"
+                                       onchange="previsualizarImagen(this)" />
+                                <input type="hidden" name="imagenUrlActual" id="inputImagenUrlActual" value="" />
+
+                                <!-- Selector de imagen por defecto -->
+                                <div style="margin-top:10px;">
+                                    <div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+                    color:var(--texto-suave);margin-bottom:6px;">
+                                        — o elige una imagen por defecto —
+                                    </div>
+                                    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="defaultImgPicker">
+                                        @{
+                                            var defaults = new[] {
+                                        new { key="motor",      label="Motor",      icon="⚙️"  },
+                                        new { key="frenos",     label="Frenos",     icon="🛞"  },
+                                        new { key="filtros",    label="Filtros",    icon="🌬️" },
+                                        new { key="electrico",  label="Eléctrico",  icon="🔋"  },
+                                        new { key="suspension", label="Suspensión", icon="🔧"  },
+                                        new { key="lubricantes",label="Lubricantes",icon="🛢️" },
+                                        new { key="repuesto",   label="Genérico",   icon="🔩"  },
+                                        };
+                                        }
+                                        @foreach (var d in defaults)
+                                        {
+                                            <button type="button"
+                                                    onclick="elegirDefault('/img/defaults/@(d.key).png', this)"
+                                                    style="padding:6px 10px;border:1px solid var(--borde-input);
+                               border-radius:5px;background:#f8fafc;cursor:pointer;
+                               font-size:.72rem;display:flex;align-items:center;gap:4px;
+                               transition:.15s;"
+                                                    title="Usar imagen de @d.label">
+                                                @d.icon @d.label
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:14px 24px;gap:10px">
                         <button type="submit" class="btn-guardar"><i class="bi bi-floppy-fill me-2"></i>Guardar</button>
                         <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cancelar</button>
                     </div>
+
                 </form>
             </div>
         </div>
@@ -209,18 +637,235 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function prepararModal(id, nombre, ref, desc, cat, precio, stock, min) {
+        function toggleNotif() {
+            document.getElementById('notifPanel').classList.toggle('open');
+        }
+
+        document.addEventListener('click', function (e) {
+            const panel = document.getElementById('notifPanel');
+            const btn   = document.getElementById('btnCampana');
+            if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+        });
+
+        setInterval(async () => {
+            try {
+                const res  = await fetch('/Admin/NotificacionesCount');
+                const data = await res.json();
+                const badge = document.getElementById('bellBadge');
+                const total = (data.solicitudes || 0) + (data.stockBajo || 0);
+                if (total > 0) {
+                    if (!badge) {
+                        const b = document.createElement('span');
+                        b.id = 'bellBadge'; b.className = 'bell-badge'; b.textContent = total;
+                        document.getElementById('btnCampana').appendChild(b);
+                    } else { badge.textContent = total; }
+                } else if (badge) { badge.remove(); }
+            } catch (e) {}
+        }, 30000);
+
+                function prepararModal(id, nombre, ref, desc, cat, precio, stock, min, imagenUrl, marca, modelo) {
             const esNuevo = !id;
             document.getElementById('modalRepuestoTitulo').innerHTML =
                 `<i class="bi bi-box-seam me-2"></i>${esNuevo ? 'Nuevo repuesto' : 'Editar repuesto'}`;
-            document.getElementById('inputIdRepuesto').value = id || 0;
-            document.getElementById('inputNombre').value  = nombre || '';
-            document.getElementById('inputRef').value     = ref    || '';
-            document.getElementById('inputDesc').value    = desc   || '';
-            document.getElementById('inputCat').value     = cat    || '';
-            document.getElementById('inputPrecio').value  = precio || 0;
-            document.getElementById('inputStock').value   = stock  || 0;
-            document.getElementById('inputMin').value     = min    || 5;
+
+            document.getElementById('inputIdRepuesto').value  = id     || 0;
+            document.getElementById('inputNombre').value      = nombre || '';
+            document.getElementById('inputRef').value         = ref    || '';
+            document.getElementById('inputDesc').value        = desc   || '';
+            document.getElementById('inputCat').value         = cat    || '';
+            document.getElementById('inputPrecio').value      = precio || 0;
+            document.getElementById('inputStock').value       = stock  || 0;
+            document.getElementById('inputMin').value         = min    || 5;
+            document.getElementById('inputMarca').value       = marca  || '';
+            document.getElementById('inputModelo').value      = modelo || '';
+
+            // Limpiar file input
+            document.getElementById('inputImagen').value = '';
+
+            // Guardar URL actual y mostrar preview si existe
+            document.getElementById('inputImagenUrlActual').value = imagenUrl || '';
+            resetDefaultBtns();
+
+           if (imagenUrl && imagenUrl.trim() !== '') {
+    // Tiene foto propia — mostrarla
+    document.getElementById('previewImagen').src = imagenUrl;
+    document.getElementById('previewZone').style.display = 'block';
+} else {
+    // Sin foto propia — mostrar imagen de categoría como referencia visual
+    const catKey = (cat || '').toLowerCase()
+        .replace(/ /g,'-').replace(/é/g,'e').replace(/ó/g,'o')
+        .replace(/ú/g,'u').replace(/ñ/g,'n');
+    const imgCat = `/img/defaults/${catKey}.png`;
+    document.getElementById('previewImagen').src = imgCat;
+    document.getElementById('previewZone').style.display = 'block';
+    // No guardar como imagenUrlActual para no pisar nada
+    document.getElementById('inputImagenUrlActual').value = '';
+}
+        }
+
+        function previsualizarImagen(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('previewImagen').src = e.target.result;
+                    document.getElementById('previewZone').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+                resetDefaultBtns();
+            }
+        }
+
+        function elegirDefault(url, btn) {
+            // Marcar botón activo
+            resetDefaultBtns();
+            btn.style.borderColor  = '#2563eb';
+            btn.style.background   = '#eff6ff';
+            btn.style.color        = '#1e3a8a';
+            btn.style.fontWeight   = '700';
+
+            // Mostrar preview
+            document.getElementById('previewImagen').src = url;
+            document.getElementById('previewZone').style.display = 'block';
+
+            // Limpiar file input y guardar la URL default como "actual"
+            document.getElementById('inputImagen').value          = '';
+            document.getElementById('inputImagenUrlActual').value = url;
+        }
+
+        function quitarImagen() {
+            document.getElementById('inputImagen').value          = '';
+            document.getElementById('inputImagenUrlActual').value = '';
+            document.getElementById('previewImagen').src          = '';
+            document.getElementById('previewZone').style.display  = 'none';
+            resetDefaultBtns();
+        }
+
+        function resetDefaultBtns() {
+            document.querySelectorAll('#defaultImgPicker button').forEach(b => {
+                b.style.borderColor  = 'var(--borde-input)';
+                b.style.background   = '#f8fafc';
+                b.style.color        = '';
+                b.style.fontWeight   = '';
+            });
+        }
+
+    </script>
+
+    <!-- ══ MODAL EDITAR IMÁGENES POR CATEGORÍA ══ -->
+    <div class="modal fade" id="modalImagenesCategoria" tabindex="-1">
+        <div class="modal-dialog modal-lg" style="max-width:700px;">
+            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:8px;">
+                <div class="modal-header" style="border-bottom:1px solid var(--borde-input);">
+                    <h5 class="modal-title" style="font-size:.9rem;letter-spacing:.06em;color:var(--dorado);">
+                        <i class="bi bi-images me-2"></i>Imagen por defecto por Categoría
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding:24px;max-height:70vh;overflow-y:auto;">
+                    <p style="font-size:.8rem;color:var(--texto-suave);margin-bottom:20px;">
+                        Esta imagen se mostrará en todos los repuestos de esa categoría que <strong>no tengan foto propia</strong>.
+                    </p>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+                        @{
+                            var cats = ViewBag.Categorias as List<string> ?? new List<string>();
+                            var iconosCat = new Dictionary<string, string> {
+                        {"Motor","⚙️"},{"Frenos","🛞"},{"Filtros","🌬️"},
+                        {"Sistema Eléctrico","🔋"},{"Eléctrico","🔋"},
+                        {"Suspensión","🔧"},{"Lubricantes","🛢️"}
+                        };
+                        }
+                        @foreach (var cat in cats)
+                        {
+                            string catKey = cat.ToLower()
+                            .Replace(" ", "-").Replace("é", "e")
+                            .Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n");
+                            string icono = iconosCat.ContainsKey(cat) ? iconosCat[cat] : "📦";
+
+                            // Buscar imagen actual de esta categoría
+                            string imgActual = $"/img/defaults/{catKey}.png";
+
+                            <div style="background:#f8fafc;border:1px solid var(--borde-input);
+                                        border-radius:8px;padding:16px;display:flex;
+                                        flex-direction:column;gap:12px;">
+
+                                <!-- Header categoría -->
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <span style="font-size:1.6rem;">@icono</span>
+                                    <strong style="font-size:.85rem;text-transform:uppercase;
+                                                   letter-spacing:.08em;color:var(--dorado);">
+                                        @cat
+                                    </strong>
+                                </div>
+
+                                <!-- Preview imagen actual -->
+                                <div style="width:100%;height:100px;background:linear-gradient(135deg,#e8edf5,#dde4f0);
+                                            border-radius:6px;display:flex;align-items:center;
+                                            justify-content:center;overflow:hidden;">
+                                    <img id="catImg_@catKey" src="@imgActual" alt="@cat"
+                                         style="max-width:100%;max-height:100%;object-fit:contain;"
+                                         onerror="this.style.display='none';
+                                                  document.getElementById('noImg_@catKey').style.display='flex'" />
+                                    <div id="noImg_@catKey"
+                                         style="display:none;width:100%;height:100%;
+                                                align-items:center;justify-content:center;
+                                                font-size:2rem;color:#94a3b8;">
+                                        @icono
+                                    </div>
+                                </div>
+
+                                <!-- Form subir imagen -->
+                                <form asp-controller="Admin" asp-action="SubirImagenCategoria"
+                                      method="post" enctype="multipart/form-data"
+                                      style="display:flex;flex-direction:column;gap:8px;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="categoria" value="@cat" />
+                                    <input type="hidden" name="catKey" value="@catKey" />
+
+                                    <label for="fileCat_@catKey"
+                                           style="padding:7px 12px;border:1px dashed var(--borde-input);
+                                                  border-radius:5px;font-size:.75rem;cursor:pointer;
+                                                  background:#fff;text-align:center;">
+                                        📁 Seleccionar imagen
+                                    </label>
+                                    <input type="file" id="fileCat_@catKey" name="imagen"
+                                           accept="image/png,image/jpeg,image/webp"
+                                           style="display:none;"
+                                           onchange="prevCatImg(this,'@catKey')" />
+
+                                    <button type="submit" id="btnCat_@catKey"
+                                            style="display:none;padding:7px;background:var(--dorado);
+                                                   color:#fff;border:none;border-radius:5px;
+                                                   font-size:.75rem;font-weight:600;cursor:pointer;">
+                                        💾 Guardar como imagen de @cat
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--borde-input);padding:12px 20px;">
+                    <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function prevCatImg(input, catKey) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = document.getElementById('catImg_' + catKey);
+                    const noImg = document.getElementById('noImg_' + catKey);
+                    if (img)   { img.src = e.target.result; img.style.display = 'block'; }
+                    if (noImg) { noImg.style.display = 'none'; }
+                    const btn = document.getElementById('btnCat_' + catKey);
+                    if (btn)   { btn.style.display = 'block'; }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
     </script>
 </body>

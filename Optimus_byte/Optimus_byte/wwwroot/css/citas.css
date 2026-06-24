@@ -1,14 +1,4 @@
-:root {
-    --bg: #f4f6f8;
-    --card: #ffffff;
-    --ink: #172033;
-    --muted: #64748b;
-    --line: #dbe3ec;
-    --blue: #2563eb;
-    --blue-soft: rgba(37, 99, 235, 0.09);
-    --green: #15803d;
-    --red: #b91c1c;
-}
+
 
 * {
     box-sizing: border-box;
@@ -20,6 +10,7 @@ body {
     background: var(--bg);
     color: var(--ink);
     font-family: "Segoe UI", sans-serif;
+
 }
 
 a {

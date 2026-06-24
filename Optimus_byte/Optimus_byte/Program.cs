@@ -1,5 +1,6 @@
 // Program.cs  ? versión ADO.NET (sin Entity Framework)
 using Optimus_byte.DATA;
+using Optimus_byte.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,7 @@ builder.Services.AddControllersWithViews();
 
 // Registrar DbHelper como servicio (reemplaza el DbContext de EF Core)
 builder.Services.AddScoped<DbHelper>();
+builder.Services.AddScoped<CorreoService>();
 builder.Services.AddScoped<EmailService>();
 
 // Sesiones

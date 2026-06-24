@@ -1,22 +1,4 @@
-﻿:root {
-    --negro: #1a2332;
-    --carbon: #f5f3ef;
-    --grafito: #ffffff;
-    --grafito-med: #eef1f6;
-    --grafito-claro: #e2e8f2;
-    --dorado: #2563eb;
-    --dorado-claro: #3b82f6;
-    --dorado-suave: rgba(37,99,235,0.08);
-    --marfil: #1a2332;
-    --texto-claro: #334155;
-    --texto-suave: #64748b;
-    --borde: rgba(37,99,235,0.15);
-    --borde-input: rgba(37,99,235,0.18);
-    --exito: #16a34a;
-    --transicion: 0.3s cubic-bezier(0.4,0,0.2,1);
-    --fuente-titulo: 'Cormorant Garamond', Georgia, serif;
-    --fuente-cuerpo: 'Jost','Segoe UI',sans-serif;
-}
+﻿
 
 *, *::before, *::after {
     box-sizing: border-box;

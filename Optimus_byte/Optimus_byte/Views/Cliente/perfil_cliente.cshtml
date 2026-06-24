@@ -1,0 +1,617 @@
+﻿@model Optimus_byte.Models.ViewModels.PerfilViewModel
+@{
+    ViewData["Title"] = "Mi Perfil";
+    Layout = null;
+    var nombre = ViewBag.Nombre as string ?? "Cliente";
+    var inicial = nombre.Length > 0 ? nombre[0].ToString().ToUpper() : "C";
+    var fotoUrl = Model.FotoUrl;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OPTIMUS-BYTE — Mi Perfil</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Portal.css" asp-append-version="true" />
+    <style>
+        /* ── Layout general ──────────────────────────────────────────── */
+        .perfil-wrap {
+            max-width: 820px;
+            margin: 0 auto 48px;
+        }
+
+        /* ── Tarjeta de avatar + foto ────────────────────────────────── */
+        .foto-card {
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 4px;
+            padding: 32px 28px;
+            box-shadow: 0 2px 12px rgba(37,99,235,0.06);
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            margin-bottom: 20px;
+        }
+
+        .foto-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--dorado);
+            flex-shrink: 0;
+        }
+
+        .foto-initials {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--dorado);
+            color: #fff;
+            font-size: 2.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-family: var(--fuente-titulo);
+            border: 3px solid var(--dorado);
+        }
+
+        .foto-info h3 {
+            font-family: var(--fuente-titulo);
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: var(--marfil);
+            margin-bottom: 4px;
+        }
+
+        .foto-info p {
+            font-size: 0.78rem;
+            color: var(--texto-suave);
+            margin: 0 0 12px;
+        }
+
+        .foto-upload-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: var(--dorado);
+            border: 1px solid var(--borde-input);
+            padding: 7px 14px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: var(--transicion);
+        }
+
+        .foto-upload-label:hover {
+            background: var(--dorado-suave);
+        }
+
+        #fotoInput { display: none; }
+
+        .foto-preview-hint {
+            font-size: 0.68rem;
+            color: var(--texto-suave);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* ── Tarjeta de formulario ───────────────────────────────────── */
+        .form-card {
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 4px;
+            padding: 32px 28px;
+            box-shadow: 0 2px 12px rgba(37,99,235,0.06);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 0.65rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--dorado);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--borde-input);
+        }
+
+        .form-label-custom {
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .input-custom {
+            width: 100%;
+            padding: 9px 14px;
+            font-size: 0.88rem;
+            border: 1px solid var(--borde-input);
+            border-radius: 2px;
+            background: var(--grafito-med);
+            color: var(--texto-claro);
+            outline: none;
+            transition: var(--transicion);
+        }
+
+        .input-custom:focus {
+            border-color: var(--dorado);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.07);
+        }
+
+        .input-custom:disabled,
+        .input-readonly {
+            opacity: 0.55;
+            cursor: not-allowed;
+            background: var(--grafito-med);
+        }
+
+        .field-group { margin-bottom: 18px; }
+
+        .readonly-badge {
+            font-size: 0.62rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            background: rgba(100,116,139,0.12);
+            color: var(--texto-suave);
+            border-radius: 2px;
+            padding: 2px 7px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        /* ── Sección de contraseña de confirmación ───────────────────── */
+        .confirm-card {
+            background: rgba(37,99,235,0.04);
+            border: 1px solid rgba(37,99,235,0.15);
+            border-left: 3px solid var(--dorado);
+            border-radius: 4px;
+            padding: 22px 28px;
+            margin-bottom: 20px;
+        }
+
+        .confirm-title {
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--dorado);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .confirm-desc {
+            font-size: 0.78rem;
+            color: var(--texto-suave);
+            margin-bottom: 14px;
+        }
+
+        .pass-wrap {
+            position: relative;
+            max-width: 360px;
+        }
+
+        .pass-wrap .input-custom {
+            padding-right: 44px;
+        }
+
+        .toggle-pass {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--texto-suave);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .toggle-pass:hover { color: var(--dorado); }
+
+        /* ── Alertas ─────────────────────────────────────────────────── */
+        .alerta-err {
+            background: rgba(220,38,38,0.07);
+            border: 1px solid rgba(220,38,38,0.2);
+            border-left: 3px solid #dc2626;
+            color: #b91c1c;
+            padding: 12px 16px;
+            border-radius: 2px;
+            font-size: 0.83rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alerta-ok {
+            background: rgba(22,163,74,0.07);
+            border: 1px solid rgba(22,163,74,0.2);
+            border-left: 3px solid #16a34a;
+            color: #15803d;
+            padding: 12px 16px;
+            border-radius: 2px;
+            font-size: 0.83rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Botones ─────────────────────────────────────────────────── */
+        .btn-guardar {
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #fff;
+            background: var(--dorado);
+            border: none;
+            padding: 10px 28px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: var(--transicion);
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .btn-guardar:hover { opacity: 0.85; }
+
+        .btn-guardar:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-cancelar {
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--dorado);
+            text-decoration: none;
+            border: 1px solid var(--borde-input);
+            padding: 9px 16px;
+            border-radius: 2px;
+            transition: var(--transicion);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-cancelar:hover {
+            background: var(--dorado-suave);
+            color: var(--dorado);
+        }
+
+        /* ── Spinner de carga ────────────────────────────────────────── */
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .spinner-overlay.visible {
+            display: flex;
+        }
+
+        .spinner-overlay p {
+            color: #fff;
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-rol">Cliente</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="user-name"><i class="bi bi-person-circle me-1"></i>@nombre</span>
+            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+        </div>
+    </div>
+
+    <div class="page">
+        <!-- Sidebar -->
+        @await Html.PartialAsync("_SidebarPartial")
+
+        <!-- Contenido principal -->
+        <main class="content-area">
+            <!-- Barra de bienvenida -->
+            <div class="welcome-bar">
+                <div class="avatar">@inicial</div>
+                <div class="welcome-txt">
+                    <h2>Mi Perfil</h2>
+                    <p>Mantén tus datos actualizados para una mejor atención.</p>
+                </div>
+            </div>
+
+            <div class="perfil-wrap">
+
+                <!-- ── Alertas globales ─────────────────────────────────── -->
+                @if (!string.IsNullOrEmpty(Model.Error))
+                {
+                    <div class="alerta-err">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        @Model.Error
+                    </div>
+                }
+                @if (TempData["Exito"] != null)
+                {
+                    <div class="alerta-ok">
+                        <i class="bi bi-check-circle-fill"></i>
+                        @TempData["Exito"]
+                    </div>
+                }
+
+                <form asp-controller="Cliente" asp-action="EditarPerfil"
+                      method="post" enctype="multipart/form-data"
+                      id="formPerfil" autocomplete="off">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="IdUsuario" />
+                    <input type="hidden" asp-for="IdCliente" />
+                    <input type="hidden" asp-for="TipoDocumento" />
+                    <input type="hidden" asp-for="NumeroDocumento" />
+                    <input type="hidden" asp-for="FotoUrl" />
+                    <input asp-for="NuevaContrasena" type="password" />
+                    <input asp-for="ConfirmarNuevaContrasena" type="password" />
+
+                    <!-- ── Foto de perfil ──────────────────────────────────── -->
+                    <div class="foto-card">
+                        <!-- Avatar (foto o iniciales) -->
+                        <div id="avatarContainer">
+                            @if (!string.IsNullOrEmpty(fotoUrl))
+                            {
+                                <img id="fotoPreview" src="@fotoUrl" alt="Foto de perfil" class="foto-avatar" />
+                            }
+                            else
+                            {
+                                <img src="~/img/defaults/Default.png" alt="Foto de perfil" class="foto-avatar" />
+                            }
+                        </div>
+
+                        <div class="foto-info">
+                            <h3>@nombre</h3>
+                            <p>@Model.TipoDocumento · @Model.NumeroDocumento</p>
+
+                            <label class="foto-upload-label" for="fotoInput">
+                                <i class="bi bi-camera-fill"></i>
+                                Cambiar foto
+                            </label>
+                            <input type="file" id="fotoInput" name="FotoArchivo"
+                                   accept=".jpg,.jpeg,.png,.webp" />
+                            <p class="foto-preview-hint" id="fotoHint">
+                                JPG, PNG o WEBP · máx. 2 MB
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- ── Datos personales ────────────────────────────────── -->
+                    <div class="form-card">
+                        <p class="section-title"><i class="bi bi-person-fill"></i> Datos personales</p>
+
+                        <div class="row g-3">
+                            <div class="col-md-6 field-group">
+                                <label class="form-label-custom">Nombre completo *</label>
+                                <input asp-for="NombreCompleto" class="input-custom"
+                                       placeholder="Tu nombre completo" />
+                                <span asp-validation-for="NombreCompleto"
+                                      class="text-danger" style="font-size:0.75rem"></span>
+                            </div>
+
+                            <div class="col-md-6 field-group">
+                                <label class="form-label-custom">
+                                    Correo electrónico *
+                                </label>
+                                <input asp-for="Correo" type="email" class="input-custom"
+                                       placeholder="correo@ejemplo.com" />
+                                <span asp-validation-for="Correo"
+                                      class="text-danger" style="font-size:0.75rem"></span>
+                            </div>
+
+                            <div class="col-md-6 field-group">
+                                <label class="form-label-custom">Teléfono *</label>
+                                <input asp-for="Telefono" type="tel" class="input-custom"
+                                       placeholder="Ej: 3001234567" />
+                                <span asp-validation-for="Telefono"
+                                      class="text-danger" style="font-size:0.75rem"></span>
+                            </div>
+
+                            <div class="col-md-6 field-group">
+                                <label class="form-label-custom">Dirección *</label>
+                                <input asp-for="Direccion" class="input-custom"
+                                       placeholder="Calle, barrio, ciudad" />
+                                <span asp-validation-for="Direccion"
+                                      class="text-danger" style="font-size:0.75rem"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Identificación (solo lectura) ───────────────────── -->
+                    <div class="form-card">
+                        <p class="section-title">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            Identificación
+                            <span class="readonly-badge">No editable</span>
+                        </p>
+
+                        <div class="row g-3">
+                            <div class="col-md-4 field-group">
+                                <label class="form-label-custom">Tipo de documento</label>
+                                <input value="@Model.TipoDocumento"
+                                       class="input-custom input-readonly"
+                                       disabled />
+                            </div>
+                            <div class="col-md-8 field-group">
+                                <label class="form-label-custom">Número de documento</label>
+                                <input value="@Model.NumeroDocumento"
+                                       class="input-custom input-readonly"
+                                       disabled />
+                            </div>
+                        </div>
+
+                        <p style="font-size:0.72rem;color:var(--texto-suave);margin:0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Para modificar tu documento de identidad comunícate con el administrador del taller.
+                        </p>
+                    </div>
+
+                    <!-- ── Confirmación de contraseña ──────────────────────── -->
+                    <div class="confirm-card">
+                        <p class="confirm-title">
+                            <i class="bi bi-lock-fill"></i>
+                            Confirmar cambios
+                        </p>
+                        <p class="confirm-desc">
+                            Por seguridad, ingresa tu contraseña actual para guardar cualquier modificación.
+                        </p>
+
+                        <div class="pass-wrap">
+                            <input asp-for="ContrasenaActual"
+                                   type="password"
+                                   id="inputContrasena"
+                                   class="input-custom"
+                                   placeholder="Tu contraseña actual"
+                                   autocomplete="current-password" />
+                            <button type="button" class="toggle-pass" id="togglePass"
+                                    aria-label="Mostrar/ocultar contraseña">
+                                <i class="bi bi-eye" id="iconPass"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ContrasenaActual"
+                              class="text-danger" style="font-size:0.75rem;display:block;margin-top:4px"></span>
+                    </div>
+
+                    <!-- ── Botones de acción ───────────────────────────────── -->
+                    <div class="d-flex align-items-center gap-3">
+                        <button type="submit" class="btn-guardar" id="btnGuardar">
+                            <i class="bi bi-check-lg"></i>
+                            Guardar cambios
+                        </button>
+                        <a href="/Cliente/Portal" class="btn-cancelar">
+                            <i class="bi bi-arrow-left"></i>
+                            Cancelar
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Spinner de guardado -->
+    <div class="spinner-overlay" id="spinnerOverlay">
+        <div class="spinner-border text-light" role="status" style="width:3rem;height:3rem;"></div>
+        <p>Guardando cambios…</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        // ── Preview de foto ───────────────────────────────────────────────────
+        const fotoInput   = document.getElementById('fotoInput');
+        const fotoPreview = document.getElementById('fotoPreview');
+        const fotoHint    = document.getElementById('fotoHint');
+
+        fotoInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return;
+
+            const maxMB = 2;
+            if (file.size > maxMB * 1024 * 1024) {
+                fotoHint.textContent = '⚠ La imagen supera los 2 MB.';
+                fotoHint.style.color = '#dc2626';
+                this.value = '';
+                return;
+            }
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['jpg','jpeg','png','webp'].includes(ext)) {
+                fotoHint.textContent = '⚠ Formato no permitido. Usa JPG, PNG o WEBP.';
+                fotoHint.style.color = '#dc2626';
+                this.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                // Reemplazar el elemento de previsualización
+                const container = document.getElementById('avatarContainer');
+                let img = container.querySelector('img');
+                if (!img) {
+                    img = document.createElement('img');
+                    img.id        = 'fotoPreview';
+                    img.alt       = 'Foto de perfil';
+                    img.className = 'foto-avatar';
+                    container.innerHTML = '';
+                    container.appendChild(img);
+                }
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            fotoHint.textContent = `Foto seleccionada: ${file.name}`;
+            fotoHint.style.color = '';
+        });
+
+        // ── Mostrar/ocultar contraseña ────────────────────────────────────────
+        document.getElementById('togglePass').addEventListener('click', function () {
+            const input = document.getElementById('inputContrasena');
+            const icon  = document.getElementById('iconPass');
+            if (input.type === 'password') {
+                input.type  = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type  = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        });
+
+        // ── Spinner al enviar ─────────────────────────────────────────────────
+        document.getElementById('formPerfil').addEventListener('submit', function () {
+            const pass = document.getElementById('inputContrasena').value.trim();
+            if (pass.length > 0) {
+                document.getElementById('spinnerOverlay').classList.add('visible');
+                document.getElementById('btnGuardar').disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -18,6 +18,8 @@ bool logueado = !string.IsNullOrEmpty(nombre);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
 </head>
 
@@ -38,7 +40,8 @@ bool logueado = !string.IsNullOrEmpty(nombre);
         <div class="ob-nav-acciones">
             @if (!logueado)
             {
-                <a class="ob-btn-ingresar" asp-controller="Login" asp-action="Index">
+                <a class="ob-btn-ingresar"
+                   href="/Login/Index?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
                     Ingresar
                 </a>
                 <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">
@@ -47,31 +50,7 @@ bool logueado = !string.IsNullOrEmpty(nombre);
             }
             else
             {
-                <div class="ob-dropdown">
-                    <button class="ob-btn-usuario" onclick="toggleMenu(this)">
-                        <i class="fas fa-circle-user"></i>
-                        @nombre
-                        <i class="fas fa-chevron-down" style="font-size:0.65rem; opacity:0.6;"></i>
-                    </button>
-                    <div class="ob-menu-usuario" id="menuUsuario">
-                        <a asp-controller="Cliente" asp-action="Portal">
-                            <i class="fas fa-user-pen" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                            menu cliente
-                        </a>
-                        <a asp-controller="Facturas" asp-action="Index">
-                            <i class="fas fa-file-invoice" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                            Facturas
-                        </a>
-                        <hr class="ob-menu-divider" />
-                        <form asp-controller="Home" asp-action="Logout" method="post" style="margin:0;">
-                            @Html.AntiForgeryToken()
-                            <button type="submit">
-                                <i class="fas fa-arrow-right-from-bracket" style="width:16px;color:var(--rojo);margin-right:8px;"></i>
-                                Cerrar sesión
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                @await Html.PartialAsync("_MenuUsuarioPartial")
             }
         </div>
     </nav>
@@ -266,7 +245,7 @@ bool logueado = !string.IsNullOrEmpty(nombre);
 
         <div class="ob-repuestos-grid">
             <a class="ob-repuesto-card"
-               asp-controller="Inventario" asp-action="Detalles" asp-route-id="1">
+               asp-controller="Inventario" asp-action="Index" asp-route-id="1">
                 <i class="fas fa-droplet"></i>
                 <h3>Aceite de motor</h3>
                 <p>Lubricante premium para mantenimiento preventivo de alto rendimiento.</p>
@@ -274,7 +253,7 @@ bool logueado = !string.IsNullOrEmpty(nombre);
             </a>
 
             <a class="ob-repuesto-card"
-               asp-controller="Inventario" asp-action="Detalles" asp-route-id="2">
+               asp-controller="Inventario" asp-action="Index" asp-route-id="2">
                 <i class="fas fa-wind"></i>
                 <h3>Filtro de aire</h3>
                 <p>Mantiene limpio el sistema de admisión del motor con máxima eficiencia.</p>
@@ -282,7 +261,7 @@ bool logueado = !string.IsNullOrEmpty(nombre);
             </a>
 
             <a class="ob-repuesto-card"
-               asp-controller="Inventario" asp-action="Detalles" asp-route-id="3">
+               asp-controller="Inventario" asp-action="Index" asp-route-id="3">
                 <i class="fas fa-circle-stop"></i>
                 <h3>Pastillas de freno</h3>
                 <p>Seguridad y rendimiento garantizados para un frenado preciso y confiable.</p>
@@ -290,7 +269,7 @@ bool logueado = !string.IsNullOrEmpty(nombre);
             </a>
 
             <a class="ob-repuesto-card"
-               asp-controller="Inventario" asp-action="Detalles" asp-route-id="4">
+               asp-controller="Inventario" asp-action="Index    " asp-route-id="4">
                 <i class="fas fa-car-battery"></i>
                 <h3>Batería</h3>
                 <p>Energía confiable y duradera para vehículos modernos de toda gama.</p>
