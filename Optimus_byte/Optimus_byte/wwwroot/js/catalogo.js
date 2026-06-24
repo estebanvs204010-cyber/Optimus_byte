@@ -137,15 +137,15 @@ function enCarrito(id) {
 // Obtener imagen: usa la propia si existe, sino default por categoría
 function getImagen(p) {
     if (p.imagenUrl && p.imagenUrl.trim() !== '') {
+        // Foto propia → cover para llenar la tarjeta
         return `<img src="${p.imagenUrl}" alt="${p.nombre}"
-                     style="width:100%;height:100%;object-fit:cover;"
-                     onerror="this.parentElement.innerHTML=getIconoFallback('${p.categoria}')">`;
+                     style="width:100%;height:100%;object-fit:cover;
+                            object-position:center;background:#fff;">`;
     }
+    // Default por categoría → contain para que se vea el icono completo
     const imgDef = IMG_DEFAULTS[p.categoria] || IMG_DEFAULTS['__default'];
-    const bgCls  = BG_CAT[p.categoria] || 'bg-motor';
-    // Si el archivo de default existe, úsalo; si no, muestra SVG inline
     return `<img src="${imgDef}" alt="${p.categoria}"
-                 style="width:80%;height:80%;object-fit:contain;opacity:.45;"
+                 style="width:65%;height:65%;object-fit:contain;opacity:.5;background:transparent;"
                  onerror="this.parentElement.innerHTML=getIconoFallback('${p.categoria}')">`;
 }
 
