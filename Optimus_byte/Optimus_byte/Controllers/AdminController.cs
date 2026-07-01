@@ -923,10 +923,8 @@ namespace Optimus_byte.Controllers
                 int stockAnterior = EjecutarScalar<int>(conn,
                     $"SELECT stock_actual FROM Repuestos WHERE id_repuesto = {idRepuesto}");
 
-                // Si imagenUrl es null → no tocar imagen_url en BD (COALESCE la mantiene)
-                string sqlImg = imagenUrl != null
-                    ? ", imagen_url = @img"
-                    : ", imagen_url = COALESCE(@img, imagen_url)";
+                // Siempre actualizar imagen_url: si viene null se limpia, si viene URL se guarda
+                string sqlImg = ", imagen_url = @img";
 
                 using var cmd = new SqlCommand($@"
             UPDATE Repuestos
@@ -1006,7 +1004,24 @@ namespace Optimus_byte.Controllers
             string nombre = EjecutarScalar<string>(conn,
                 $"SELECT nombre FROM Repuestos WHERE id_repuesto = {id}") ?? "Repuesto";
 
-            // 1️⃣ Borrar primero los registros hijos que tienen FK hacia este repuesto
+            // 1️⃣ Quitar el repuesto de todas las órdenes donde aparezca
+            //    La orden queda registrada pero sin ese repuesto asignado
+            using (var cmdOrden = new SqlCommand(
+                "DELETE FROM OrdenRepuestos WHERE id_repuesto = @id", conn))
+            {
+                cmdOrden.Parameters.AddWithValue("@id", id);
+                cmdOrden.ExecuteNonQuery();
+            }
+
+            // 2️⃣ Borrar calificaciones asociadas al repuesto
+            using (var cmdCal = new SqlCommand(
+                "DELETE FROM CalificacionesRepuesto WHERE id_repuesto = @id", conn))
+            {
+                cmdCal.Parameters.AddWithValue("@id", id);
+                cmdCal.ExecuteNonQuery();
+            }
+
+            // 3️⃣ Borrar el historial de movimientos de inventario
             using (var cmdMov = new SqlCommand(
                 "DELETE FROM MovimientosInventario WHERE id_repuesto = @id", conn))
             {
@@ -1014,7 +1029,7 @@ namespace Optimus_byte.Controllers
                 cmdMov.ExecuteNonQuery();
             }
 
-            // 2️⃣ Ahora sí borrar el repuesto
+            // 4️⃣ Ahora sí borrar el repuesto
             using (var cmdRep = new SqlCommand(
                 "DELETE FROM Repuestos WHERE id_repuesto = @id", conn))
             {

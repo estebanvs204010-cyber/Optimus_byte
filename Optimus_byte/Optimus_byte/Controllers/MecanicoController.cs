@@ -8,8 +8,13 @@ namespace Optimus_byte.Controllers
     public class MecanicoController : Controller
     {
         private readonly DbHelper _db;
+        private readonly EmailService _email;
 
-        public MecanicoController(DbHelper db) => _db = db;
+        public MecanicoController(DbHelper db, EmailService email)
+        {
+            _db = db;
+            _email = email;
+        }
 
         private bool EsMecanico() =>
             HttpContext.Session.GetString("UsuarioRol") == "Mecanico";
@@ -126,13 +131,14 @@ namespace Optimus_byte.Controllers
         // ─── Cambiar estado ───────────────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CambiarEstado(int ordenId, string nuevoEstado, string observacion)
+        public async Task<IActionResult> CambiarEstado(
+        int ordenId, string nuevoEstado, string observacion)
         {
             if (!EsMecanico()) return RedirectToAction("Index", "Login");
 
             if (ordenId <= 0 || string.IsNullOrWhiteSpace(nuevoEstado))
             {
-                TempData["Error"] = "Selecciona una orden y un estado valido.";
+                TempData["Error"] = "Selecciona una orden y un estado válido.";
                 return RedirectToAction("MisOrdenes");
             }
 
@@ -141,15 +147,21 @@ namespace Optimus_byte.Controllers
 
             if (!OrdenPerteneceAlMecanico(conn, ordenId, idMecanico))
             {
-                TempData["Error"] = "La orden seleccionada no esta asignada a tu usuario.";
+                TempData["Error"] = "La orden seleccionada no está asignada a tu usuario.";
                 return RedirectToAction("MisOrdenes");
             }
 
+            // ── Actualizar estado de la orden ────────────────────────
             using (var cmd = new SqlCommand(@"
-                UPDATE OrdenesTrabajo
-                SET estado = @estado,
-                    fecha_cierre = CASE WHEN @estado IN ('Entregado','Cancelado') THEN GETDATE() ELSE fecha_cierre END
-                WHERE id_orden = @ordenId AND id_mecanico = @idMecanico", conn))
+        UPDATE OrdenesTrabajo
+        SET estado = @estado,
+            fecha_cierre = CASE
+                WHEN @estado IN ('Entregado','Cancelado')
+                THEN GETDATE()
+                ELSE fecha_cierre
+            END
+        WHERE id_orden = @ordenId
+          AND id_mecanico = @idMecanico", conn))
             {
                 cmd.Parameters.AddWithValue("@estado", nuevoEstado);
                 cmd.Parameters.AddWithValue("@ordenId", ordenId);
@@ -157,11 +169,15 @@ namespace Optimus_byte.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-            if (TieneColumnas(conn, "EstadosOrden", "id_orden", "id_usuario", "estado_nuevo", "observacion", "fecha_cambio"))
+            // ── Log de cambio de estado ──────────────────────────────
+            if (TieneColumnas(conn, "EstadosOrden",
+                "id_orden", "id_usuario", "estado_nuevo", "observacion", "fecha_cambio"))
             {
                 using var cmdLog = new SqlCommand(@"
-                    INSERT INTO EstadosOrden (id_orden, id_usuario, estado_nuevo, observacion, fecha_cambio)
-                    VALUES (@ordenId, @idUsuario, @estado, @obs, GETDATE())", conn);
+            INSERT INTO EstadosOrden
+                (id_orden, id_usuario, estado_nuevo, observacion, fecha_cambio)
+            VALUES
+                (@ordenId, @idUsuario, @estado, @obs, GETDATE())", conn);
                 cmdLog.Parameters.AddWithValue("@ordenId", ordenId);
                 cmdLog.Parameters.AddWithValue("@idUsuario", idMecanico);
                 cmdLog.Parameters.AddWithValue("@estado", nuevoEstado);
@@ -169,7 +185,182 @@ namespace Optimus_byte.Controllers
                 cmdLog.ExecuteNonQuery();
             }
 
-            RegistrarAuditoria(conn, idMecanico, $"Cambio estado OT-{ordenId} a '{nuevoEstado}'.");
+            // ── Obtener datos del cliente para notificar ─────────────
+            string correoCliente = "";
+            string nombreCliente = "";
+            string placa = "";
+            string tipoServicio = "";
+
+            using (var cmdInfo = new SqlCommand(@"
+        SELECT
+            u.correo,
+            u.nombre_completo,
+            v.placa,
+            o.tipo_servicio
+        FROM OrdenesTrabajo o
+        JOIN Vehiculos v ON v.id_vehiculo = o.id_vehiculo
+        JOIN Clientes  c ON c.id_cliente  = v.id_cliente
+        JOIN Usuarios  u ON u.id_usuario  = c.id_usuario
+        WHERE o.id_orden = @ordenId", conn))
+            {
+                cmdInfo.Parameters.AddWithValue("@ordenId", ordenId);
+                using var reader = cmdInfo.ExecuteReader();
+                if (reader.Read())
+                {
+                    correoCliente = reader["correo"].ToString()!;
+                    nombreCliente = reader["nombre_completo"].ToString()!;
+                    placa = reader["placa"].ToString()!;
+                    tipoServicio = reader["tipo_servicio"].ToString()!;
+                }
+            }
+
+            // ── Enviar correo de notificación al cliente ─────────────
+            if (!string.IsNullOrEmpty(correoCliente))
+            {
+                string colorEstado = nuevoEstado switch
+                {
+                    "En proceso" => "#2563eb",
+                    "Esperando repuesto" => "#d97706",
+                    "Listo para entrega" => "#16a34a",
+                    "Entregado" => "#64748b",
+                    "Cancelado" => "#dc2626",
+                    _ => "#1e3a8a"
+                };
+
+                string iconoEstado = nuevoEstado switch
+                {
+                    "En proceso" => "🔧",
+                    "Esperando repuesto" => "📦",
+                    "Listo para entrega" => "✅",
+                    "Entregado" => "🎉",
+                    "Cancelado" => "❌",
+                    _ => "🔔"
+                };
+
+                string cuerpoHtml = $@"
+        <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                    background:#f5f3ef;padding:0;border-radius:10px;overflow:hidden;'>
+
+            <!-- Header -->
+            <div style='background:#1e3a8a;padding:24px 32px;text-align:center;'>
+                <h1 style='color:#ffffff;margin:0;font-size:1.4rem;letter-spacing:2px;'>
+                    ⚙️ OPTIMUS BYTE
+                </h1>
+                <p style='color:rgba(255,255,255,0.7);margin:6px 0 0;font-size:.85rem;'>
+                    Taller Automotriz
+                </p>
+            </div>
+
+            <!-- Cuerpo -->
+            <div style='background:#ffffff;padding:32px;'>
+                <p style='color:#1a2332;font-size:1rem;margin:0 0 8px;'>
+                    Hola, <strong>{nombreCliente}</strong>
+                </p>
+                <p style='color:#64748b;font-size:.9rem;margin:0 0 24px;'>
+                    Te informamos que el estado de tu orden de trabajo ha sido actualizado.
+                </p>
+
+                <!-- Estado -->
+                <div style='background:#f8faff;border:2px solid {colorEstado};
+                            border-radius:8px;padding:20px;text-align:center;margin-bottom:24px;'>
+                    <div style='font-size:2.5rem;margin-bottom:8px;'>{iconoEstado}</div>
+                    <div style='font-size:.75rem;color:#64748b;text-transform:uppercase;
+                                letter-spacing:.1em;margin-bottom:6px;'>
+                        Nuevo estado
+                    </div>
+                    <div style='font-size:1.3rem;font-weight:700;color:{colorEstado};'>
+                        {nuevoEstado}
+                    </div>
+                </div>
+
+                <!-- Detalles de la orden -->
+                <table style='width:100%;border-collapse:collapse;margin-bottom:24px;'>
+                    <tr>
+                        <td style='padding:10px;background:#f8fafc;border:1px solid #e2e8f0;
+                                   font-size:.78rem;color:#64748b;font-weight:600;width:40%;'>
+                            Orden de Trabajo
+                        </td>
+                        <td style='padding:10px;border:1px solid #e2e8f0;font-size:.85rem;
+                                   color:#1a2332;font-weight:700;'>
+                            OT-{ordenId}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style='padding:10px;background:#f8fafc;border:1px solid #e2e8f0;
+                                   font-size:.78rem;color:#64748b;font-weight:600;'>
+                            Vehículo (Placa)
+                        </td>
+                        <td style='padding:10px;border:1px solid #e2e8f0;font-size:.85rem;
+                                   color:#1a2332;'>
+                            {placa}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style='padding:10px;background:#f8fafc;border:1px solid #e2e8f0;
+                                   font-size:.78rem;color:#64748b;font-weight:600;'>
+                            Servicio
+                        </td>
+                        <td style='padding:10px;border:1px solid #e2e8f0;font-size:.85rem;
+                                   color:#1a2332;'>
+                            {tipoServicio}
+                        </td>
+                    </tr>
+                    {(string.IsNullOrWhiteSpace(observacion) ? "" : $@"
+                    <tr>
+                        <td style='padding:10px;background:#f8fafc;border:1px solid #e2e8f0;
+                                   font-size:.78rem;color:#64748b;font-weight:600;'>
+                            Observación
+                        </td>
+                        <td style='padding:10px;border:1px solid #e2e8f0;font-size:.85rem;
+                                   color:#1a2332;'>
+                            {observacion}
+                        </td>
+                    </tr>")}
+                </table>
+
+                {(nuevoEstado == "Listo para entrega" ? @"
+                <div style='background:#d1fae5;border:1px solid #a7f3d0;border-radius:6px;
+                            padding:14px;text-align:center;margin-bottom:24px;'>
+                    <p style='color:#065f46;font-weight:700;margin:0;font-size:.9rem;'>
+                        ✅ ¡Tu vehículo está listo para ser recogido!
+                    </p>
+                    <p style='color:#065f46;margin:4px 0 0;font-size:.82rem;'>
+                        Por favor acércate al taller para retirar tu vehículo.
+                    </p>
+                </div>" : "")}
+
+                <p style='color:#94a3b8;font-size:.78rem;text-align:center;margin:0;'>
+                    Si tienes alguna pregunta, no dudes en contactarnos.
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div style='background:#f1f5f9;padding:16px 32px;text-align:center;
+                        border-top:1px solid #e2e8f0;'>
+                <p style='color:#94a3b8;font-size:.72rem;margin:0;'>
+                    Este es un mensaje automático de <strong>Optimus Byte</strong>.
+                    Por favor no respondas a este correo.
+                </p>
+            </div>
+        </div>";
+
+                try
+                {
+                    await _email.EnviarCorreoAsync(
+                        correoCliente,
+                        nombreCliente,
+                        $"[Optimus Byte] Actualización de tu orden OT-{ordenId}: {nuevoEstado}",
+                        cuerpoHtml
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error al enviar correo de cambio de estado: {ex.Message}");
+                }
+            }
+
+            RegistrarAuditoria(conn, idMecanico,
+                $"Cambio estado OT-{ordenId} a '{nuevoEstado}'.");
             TempData["Exito"] = $"Estado de OT-{ordenId} actualizado a '{nuevoEstado}'.";
             return RedirectToAction("MisOrdenes");
         }

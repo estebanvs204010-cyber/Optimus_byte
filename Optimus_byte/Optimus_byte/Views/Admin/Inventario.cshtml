@@ -735,11 +735,31 @@
         }
 
         function quitarImagen() {
+            // Leer la categoría actual para buscar su imagen predeterminada
+            const cat = (document.getElementById('inputCat').value || '')
+                .toLowerCase()
+                .replace(/ /g, '-')
+                .replace(/é/g, 'e').replace(/ó/g, 'o')
+                .replace(/ú/g, 'u').replace(/ñ/g, 'n');
+            const urlDefault = `/img/defaults/${cat}.png`;
+
+            // Limpiar archivo subido y poner la imagen default de la categoría
             document.getElementById('inputImagen').value          = '';
-            document.getElementById('inputImagenUrlActual').value = '';
-            document.getElementById('previewImagen').src          = '';
-            document.getElementById('previewZone').style.display  = 'none';
+            document.getElementById('inputImagenUrlActual').value = urlDefault;
+            document.getElementById('previewImagen').src          = urlDefault;
+            document.getElementById('previewZone').style.display  = 'block';
+
+            // Marcar el botón default correspondiente
             resetDefaultBtns();
+            document.querySelectorAll('#defaultImgPicker button').forEach(b => {
+                const onclick = b.getAttribute('onclick') || '';
+                if (onclick.includes(`/${cat}.png`)) {
+                    b.style.borderColor = '#2563eb';
+                    b.style.background  = '#eff6ff';
+                    b.style.color       = '#1e3a8a';
+                    b.style.fontWeight  = '700';
+                }
+            });
         }
 
         function resetDefaultBtns() {
