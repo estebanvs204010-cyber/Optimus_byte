@@ -1,105 +1,95 @@
 /* ══════════════════════════════════════════════════════════
    variables.css — FUENTE ÚNICA DE VERDAD
-   Optimus Byte — Paleta completa del proyecto
-   Cargar PRIMERO en todas las vistas antes de cualquier CSS
+   Optimus Byte — Paleta más viva, tono claro mejorado
    ══════════════════════════════════════════════════════════ */
 
 :root {
     /* ── Colores principales ── */
-    --acento: #1e3a8a; /* azul marino oscuro */
-    --acento-medio: #2563eb; /* azul vivo */
-    --acento-claro: #3b82f6; /* azul suave */
-    --acento-suave: rgba(30, 58, 138, 0.08);
-    --acento-hover: rgba(30, 58, 138, 0.14);
-    /* ── Alias usados en panel admin ── */
-    --dorado: #2563eb;
-    --dorado-claro: #3b82f6;
-    --dorado-suave: rgba(37, 99, 235, 0.08);
-    --dorado-hover: rgba(37, 99, 235, 0.14);
-    /* ── Fondos ── */
-    --fondo: #f5f3ef; /* crema/hueso */
-    --fondo-2: #eceae5; /* crema más oscuro */
-    --fondo-card: #ffffff;
-    --fondo-oscuro: #1a2332; /* navy para contrastes */
-    /* ── Alias fondos usados en admin ── */
-    --carbon: #f5f3ef;
-    --grafito: #ffffff;
-    --grafito-med: #eef1f6;
-    --grafito-claro: #e2e8f2;
-    --negro: #1a2332;
-    --marfil: #1a2332;
-    /* ── Textos ── */
-    --texto: #1a2332;
-    --texto-claro: #334155;
-    --texto-suave: #64748b;
-    --texto-muy-suave: #9ca3af;
-    --blanco: #ffffff;
-    /* ── Bordes ── */
-    --borde: rgba(30, 58, 138, 0.12);
-    --borde-input: rgba(37, 99, 235, 0.18);
+    --acento:           #1e3a8a;
+    --acento-medio:     #2563eb;
+    --acento-claro:     #3b82f6;
+    --acento-suave:     rgba(37, 99, 235, 0.10);
+    --acento-hover:     rgba(37, 99, 235, 0.18);
+
+    /* ── Alias panel admin ── */
+    --dorado:           #2563eb;
+    --dorado-claro:     #3b82f6;
+    --dorado-suave:     rgba(37, 99, 235, 0.10);
+    --dorado-hover:     rgba(37, 99, 235, 0.18);
+
+    /* ── Fondos — más blancos y con contraste real ── */
+    --fondo:            #eef2f7;   /* azul grisáceo suave — ANTES era crema plano */
+    --fondo-2:          #e2e8f4;
+    --fondo-card:       #ffffff;
+    --fondo-oscuro:     #1a2332;
+
+    /* ── Alias admin ── */
+    --carbon:           #eef2f7;
+    --grafito:          #ffffff;
+    --grafito-med:      #f0f4fb;   /* más azulado que antes */
+    --grafito-claro:    #dce5f5;
+    --negro:            #1a2332;
+    --marfil:           #1a2332;
+
+    /* ── Textos — más oscuros para más contraste ── */
+    --texto:            #0f172a;
+    --texto-claro:      #1e293b;
+    --texto-suave:      #475569;
+    --texto-muy-suave:  #94a3b8;
+    --blanco:           #ffffff;
+
+    /* ── Bordes — más visibles ── */
+    --borde:            rgba(37, 99, 235, 0.18);
+    --borde-input:      rgba(37, 99, 235, 0.22);
+
     /* ── Estados ── */
-    --exito: #16a34a;
-    --peligro: #dc2626;
-    --alerta: #d97706;
-    /* ── Sombras ── */
-    --sombra-s: 0 2px 12px rgba(30, 58, 138, 0.07);
-    --sombra-m: 0 8px 32px rgba(30, 58, 138, 0.11);
-    --sombra-l: 0 24px 64px rgba(30, 58, 138, 0.15);
+    --exito:            #16a34a;
+    --peligro:          #dc2626;
+    --alerta:           #d97706;
+
+    /* ── Sombras — más profundas ── */
+    --sombra-s:         0 2px 8px rgba(37, 99, 235, 0.10),
+                        0 1px 3px rgba(0, 0, 0, 0.06);
+    --sombra-m:         0 6px 24px rgba(37, 99, 235, 0.14),
+                        0 2px 8px rgba(0, 0, 0, 0.06);
+    --sombra-l:         0 20px 60px rgba(37, 99, 235, 0.18),
+                        0 4px 16px rgba(0, 0, 0, 0.08);
+    --sombra-card:      0 4px 16px rgba(37, 99, 235, 0.12),
+                        0 1px 4px rgba(0, 0, 0, 0.05);
+
     /* ── Tipografía ── */
-    --fuente-display: 'Barlow Condensed', sans-serif;
-    --fuente-cuerpo: 'Barlow', 'Jost', 'Segoe UI', sans-serif;
-    --fuente-titulo: 'Cormorant Garamond', Georgia, serif;
+    --fuente-display:   'Barlow Condensed', sans-serif;
+    --fuente-cuerpo:    'Barlow', 'Jost', 'Segoe UI', sans-serif;
+    --fuente-titulo:    'Cormorant Garamond', Georgia, serif;
+
     /* ── Layout ── */
-    --radio: 6px;
-    --radio-m: 10px;
-    --radio-l: 14px;
-    --transicion: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --alto-barra: 72px;
-    --sidebar-w: 230px;
-    --topbar-h: 62px;
-    /* Alias usados por citas.css */
-    --bg: var(--fondo);
-    --card: var(--fondo-card);
-    --ink: var(--texto);
-    --muted: var(--texto-suave);
-    --line: var(--borde);
-    --blue: var(--acento-medio);
-    --blue-soft: var(--acento-suave);
-    --green: var(--exito);
-    --red: var(--peligro);
-    /**/
-    --bg: #f6f3ed;
-    --card: #ffffff;
-    --text: #1f2937;
-    --muted: #7b8794;
-    --line: #d9e2f2;
-    --blue: #3b6bdc;
-    --blue-soft: #eaf1ff;
-    --shadow: 0 2px 10px rgba(31, 41, 55, .06);
-    --radius: 10px;
+    --radio:            8px;
+    --radio-m:          12px;
+    --radio-l:          16px;
+    --transicion:       0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --alto-barra:       72px;
+    --sidebar-w:        230px;
+    --topbar-h:         62px;
+
+    /* ── Alias usados por citas.css ── */
+    --bg:               #eef2f7;
+    --card:             #ffffff;
+    --ink:              #0f172a;
+    --muted:            #475569;
+    --line:             rgba(37, 99, 235, 0.18);
+    --green:            #16a34a;
+    --red:              #dc2626;
+    --blue:             #2563eb;
 }
 
-/* ── Reset base global ── */
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-html {
-    scroll-behavior: smooth;
-}
-
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 body {
     background: var(--fondo);
     color: var(--texto-claro);
     font-family: var(--fuente-cuerpo);
-    font-weight: 300;
+    font-weight: 400;
     min-height: 100vh;
     overflow-x: hidden;
 }
-
-a {
-    text-decoration: none;
-    color: inherit;
-}
+a { text-decoration: none; color: inherit; }
