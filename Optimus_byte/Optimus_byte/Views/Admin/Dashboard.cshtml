@@ -1,4 +1,3 @@
-
 @model Optimus_byte.Models.ViewModels.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
@@ -493,80 +492,6 @@
             </div>
         }
 
-        <div class="citas-strip">
-            <div class="cita-chip">
-                <i class="bi bi-calendar-day-fill"></i>
-                <div><strong>@Model.CitasHoy</strong><span>Total de citas del día</span></div>
-            </div>
-            <div class="cita-chip">
-                <i class="bi bi-car-front-fill"></i>
-                <div><strong>@Model.VehiculosMantenimiento</strong><span>Vehículos en mantenimiento</span></div>
-            </div>
-            <div class="cita-chip">
-                <i class="bi bi-calendar2-week-fill"></i>
-                <div><strong>@Model.ProximasCitas</strong><span>Próximas citas</span></div>
-            </div>
-            <div class="cita-chip">
-                <i class="bi bi-graph-up-arrow"></i>
-                <div><strong>@Model.OrdenesHoy</strong><span>Estadísticas rápidas</span></div>
-            </div>
-        </div>
-
-        <div class="panel" style="margin-bottom:20px">
-            <div class="panel-header">
-                <span class="panel-title"><i class="bi bi-calendar-check me-2"></i>Citas solicitadas por clientes</span>
-            </div>
-            <div class="panel-body">
-                <table class="mini-table">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Cliente</th>
-                            <th>Vehículo</th>
-                            <th>Servicio</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var cita in Model.CitasRecientes)
-                        {
-                            <tr>
-                                <td>@cita.FechaHora.ToString("dd/MM hh:mm tt")</td>
-                                <td>@cita.Cliente</td>
-                                <td><strong>@cita.Placa</strong> · @cita.Vehiculo</td>
-                                <td>@cita.Servicio</td>
-                                <td><span class="badge-estado estado-proceso">@cita.Estado</span></td>
-                                <td>
-                                    @if (cita.Estado == "Pendiente" || cita.Estado == "Solicitada")
-                                    {
-                                        <button onclick="abrirModalAprobar(@cita.IdCita, @cita.IdVehiculo,'@Html.Raw(cita.Servicio.Replace("'","\\'"))','@Html.Raw(cita.Observaciones.Replace("'","\\'"))','@cita.Cliente','@cita.Placa')"
-                                                style="padding:4px 10px;background:#16a34a;color:#fff;
-                                           border:none;border-radius:4px;font-size:.72rem;cursor:pointer;">
-                                            ✓ Aprobar
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <span style="font-size:.72rem;color:#64748b;">@cita.Estado</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                        @if (!Model.CitasRecientes.Any())
-                        {
-                            <tr>
-                                <td colspan="6" style="text-align:center;padding:24px;
-                    color:var(--texto-suave)">
-                                    Sin citas solicitadas
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>        
-            </div>
-        </div>
-
         <!-- KPIs -->
         <div class="kpi-grid">
             <div class="kpi-card">
@@ -733,91 +658,6 @@
                 } else if (badge) { badge.remove(); }
             } catch (e) {}
         }, 30000);
-    </script>
-
-    <!-- Modal Aprobar Cita -->
-    <div class="modal fade" id="modalAprobarCita" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" style="font-size:.9rem;color:var(--dorado)">
-                        <i class="bi bi-calendar-check me-2"></i>Aprobar cita y crear orden
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form asp-controller="Admin" asp-action="AprobarCita" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="idCita" id="ac_idCita" />
-                    <input type="hidden" name="idVehiculo" id="ac_idVehiculo" />
-                    <input type="hidden" name="servicio" id="ac_servicio" />
-                    <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px;">
-
-                        <div id="ac_resumen" style="background:#f8fafc;border:1px solid #e2e8f0;
-                         border-radius:6px;padding:12px;font-size:.82rem;color:#334155;"></div>
-
-                        <!-- Mecánico -->
-                        <div>
-                            <label style="font-size:.72rem;text-transform:uppercase;
-                                      letter-spacing:.08em;color:#64748b;">
-                                Asignar mecánico (opcional)
-                            </label>
-                            <select name="idMecanico" class="form-select form-select-sm mt-1">
-                                <option value="">Sin asignar por ahora</option>
-                                @foreach (var m in ViewBag.Mecanicos as List<(int Id, string Nombre)>
-                                ?? new List<(int Id, string Nombre)>())
-                                {
-                                    <option value="@m.Id">@m.Nombre</option>
-                                }
-                            </select>
-                        </div>
-
-                        <!-- KM ingreso -->
-                        <div>
-                            <label style="font-size:.72rem;text-transform:uppercase;
-                                      letter-spacing:.08em;color:#64748b;">
-                                Kilómetros de ingreso *
-                            </label>
-                            <input type="number" name="kmIngreso" class="form-control form-control-sm mt-1"
-                                   required min="0" placeholder="Ej: 45000" />
-                        </div>
-
-                        <!-- Observaciones -->
-                        <div>
-                            <label style="font-size:.72rem;text-transform:uppercase;
-                                      letter-spacing:.08em;color:#64748b;">
-                                Observaciones
-                            </label>
-                            <textarea name="observaciones" id="ac_obs" class="form-control form-control-sm mt-1"
-                                      rows="2"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit"
-                                style="padding:8px 20px;background:#16a34a;color:#fff;
-                                   border:none;border-radius:5px;font-size:.82rem;cursor:pointer;">
-                            ✓ Aprobar y crear orden
-                        </button>
-                        <button type="button" class="btn btn-sm btn-secondary"
-                                data-bs-dismiss="modal">
-                            Cancelar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function abrirModalAprobar(idCita, idVehiculo, servicio, obs, cliente, placa) {
-            document.getElementById('ac_idCita').value     = idCita;
-            document.getElementById('ac_idVehiculo').value = idVehiculo;
-            document.getElementById('ac_servicio').value   = servicio;
-            document.getElementById('ac_obs').value        = obs;
-            document.getElementById('ac_resumen').innerHTML =
-                `<strong>${cliente}</strong> · ${placa}<br>
-                 <span style="color:#2563eb">${servicio}</span>`;
-            new bootstrap.Modal(document.getElementById('modalAprobarCita')).show();
-        }
     </script>
 </body>
 </html>

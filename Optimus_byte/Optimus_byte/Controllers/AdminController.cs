@@ -85,8 +85,6 @@ namespace Optimus_byte.Controllers
                     });
             }
 
-            vm.CitasRecientes = CitasController.ObtenerCitasGenerales(conn, 8);
-
             // Repuestos con bajo stock
             using (var cmd2 = new SqlCommand(@"
                 SELECT TOP 5 nombre, referencia, stock_actual, stock_minimo
@@ -106,8 +104,6 @@ namespace Optimus_byte.Controllers
             }
 
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
-
-            // CAMBIO 2: RepuestosBajoStockList para el badge/panel del Dashboard
             ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
             ViewBag.Mecanicos = ObtenerMecanicos(conn);
             return View("~/Views/Admin/Dashboard.cshtml", vm);
@@ -117,7 +113,7 @@ namespace Optimus_byte.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AprobarCita(int idCita, int idVehiculo, string servicio,
-    string observaciones, int? idMecanico, int kmIngreso)
+            string observaciones, int? idMecanico, int kmIngreso)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
@@ -126,9 +122,9 @@ namespace Optimus_byte.Controllers
 
             // 1. Marcar cita como Aprobada
             using (var cmd = new SqlCommand(@"
-        UPDATE CitasCliente
-        SET estado = 'Aprobada'
-        WHERE id_cita = @id", conn))
+                UPDATE CitasCliente
+                SET estado = 'Aprobada'
+                WHERE id_cita = @id", conn))
             {
                 cmd.Parameters.AddWithValue("@id", idCita);
                 cmd.ExecuteNonQuery();
@@ -144,15 +140,14 @@ namespace Optimus_byte.Controllers
                 _ => "Correctivo"
             };
 
-
             // 2. Crear Orden de Trabajo
             int idOrden;
             using (var cmd = new SqlCommand(@"
-        INSERT INTO OrdenesTrabajo
-            (id_vehiculo, id_mecanico, id_administrador,
-             tipo_servicio, descripcion_problema, km_ingreso)
-        OUTPUT INSERTED.id_orden
-        VALUES (@veh, @mec, @adm, @tipo, @desc, @km)", conn))
+                INSERT INTO OrdenesTrabajo
+                    (id_vehiculo, id_mecanico, id_administrador,
+                     tipo_servicio, descripcion_problema, km_ingreso)
+                OUTPUT INSERTED.id_orden
+                VALUES (@veh, @mec, @adm, @tipo, @desc, @km)", conn))
             {
                 cmd.Parameters.AddWithValue("@veh", idVehiculo);
                 cmd.Parameters.AddWithValue("@mec", (object?)idMecanico ?? DBNull.Value);
@@ -167,7 +162,7 @@ namespace Optimus_byte.Controllers
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada desde cita #" + idCita);
 
             TempData["Exito"] = $"Cita aprobada. Orden de trabajo OT-{idOrden} creada.";
-            return RedirectToAction("Dashboard");
+            return RedirectToAction("Ordenes");  // ← redirige a Órdenes
         }
 
         // ════════════════════════════════════════════════
@@ -225,6 +220,7 @@ namespace Optimus_byte.Controllers
             ViewBag.EstadoFiltro = estado ?? "";
             ViewBag.BuscarFiltro = buscar ?? "";
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
+            ViewBag.CitasLista = CitasController.ObtenerCitasGenerales(conn);  // ← citas para el modal
 
             var vehiculosLista = new List<dynamic>();
             using (var cmdV = new SqlCommand(@"
@@ -279,7 +275,6 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("SolicitudesRepuesto");
         }
 
-        // CAMBIO 1: Nuevo endpoint de polling para badge (reemplaza SolicitudesPendientesCount)
         public IActionResult NotificacionesCount()
         {
             if (!EsAdmin()) return Json(new { solicitudes = 0, stockBajo = 0 });
@@ -294,7 +289,6 @@ namespace Optimus_byte.Controllers
             return Json(new { solicitudes, stockBajo });
         }
 
-        // Mantenido por compatibilidad con llamadas existentes
         public IActionResult SolicitudesPendientesCount()
         {
             if (!EsAdmin()) return Json(new { count = 0 });
@@ -317,7 +311,6 @@ namespace Optimus_byte.Controllers
 
             using var conn = _db.GetConnection();
 
-            // 1. Buscar el repuesto en inventario por nombre exacto
             int idRepuesto = 0;
             int stockActual = 0;
             decimal precioUnitario = 0;
@@ -350,7 +343,6 @@ namespace Optimus_byte.Controllers
                 return RedirectToAction("SolicitudesRepuesto");
             }
 
-            // 2. Descontar stock
             using (var cmdStock = new SqlCommand(@"
                 UPDATE Repuestos
                 SET stock_actual = stock_actual - @cantidad
@@ -366,12 +358,10 @@ namespace Optimus_byte.Controllers
                 }
             }
 
-            // 3. Registrar movimiento de inventario
             RegistrarMovimiento(conn, idRepuesto, idAdmin, ordenId,
                 "Salida", cantidad, stockActual,
                 $"Asignado a OT-{ordenId} por solicitud de mecánico");
 
-            // 4. Insertar o actualizar en OrdenRepuestos
             int yaExiste = EjecutarScalar<int>(conn,
                 $"SELECT COUNT(1) FROM OrdenRepuestos WHERE id_orden = {ordenId} AND id_repuesto = {idRepuesto}");
 
@@ -398,7 +388,6 @@ namespace Optimus_byte.Controllers
                 cmdIns.ExecuteNonQuery();
             }
 
-            // 5. Marcar solicitud como atendida
             using (var cmdAten = new SqlCommand(@"
                 UPDATE SolicitudesRepuesto
                 SET atendida = 1
@@ -408,7 +397,6 @@ namespace Optimus_byte.Controllers
                 cmdAten.ExecuteNonQuery();
             }
 
-            // 6. Si la orden estaba "Esperando repuesto" → cambiar a "En proceso"
             string estadoActual = EjecutarScalar<string>(conn,
                 $"SELECT estado FROM OrdenesTrabajo WHERE id_orden = {ordenId}") ?? "";
 
@@ -421,14 +409,12 @@ namespace Optimus_byte.Controllers
                 cmdEst.ExecuteNonQuery();
             }
 
-            // 7. Registrar en EstadosOrden para que el mecánico y cliente lo vean
             string nuevoEstado = estadoActual == "Esperando repuesto" ? "En proceso" : estadoActual;
             string obsEstado = estadoActual == "Esperando repuesto"
                 ? $"Repuesto '{repuestoNombre}' × {cantidad} aprobado. Orden retomada — estado cambiado a En proceso."
                 : $"Repuesto '{repuestoNombre}' × {cantidad} asignado a esta orden por el administrador.";
 
             RegistrarEstado(conn, ordenId, idAdmin, nuevoEstado, obsEstado);
-
 
             TempData["Exito"] = $"Repuesto '{repuestoNombre}' × {cantidad} asignado a OT-{ordenId}. Stock actualizado.";
             return RedirectToAction("SolicitudesRepuesto");
@@ -606,8 +592,6 @@ namespace Optimus_byte.Controllers
 
             RegistrarEstado(conn, idOrden, idAdmin, "Pendiente", "Orden creada");
 
-            // Actualiza el km_actuales del vehículo con el km de ingreso de esta orden,
-            // solo si es mayor al registrado (evita retroceder el odómetro por error).
             using (var cmdKm = new SqlCommand(@"
                 UPDATE Vehiculos
                 SET km_actuales = @km
@@ -790,12 +774,12 @@ namespace Optimus_byte.Controllers
             using var conn = _db.GetConnection();
 
             using (var cmd = new SqlCommand($@"
-   SELECT id_repuesto, nombre, referencia, descripcion,
-           categoria, precio_unitario, stock_actual, stock_minimo,
-           fecha_registro, imagen_url, marca, modelo, activo
-    FROM Repuestos
-    {where}
-    ORDER BY nombre ASC", conn))
+                SELECT id_repuesto, nombre, referencia, descripcion,
+                       categoria, precio_unitario, stock_actual, stock_minimo,
+                       fecha_registro, imagen_url, marca, modelo, activo
+                FROM Repuestos
+                {where}
+                ORDER BY nombre ASC", conn))
             using (var r = cmd.ExecuteReader())
             {
                 while (r.Read())
@@ -811,9 +795,9 @@ namespace Optimus_byte.Controllers
                         StockMinimo = Convert.ToInt32(r["stock_minimo"]),
                         FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
                         ImagenUrl = r["imagen_url"]?.ToString(),
-                        marca = r["marca"]?.ToString() ?? "",    // ← nuevo
+                        marca = r["marca"]?.ToString() ?? "",
                         modelo = r["modelo"]?.ToString() ?? "",
-                        Activo = Convert.ToBoolean(r["activo"]) // ← nuevo
+                        Activo = Convert.ToBoolean(r["activo"])
                     });
             }
 
@@ -826,7 +810,6 @@ namespace Optimus_byte.Controllers
             }
 
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
-            // CAMBIO 3: Inventario ya tiene SolicitudesPendientes (el stockBajo lo calcula la vista desde el Model)
             ViewBag.Categorias = cats;
             ViewBag.BuscarFiltro = buscar ?? "";
             ViewBag.CatFiltro = categoria ?? "";
@@ -836,21 +819,19 @@ namespace Optimus_byte.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GuardarRepuesto(
-    int? idRepuesto, string nombre, string referencia,
-    string? descripcion, string categoria, decimal precioUnitario,
-    int stockActual, int stockMinimo,
-    string? marca, string? modelo,
-    string? imagenUrlActual,
-    IFormFile? imagenRepuesto)
+            int? idRepuesto, string nombre, string referencia,
+            string? descripcion, string categoria, decimal precioUnitario,
+            int stockActual, int stockMinimo,
+            string? marca, string? modelo,
+            string? imagenUrlActual,
+            IFormFile? imagenRepuesto)
         {
             if (!EsAdmin()) return RedirectToAction("Index", "Login");
             int idAdmin = int.Parse(HttpContext.Session.GetString("UsuarioId")!);
 
-            // ── Resolver imagen ──────────────────────────────────────
             string? imagenUrl = null;
             if (imagenRepuesto != null && imagenRepuesto.Length > 0)
             {
-                // Subió archivo nuevo → guardarlo
                 var ext = Path.GetExtension(imagenRepuesto.FileName).ToLowerInvariant();
                 var nombreArchivo = $"{Guid.NewGuid()}{ext}";
                 var carpeta = Path.Combine("wwwroot", "img", "repuestos");
@@ -862,24 +843,21 @@ namespace Optimus_byte.Controllers
             }
             else if (!string.IsNullOrEmpty(imagenUrlActual))
             {
-                // No subió archivo pero había una URL → mantenerla
                 imagenUrl = imagenUrlActual;
             }
-            // Si ambos vacíos → imagenUrl queda null (sin imagen propia)
 
             using var conn = _db.GetConnection();
 
             if (idRepuesto == null || idRepuesto == 0)
             {
-                // ── INSERT ───────────────────────────────────────────
                 using var cmd = new SqlCommand(@"
-            INSERT INTO Repuestos
-                (nombre, referencia, descripcion, categoria,
-                 precio_unitario, stock_actual, stock_minimo,
-                 marca, modelo, imagen_url)
-            OUTPUT INSERTED.id_repuesto
-            VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min,
-                    @marca, @modelo, @img)", conn);
+                    INSERT INTO Repuestos
+                        (nombre, referencia, descripcion, categoria,
+                         precio_unitario, stock_actual, stock_minimo,
+                         marca, modelo, imagen_url)
+                    OUTPUT INSERTED.id_repuesto
+                    VALUES (@nom, @ref, @desc, @cat, @precio, @stock, @min,
+                            @marca, @modelo, @img)", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
@@ -896,28 +874,26 @@ namespace Optimus_byte.Controllers
             }
             else
             {
-                // ── UPDATE ───────────────────────────────────────────
                 int stockAnterior = EjecutarScalar<int>(conn,
                     $"SELECT stock_actual FROM Repuestos WHERE id_repuesto = {idRepuesto}");
 
-                // Si imagenUrl es null → no tocar imagen_url en BD (COALESCE la mantiene)
                 string sqlImg = imagenUrl != null
                     ? ", imagen_url = @img"
                     : ", imagen_url = COALESCE(@img, imagen_url)";
 
                 using var cmd = new SqlCommand($@"
-            UPDATE Repuestos
-            SET nombre          = @nom,
-                referencia      = @ref,
-                descripcion     = @desc,
-                categoria       = @cat,
-                precio_unitario = @precio,
-                stock_actual    = @stock,
-                stock_minimo    = @min,
-                marca           = @marca,
-                modelo          = @modelo
-                {sqlImg}
-            WHERE id_repuesto   = @id", conn);
+                    UPDATE Repuestos
+                    SET nombre          = @nom,
+                        referencia      = @ref,
+                        descripcion     = @desc,
+                        categoria       = @cat,
+                        precio_unitario = @precio,
+                        stock_actual    = @stock,
+                        stock_minimo    = @min,
+                        marca           = @marca,
+                        modelo          = @modelo
+                        {sqlImg}
+                    WHERE id_repuesto   = @id", conn);
                 cmd.Parameters.AddWithValue("@nom", nombre);
                 cmd.Parameters.AddWithValue("@ref", referencia);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
@@ -979,11 +955,9 @@ namespace Optimus_byte.Controllers
 
             using var conn = _db.GetConnection();
 
-            // Guardar el nombre antes de borrar para el mensaje
             string nombre = EjecutarScalar<string>(conn,
                 $"SELECT nombre FROM Repuestos WHERE id_repuesto = {id}") ?? "Repuesto";
 
-            // 1️⃣ Borrar primero los registros hijos que tienen FK hacia este repuesto
             using (var cmdMov = new SqlCommand(
                 "DELETE FROM MovimientosInventario WHERE id_repuesto = @id", conn))
             {
@@ -991,7 +965,6 @@ namespace Optimus_byte.Controllers
                 cmdMov.ExecuteNonQuery();
             }
 
-            // 2️⃣ Ahora sí borrar el repuesto
             using (var cmdRep = new SqlCommand(
                 "DELETE FROM Repuestos WHERE id_repuesto = @id", conn))
             {
@@ -1002,8 +975,6 @@ namespace Optimus_byte.Controllers
             TempData["Exito"] = $"Repuesto '{nombre}' eliminado permanentemente.";
             return RedirectToAction("Inventario");
         }
-
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -1021,7 +992,6 @@ namespace Optimus_byte.Controllers
                     return RedirectToAction("Inventario");
                 }
 
-                // Siempre guarda como catKey.ext (ej: motor.png, frenos.jpg)
                 var nombreArchivo = $"{catKey}{ext}";
                 var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                 var carpeta = Path.Combine(webRoot, "img", "defaults");
@@ -1031,30 +1001,25 @@ namespace Optimus_byte.Controllers
                 {
                     var anterior = Path.Combine(carpeta, $"{catKey}{oldExt}");
                     if (System.IO.File.Exists(anterior))
-                    {
                         System.IO.File.Delete(anterior);
-                    }
                 }
 
                 var ruta = Path.Combine(carpeta, nombreArchivo);
-
                 using (var stream = System.IO.File.Create(ruta))
                 {
                     await imagen.CopyToAsync(stream);
                 }
 
-                // ── ESTO FALTABA: actualizar la BD con la URL ──────────────
                 string urlImagen = $"/img/defaults/{nombreArchivo}";
 
                 using var conn = _db.GetConnection();
                 using var cmd = new SqlCommand(@"
-            UPDATE Repuestos
-            SET imagen_url = @url
-            WHERE categoria = @cat", conn);
+                    UPDATE Repuestos
+                    SET imagen_url = @url
+                    WHERE categoria = @cat", conn);
                 cmd.Parameters.AddWithValue("@url", urlImagen);
                 cmd.Parameters.AddWithValue("@cat", categoria);
                 int filas = cmd.ExecuteNonQuery();
-                // ────────────────────────────────────────────────────────
 
                 TempData["Exito"] = $"Imagen de '{categoria}' actualizada. {filas} repuesto(s) afectado(s).";
             }
@@ -1065,6 +1030,7 @@ namespace Optimus_byte.Controllers
 
             return RedirectToAction("Inventario");
         }
+
         // ════════════════════════════════════════════════
         // FACTURAS
         // ════════════════════════════════════════════════
@@ -1116,7 +1082,6 @@ namespace Optimus_byte.Controllers
             ViewBag.EstadoFiltro = estado ?? "";
             ViewBag.BuscarFiltro = buscar ?? "";
             ViewBag.SolicitudesPendientes = ObtenerSolicitudesPendientes(conn);
-            // CAMBIO 4: RepuestosBajoStockList en Facturas
             ViewBag.RepuestosBajoStockList = ObtenerRepuestosBajoStock(conn);
             return View("~/Views/Admin/Facturas.cshtml", lista);
         }
@@ -1322,7 +1287,6 @@ namespace Optimus_byte.Controllers
             return lista;
         }
 
-        // CAMBIO 2/4: Helper para repuestos bajo stock (reutilizado en Dashboard y Facturas)
         private List<RepuestoViewModel> ObtenerRepuestosBajoStock(SqlConnection conn)
         {
             var lista = new List<RepuestoViewModel>();
@@ -1331,9 +1295,9 @@ namespace Optimus_byte.Controllers
                 using var cmd = new SqlCommand(@"
                     SELECT id_repuesto, nombre, referencia, stock_actual, stock_minimo
                     FROM Repuestos
-                    WHERE activo == 1 AND stock_actual < stock_minimo
+                    WHERE activo = 1 AND stock_actual < stock_minimo
                     ORDER BY stock_actual ASC", conn);
-                using var r = cmd.ExecuteReader();  
+                using var r = cmd.ExecuteReader();
                 while (r.Read())
                     lista.Add(new RepuestoViewModel
                     {
@@ -1385,6 +1349,3 @@ namespace Optimus_byte.Controllers
         }
     }
 }
-
-
-

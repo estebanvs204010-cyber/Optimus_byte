@@ -600,3 +600,213 @@ textarea.modal-input    { resize: vertical; }
 
 .rep-divisor::before,
 .rep-divisor::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.1); }
+
+
+/* Card clickable — cursor y hover sutil */
+.apt-card-clickable {
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+}
+
+    .apt-card-clickable:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+
+/* Overlay oscuro detrás del drawer */
+#drawerOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 1040;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+/* Drawer lateral */
+#drawerDetalle {
+    position: fixed;
+    top: 0;
+    right: -540px;
+    width: min(520px, 100vw);
+    height: 100vh;
+    background: #B5ACAA;
+    border-left: 1px solid #a09896;
+    z-index: 1050;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    transition: right .3s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: -8px 0 40px rgba(0,0,0,.4);
+}
+
+    /* Estado abierto */
+    #drawerDetalle.drawer-open {
+        right: 0;
+    }
+
+/* Header del drawer */
+.drawer-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 1.1rem 1.5rem;
+    background: #a09896;
+    border-bottom: 1px solid #8a807e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+    .drawer-header h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1e293b;
+        letter-spacing: .02em;
+    }
+
+    .drawer-header p {
+        margin: 0;
+        font-size: .73rem;
+        color: #475569;
+    }
+
+.drawer-close {
+    background: transparent;
+    border: none;
+    color: #475569;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: .4rem .55rem;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background .15s, color .15s;
+    flex-shrink: 0;
+}
+
+    .drawer-close:hover {
+        background: #8a807e;
+        color: #0f172a;
+    }
+
+/* Cuerpo del drawer */
+.drawer-body {
+    padding: 1.5rem;
+    flex: 1;
+}
+
+/* Bloques de información */
+.drawer-block {
+    background: #cfc8c6;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    margin-bottom: .85rem;
+    border: 1px solid #a09896;
+}
+
+.drawer-block-title {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    color: #7c3a00;
+    font-weight: 700;
+    margin: 0 0 .75rem;
+}
+
+/* Grid interno */
+.drawer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .65rem;
+}
+
+.drawer-field {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+}
+
+.drawer-label {
+    font-size: .68rem;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.drawer-value {
+    margin: 0;
+    font-size: .85rem;
+    color: #0f172a;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.drawer-highlight {
+    color: #92400e;
+}
+
+/* Historial del vehículo */
+.drawer-hist-item {
+    padding: .75rem;
+    background: #B5ACAA;
+    border-radius: 8px;
+    margin-bottom: .55rem;
+    border-left: 3px solid #92400e;
+}
+
+.drawer-hist-fecha {
+    font-size: .68rem;
+    color: #92400e;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.drawer-hist-diag {
+    margin: .25rem 0 .15rem;
+    font-size: .82rem;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.drawer-hist-partes {
+    margin: 0;
+    font-size: .75rem;
+    color: #475569;
+}
+
+/* Acciones del drawer */
+.drawer-actions {
+    background: #cfc8c6;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    margin-bottom: .85rem;
+    border: 1px solid #a09896;
+}
+
+.drawer-btns {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+/* Scrollbar del drawer */
+#drawerDetalle::-webkit-scrollbar {
+    width: 5px;
+}
+
+#drawerDetalle::-webkit-scrollbar-track {
+    background: #B5ACAA;
+}
+
+#drawerDetalle::-webkit-scrollbar-thumb {
+    background: #a09896;
+    border-radius: 4px;
+}
+
+    #drawerDetalle::-webkit-scrollbar-thumb:hover {
+        background: #8a807e;
+    }

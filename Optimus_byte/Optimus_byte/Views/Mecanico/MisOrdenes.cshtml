@@ -13,6 +13,8 @@
     <title>OPTIMUS-BYTE · Panel de Mecánico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+      <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link href="~/css/usuarios.css" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/MisOrdenesMecanico.css" asp-append-version="true" />
 </head>
@@ -163,7 +165,18 @@
                             "Entregado" => "chip-entregado",
                             _ => "chip-cancelado"
                         };
-                        <article class="apt-card">
+                        <article class="apt-card apt-card-clickable"
+                                 onclick="abrirDetalle(@cita.Id)"
+                                 data-id="@cita.Id"
+                                 data-vehiculo="@Html.Raw(cita.Vehiculo)"
+                                 data-placa="@cita.Placa"
+                                 data-cliente="@Html.Raw(cita.Cliente)"
+                                 data-servicio="@Html.Raw(cita.Servicio)"
+                                 data-estado="@cita.Estado"
+                                 data-fecha="@cita.FechaHora.ToString("dd/MM/yyyy HH:mm")"
+                                 data-diagnostico="@Html.Raw(cita.Diagnostico ?? "")"
+                                 data-entrega="@(cita.FechaEntregaEstimada.HasValue ? cita.FechaEntregaEstimada.Value.ToString("yyyy-MM-ddTHH:mm:ss") : "")"
+                                 data-marca="@Html.Raw(cita.MarcaVehiculo)">
                             <div class="apt-time">
                                 <span>@cita.FechaHora.ToString("dd MMM")</span>
                                 <strong>@cita.FechaHora.ToString("hh:mm tt")</strong>
@@ -191,7 +204,7 @@
                                         </span>
                                     </div>
                                 }
-                                <div class="card-actions">
+                                <div class="card-actions" onclick="event.stopPropagation()">
                                     <button class="btn-act btn-act-estado"
                                             onclick="abrirModalEstado(@cita.Id, '@Html.Raw(cita.Estado)')">
                                         <i class="bi bi-arrow-repeat"></i> Estado
@@ -237,7 +250,18 @@
                                     "Entregado" => "chip-entregado",
                                     _ => "chip-cancelado"
                                 };
-                                <tr>
+                                <tr style="cursor:pointer"
+                                    onclick="abrirDetalle(@cita.Id)"
+                                    data-id="@cita.Id"
+                                    data-vehiculo="@Html.Raw(cita.Vehiculo)"
+                                    data-placa="@cita.Placa"
+                                    data-cliente="@Html.Raw(cita.Cliente)"
+                                    data-servicio="@Html.Raw(cita.Servicio)"
+                                    data-estado="@cita.Estado"
+                                    data-fecha="@cita.FechaHora.ToString("dd/MM/yyyy HH:mm")"
+                                    data-diagnostico="@Html.Raw(cita.Diagnostico ?? "")"
+                                    data-entrega="@(cita.FechaEntregaEstimada.HasValue ? cita.FechaEntregaEstimada.Value.ToString("yyyy-MM-ddTHH:mm:ss") : "")"
+                                    data-marca="@Html.Raw(cita.MarcaVehiculo)">
                                     <td><strong>OT-@cita.Id</strong></td>
                                     <td>@cita.FechaHora.ToString("dd/MM/yy HH:mm")</td>
                                     <td>@cita.Cliente</td>
@@ -257,7 +281,7 @@
                                             <span style="font-size:.73rem;color:#94a3b8">Sin definir</span>
                                         }
                                     </td>
-                                    <td>
+                                    <td onclick="event.stopPropagation()">
                                         <div style="display:flex;gap:.35rem;flex-wrap:wrap">
                                             <button class="btn-act btn-act-estado"
                                                     onclick="abrirModalEstado(@cita.Id, '@Html.Raw(cita.Estado)')">
@@ -524,6 +548,105 @@
         </main>
     </div>
 
+    <!-- ════════════════════════════════════════════════════
+         DRAWER: Detalle completo de la orden
+    ════════════════════════════════════════════════════ -->
+    <div id="drawerOverlay" onclick="cerrarDetalle()"></div>
+
+    <aside id="drawerDetalle" aria-hidden="true">
+
+        <!-- Header del drawer -->
+        <div class="drawer-header">
+            <div>
+                <h2 id="drawerTitulo"></h2>
+                <p id="drawerSubtitulo"></p>
+            </div>
+            <button class="drawer-close" onclick="cerrarDetalle()" title="Cerrar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <!-- Cuerpo del drawer -->
+        <div class="drawer-body">
+
+            <!-- Chip de estado -->
+            <div id="drawerEstadoWrap" style="margin-bottom:1.25rem"></div>
+
+            <!-- Countdown si hay fecha estimada -->
+            <div id="drawerCountdownWrap" style="display:none;margin-bottom:1rem">
+                <div class="countdown-pill" id="drawerCountdownPill">
+                    <i class="bi bi-clock"></i>
+                    <span id="drawerCountdownText">Calculando...</span>
+                </div>
+            </div>
+
+            <!-- Bloque: Vehículo y propietario -->
+            <div class="drawer-block">
+                <p class="drawer-block-title"><i class="bi bi-car-front me-1"></i>Vehículo y propietario</p>
+                <div class="drawer-grid">
+                    <div class="drawer-field">
+                        <span class="drawer-label">Vehículo</span>
+                        <p class="drawer-value" id="dVehiculo"></p>
+                    </div>
+                    <div class="drawer-field">
+                        <span class="drawer-label">Placa</span>
+                        <p class="drawer-value" id="dPlaca"></p>
+                    </div>
+                    <div class="drawer-field">
+                        <span class="drawer-label">Propietario</span>
+                        <p class="drawer-value" id="dCliente"></p>
+                    </div>
+                    <div class="drawer-field">
+                        <span class="drawer-label">Km de entrada</span>
+                        <p class="drawer-value drawer-highlight" id="dKm">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque: Servicio -->
+            <div class="drawer-block">
+                <p class="drawer-block-title"><i class="bi bi-wrench-adjustable me-1"></i>Servicio solicitado</p>
+                <p class="drawer-value" id="dServicio"></p>
+            </div>
+
+            <!-- Bloque: Diagnóstico -->
+            <div class="drawer-block" id="dDiagnosticoWrap">
+                <p class="drawer-block-title"><i class="bi bi-clipboard2-pulse me-1"></i>Diagnóstico</p>
+                <p class="drawer-value" id="dDiagnostico" style="font-style:italic"></p>
+            </div>
+
+            <!-- Bloque: Fechas -->
+            <div class="drawer-block">
+                <p class="drawer-block-title"><i class="bi bi-calendar3 me-1"></i>Fechas</p>
+                <div class="drawer-grid">
+                    <div class="drawer-field">
+                        <span class="drawer-label">Fecha de apertura</span>
+                        <p class="drawer-value" id="dFecha"></p>
+                    </div>
+                    <div class="drawer-field">
+                        <span class="drawer-label">Entrega estimada</span>
+                        <p class="drawer-value drawer-highlight" id="dEntregaFecha">Sin definir</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque: Historial del vehículo -->
+            <div class="drawer-block">
+                <p class="drawer-block-title"><i class="bi bi-clock-history me-1"></i>Historial del vehículo</p>
+                <div id="dHistorial">
+                    <p style="font-size:.8rem;color:#64748b;font-style:italic">Cargando historial...</p>
+                </div>
+            </div>
+
+            <!-- Acciones del drawer -->
+            <div class="drawer-actions">
+                <p class="drawer-block-title" style="margin-bottom:.75rem"><i class="bi bi-lightning-charge me-1"></i>Acciones rápidas</p>
+                <div class="drawer-btns" id="drawerBtns"></div>
+            </div>
+
+        </div>
+    </aside>
+
     <!-- ════════════ MODAL: Cambiar estado ════════════ -->
     <div class="modal fade modal-mec" id="modalEstado" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -539,13 +662,13 @@
                         <p class="modal-label" style="margin-bottom:.85rem">Selecciona el nuevo estado</p>
                         @{
                             var coloresEstado = new Dictionary<string, string> {
-                                                { "Pendiente",           "#f59e0b" },
-                                                { "En proceso",          "#3b82f6" },
-                                                { "Esperando repuesto",  "#ef4444" },
-                                                { "Listo para entrega",  "#8b5cf6" },
-                                                { "Entregado",           "#22c55e" },
-                                                { "Cancelado",           "#6b7280" }
-                                                };
+                                { "Pendiente",           "#f59e0b" },
+                                { "En proceso",          "#3b82f6" },
+                                { "Esperando repuesto",  "#ef4444" },
+                                { "Listo para entrega",  "#8b5cf6" },
+                                { "Entregado",           "#22c55e" },
+                                { "Cancelado",           "#6b7280" }
+                            };
                         }
                         @foreach (var est in estadosDisponibles)
                         {
@@ -724,6 +847,157 @@
             box.querySelector('.bar').style.width = Math.round((checks / total) * 100) + '%';
         }
 
+        // ══════════════════════════════════════════════════════════
+        // DRAWER: Detalle de orden
+        // ══════════════════════════════════════════════════════════
+
+        // Mapa de chips de estado (igual que en el resto de la vista)
+        const chipClasses = {
+            'Pendiente':          'chip-pendiente',
+            'En proceso':         'chip-proceso',
+            'Esperando repuesto': 'chip-repuesto',
+            'Listo para entrega': 'chip-listo',
+            'Entregado':          'chip-entregado',
+            'Cancelado':          'chip-cancelado'
+        };
+
+        // Historial del vehículo: datos precargados desde Razor
+        const historialData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Model.HistorialServicios.Select(h => new {
+                fecha     = h.Fecha.ToString("dd/MM/yyyy"),
+                vehiculo  = h.Vehiculo,
+                diagnostico = h.Diagnostico,
+                partes    = h.PartesReemplazadas,
+                tecnico   = h.Tecnico
+            })
+        ));
+
+        function abrirDetalle(ordenId) {
+            const card = document.querySelector(`[data-id="${ordenId}"]`);
+            if (!card) return;
+
+            const d = card.dataset;
+
+            // Título
+            document.getElementById('drawerTitulo').textContent    = `OT-${ordenId}`;
+            document.getElementById('drawerSubtitulo').textContent = `${d.fecha} · ${d.placa}`;
+
+            // Estado chip
+            const chipCls = chipClasses[d.estado] || 'chip-cancelado';
+            document.getElementById('drawerEstadoWrap').innerHTML =
+                `<span class="estado-chip ${chipCls}" style="font-size:.82rem;padding:5px 14px">${d.estado}</span>`;
+
+            // Campos
+            document.getElementById('dVehiculo').textContent  = d.vehiculo  || '—';
+            document.getElementById('dPlaca').textContent     = d.placa     || '—';
+            document.getElementById('dCliente').textContent   = d.cliente   || '—';
+            document.getElementById('dServicio').textContent  = d.servicio  || '—';
+            document.getElementById('dFecha').textContent     = d.fecha     || '—';
+            document.getElementById('dKm').textContent        = '—'; // campo disponible para futuro
+
+            // Diagnóstico
+            const diagWrap = document.getElementById('dDiagnosticoWrap');
+            const diagEl   = document.getElementById('dDiagnostico');
+            if (d.diagnostico && d.diagnostico.trim() !== '') {
+                diagEl.textContent  = d.diagnostico;
+                diagWrap.style.display = '';
+            } else {
+                diagWrap.style.display = 'none';
+            }
+
+            // Entrega estimada
+            const entregaEl = document.getElementById('dEntregaFecha');
+            if (d.entrega) {
+                const fecha = new Date(d.entrega);
+                entregaEl.textContent = fecha.toLocaleString('es-CO', { dateStyle:'medium', timeStyle:'short' });
+                // Countdown en el drawer
+                document.getElementById('drawerCountdownWrap').style.display = '';
+                document.getElementById('drawerCountdownPill').dataset.entrega = d.entrega;
+                actualizarCountdownDrawer();
+            } else {
+                entregaEl.textContent = 'Sin definir';
+                document.getElementById('drawerCountdownWrap').style.display = 'none';
+            }
+
+            // Historial del vehículo (filtrado por placa incluida en el campo vehiculo)
+            const histContainer = document.getElementById('dHistorial');
+            const placaBuscar   = (d.placa || '').toLowerCase();
+            const histFiltrado  = historialData.filter(h =>
+                h.vehiculo && h.vehiculo.toLowerCase().includes(placaBuscar)
+            );
+            if (histFiltrado.length > 0) {
+                histContainer.innerHTML = histFiltrado.map(h => `
+                    <div class="drawer-hist-item">
+                        <span class="drawer-hist-fecha">${h.fecha}</span>
+                        <p class="drawer-hist-diag">${h.diagnostico || 'Sin diagnóstico'}</p>
+                        <p class="drawer-hist-partes"><i class="bi bi-nut-fill me-1"></i>${h.partes || 'Sin repuestos'}</p>
+                        <small style="color:#64748b">Técnico: ${h.tecnico || '—'}</small>
+                    </div>
+                `).join('');
+            } else {
+                histContainer.innerHTML =
+                    `<p style="font-size:.8rem;color:#64748b;font-style:italic">
+                        No hay historial previo registrado para este vehículo.
+                     </p>`;
+            }
+
+            // Botones de acción (mismos que en la card)
+            document.getElementById('drawerBtns').innerHTML = `
+                <button class="btn-act btn-act-estado"
+                        onclick="event.stopPropagation();cerrarDetalle();abrirModalEstado(${ordenId},'${d.estado}')">
+                    <i class="bi bi-arrow-repeat"></i> Cambiar estado
+                </button>
+                <button class="btn-act btn-act-tiempo"
+                        onclick="event.stopPropagation();cerrarDetalle();abrirModalTiempo(${ordenId})">
+                    <i class="bi bi-clock"></i> Tiempo estimado
+                </button>
+                <button class="btn-act btn-act-repuesto"
+                        onclick="event.stopPropagation();cerrarDetalle();abrirModalRepuesto(${ordenId},'${d.marca}')">
+                    <i class="bi bi-box-seam"></i> Pedir repuesto
+                </button>
+            `;
+
+            // Abrir drawer
+            document.getElementById('drawerOverlay').style.display = 'block';
+            requestAnimationFrame(() => {
+                document.getElementById('drawerDetalle').classList.add('drawer-open');
+                document.getElementById('drawerDetalle').setAttribute('aria-hidden','false');
+                document.body.style.overflow = 'hidden';
+            });
+        }
+
+        function cerrarDetalle() {
+            document.getElementById('drawerDetalle').classList.remove('drawer-open');
+            document.getElementById('drawerDetalle').setAttribute('aria-hidden','true');
+            document.body.style.overflow = '';
+            setTimeout(() => {
+                document.getElementById('drawerOverlay').style.display = 'none';
+            }, 300);
+        }
+
+        function actualizarCountdownDrawer() {
+            const pill = document.getElementById('drawerCountdownPill');
+            if (!pill || !pill.dataset.entrega) return;
+            const diff = new Date(pill.dataset.entrega) - new Date();
+            const el   = document.getElementById('drawerCountdownText');
+            if (diff <= 0) {
+                el.textContent = 'Tiempo vencido';
+                pill.classList.add('urgente');
+            } else {
+                const dias  = Math.floor(diff / 86400000);
+                const horas = Math.floor((diff % 86400000) / 3600000);
+                const mins  = Math.floor((diff % 3600000) / 60000);
+                el.textContent = dias > 0  ? `${dias}d ${horas}h restantes`
+                               : horas > 0 ? `${horas}h ${mins}m restantes`
+                                           : `${mins} min restantes`;
+            }
+        }
+
+        // Cerrar drawer con tecla ESC
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') cerrarDetalle();
+        });
+
         // ── Modal estado ──────────────────────────────────────────
         function abrirModalEstado(ordenId, estadoActual) {
             document.getElementById('estadoOrdenId').value = ordenId;
@@ -823,11 +1097,13 @@
             }
         }
 
-        // ── Cuentas regresivas ────────────────────────────────────
+        // ── Cuentas regresivas (cards y tabla) ───────────────────
         function actualizarCuentas() {
             document.querySelectorAll('[data-entrega]').forEach(el => {
+                if (el.id === 'drawerCountdownPill') return; // lo maneja su propio fn
                 const diff = new Date(el.dataset.entrega) - new Date();
                 const pill = el.closest('.countdown-pill');
+                if (!pill) return;
                 if (diff <= 0) {
                     el.textContent = 'Tiempo vencido';
                     pill.classList.add('urgente');
@@ -836,12 +1112,13 @@
                 const dias  = Math.floor(diff / 86400000);
                 const horas = Math.floor((diff % 86400000) / 3600000);
                 const mins  = Math.floor((diff % 3600000) / 60000);
-                el.textContent = dias > 0 ? `${dias}d ${horas}h restantes`
+                el.textContent = dias > 0  ? `${dias}d ${horas}h restantes`
                                : horas > 0 ? `${horas}h ${mins}m restantes`
                                            : `${mins} min restantes`;
                 if (diff < 3600000)       pill.classList.add('urgente');
                 else if (diff > 86400000) pill.classList.add('ok');
             });
+            actualizarCountdownDrawer();
         }
 
         actualizarCuentas();
