@@ -6,6 +6,8 @@
     var solicitudes = ViewBag.SolicitudesPendientes as List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>
                       ?? new List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>();
     int totalSolicitudes = solicitudes.Count;
+    var citas = ViewBag.CitasLista as List<Optimus_byte.Models.ViewModels.CitaClienteViewModel>
+             ?? new List<Optimus_byte.Models.ViewModels.CitaClienteViewModel>();
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -202,6 +204,40 @@
             color: #64748b;
             border: 1px solid #cbd5e1;
         }
+
+        /* Modal citas — tabla interna */
+        #modalCitas .modal-dialog {
+            max-width: 860px;
+        }
+
+        .citas-mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .8rem;
+        }
+
+            .citas-mini-table th {
+                padding: 9px 14px;
+                font-size: .65rem;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+                color: var(--texto-suave);
+                background: #f8fafc;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .citas-mini-table td {
+                padding: 10px 14px;
+                border-bottom: 1px solid rgb(47, 84, 235);
+            }
+
+            .citas-mini-table tr:last-child td {
+                border-bottom: none;
+            }
+
+            .citas-mini-table tr:hover td {
+                background: rgba(37,99,235,.02);
+            }
     </style>
 </head>
 <body>
@@ -264,8 +300,8 @@
                         @if (esLibre)
                         {
                             <span style="font-size:.63rem;background:rgba(239,68,68,.1);color:#ef4444;
-                                                     border:1px solid rgba(239,68,68,.25);border-radius:10px;
-                                                     padding:1px 6px;margin-right:4px">Sin inventario</span>
+                                                                 border:1px solid rgba(239,68,68,.25);border-radius:10px;
+                                                                 padding:1px 6px;margin-right:4px">Sin inventario</span>
                         }
                         @nombreMostrar
                         <span style="color:#94a3b8;font-weight:400"> × @s.Cantidad</span>
@@ -287,8 +323,8 @@
                         {
                             <a href="/Admin/Inventario"
                                style="font-size:.68rem;padding:4px 10px;background:#3b82f6;color:#fff;
-                                                  border-radius:4px;text-decoration:none;
-                                                  display:inline-flex;align-items:center;gap:4px">
+                                                              border-radius:4px;text-decoration:none;
+                                                              display:inline-flex;align-items:center;gap:4px">
                                 <i class="bi bi-plus-circle"></i> Crear en inventario
                             </a>
                         }
@@ -304,8 +340,8 @@
                                 <input type="hidden" name="cantidad" value="@s.Cantidad" />
                                 <button type="submit"
                                         style="font-size:.68rem;padding:4px 10px;background:#22c55e;
-                                                           color:#fff;border:none;border-radius:4px;cursor:pointer;
-                                                           display:inline-flex;align-items:center;gap:4px">
+                                                                       color:#fff;border:none;border-radius:4px;cursor:pointer;
+                                                                       display:inline-flex;align-items:center;gap:4px">
                                     <i class="bi bi-check2"></i> Aceptar
                                 </button>
                             </form>
@@ -317,8 +353,8 @@
                             <input type="hidden" name="solicitudId" value="@s.IdSolicitud" />
                             <button type="submit"
                                     style="font-size:.68rem;padding:4px 10px;background:#ef4444;
-                                                   color:#fff;border:none;border-radius:4px;cursor:pointer;
-                                                   display:inline-flex;align-items:center;gap:4px">
+                                                           color:#fff;border:none;border-radius:4px;cursor:pointer;
+                                                           display:inline-flex;align-items:center;gap:4px">
                                 <i class="bi bi-x-lg"></i> Rechazar
                             </button>
                         </form>
@@ -348,9 +384,9 @@
                 @if (totalSolicitudes > 0)
                 {
                     <span style="position:absolute;top:6px;right:10px;background:#ef4444;color:#fff;
-                                     font-size:.55rem;font-weight:700;min-width:15px;height:15px;
-                                     border-radius:8px;display:flex;align-items:center;
-                                     justify-content:center;padding:0 3px">@totalSolicitudes</span>
+                                         font-size:.55rem;font-weight:700;min-width:15px;height:15px;
+                                         border-radius:8px;display:flex;align-items:center;
+                                         justify-content:center;padding:0 3px">@totalSolicitudes</span>
                 }
             </a>
         </nav>
@@ -363,9 +399,22 @@
                 <h1 class="section-title">Órdenes de Trabajo</h1>
                 <p class="section-sub">@Model.Count orden(es) encontrada(s)</p>
             </div>
-            <button class="btn-nuevo" data-bs-toggle="modal" data-bs-target="#modalCrearOrden">
-                <i class="bi bi-plus-lg me-2"></i>Nueva Orden
-            </button>
+            <div class="d-flex gap-2">
+                <button class="btn-nuevo" style="background:#F5F3F2;"
+                        data-bs-toggle="modal" data-bs-target="#modalCitas">
+                    <i class="bi bi-calendar-check me-2"></i>Citas
+                    @if (citas.Any(c => c.Estado == "Pendiente" || c.Estado == "Solicitada"))
+                    {
+                        <span style="background:#fff;color: #2962FF;;font-size:.65rem;font-weight:700;
+                                         padding:1px 6px;border-radius:8px;margin-left:4px">
+                            @citas.Count(c => c.Estado == "Pendiente" || c.Estado == "Solicitada")
+                        </span>
+                    }
+                </button>
+                <button class="btn-nuevo" data-bs-toggle="modal" data-bs-target="#modalCrearOrden">
+                    <i class="bi bi-plus-lg me-2"></i>Nueva Orden
+                </button>
+            </div>
         </div>
 
         @if (TempData["Exito"] != null)
@@ -473,6 +522,143 @@
                     <p class="mt-2">No se encontraron órdenes.</p>
                 </div>
             }
+        </div>
+    </div>
+
+    <!-- Modal Citas -->
+    <div class="modal fade" id="modalCitas" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable" style="max-width:860px">
+            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:6px">
+                <div class="modal-header" style="border-bottom:1px solid var(--borde-input)">
+                    <h5 class="modal-title" style="font-size:.9rem;letter-spacing:.06em;color:var(--dorado)">
+                        <i class="bi bi-calendar-check me-2"></i>Citas solicitadas por clientes
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding:0">
+                    <table class="citas-mini-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Vehículo</th>
+                                <th>Servicio</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cita in citas)
+                            {
+                                <tr>
+                                    <td>@cita.FechaHora.ToString("dd/MM hh:mm tt")</td>
+                                    <td>@cita.Cliente</td>
+                                    <td><strong>@cita.Placa</strong> · @cita.Vehiculo</td>
+                                    <td>@cita.Servicio</td>
+                                    <td><span class="badge-estado estado-proceso">@cita.Estado</span></td>
+                                    <td>
+                                        @if (cita.Estado == "Pendiente" || cita.Estado == "Solicitada")
+                                        {
+                                            <button onclick="abrirModalAprobar(@cita.IdCita, @cita.IdVehiculo,'@Html.Raw(cita.Servicio.Replace("'", "\\'"))','@Html.Raw(cita.Observaciones.Replace("'", "\\'"))','@cita.Cliente','@cita.Placa')"
+                                                    style="padding:4px 10px;background:#16a34a;color:#fff;
+                                                           border:none;border-radius:4px;font-size:.72rem;cursor:pointer;">
+                                                ✓ Aprobar
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-size:.72rem;color:#64748b;">@cita.Estado</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            @if (!citas.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" style="text-align:center;padding:32px;color:var(--texto-suave)">
+                                        Sin citas solicitadas
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--borde-input)">
+                    <button type="button" class="btn-cancelar" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Aprobar Cita -->
+    <div class="modal fade" id="modalAprobarCita" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background:#fff;border:1px solid var(--borde-input);border-radius:6px">
+                <div class="modal-header" style="border-bottom:1px solid var(--borde-input)">
+                    <h5 class="modal-title" style="font-size:.9rem;color:var(--dorado)">
+                        <i class="bi bi-calendar-check me-2"></i>Aprobar cita y crear orden
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Admin" asp-action="AprobarCita" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="idCita" id="ac_idCita" />
+                    <input type="hidden" name="idVehiculo" id="ac_idVehiculo" />
+                    <input type="hidden" name="servicio" id="ac_servicio" />
+                    <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+
+                        <div id="ac_resumen" style="background:#f8fafc;border:1px solid #e2e8f0;
+                             border-radius:6px;padding:12px;font-size:.82rem;color:#334155;"></div>
+
+                        <!-- Mecánico -->
+                        <div>
+                            <label style="font-size:.72rem;text-transform:uppercase;
+                                          letter-spacing:.08em;color:#64748b;">
+                                Asignar mecánico (opcional)
+                            </label>
+                            <select name="idMecanico" class="form-select form-select-sm mt-1">
+                                <option value="">Sin asignar por ahora</option>
+                                @foreach (var m in ViewBag.Mecanicos as List<(int Id, string Nombre)>
+                                                                ?? new List<(int Id, string Nombre)>())
+                                {
+                                    <option value="@m.Id">@m.Nombre</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- KM ingreso -->
+                        <div>
+                            <label style="font-size:.72rem;text-transform:uppercase;
+                                          letter-spacing:.08em;color:#64748b;">
+                                Kilómetros de ingreso *
+                            </label>
+                            <input type="number" name="kmIngreso" class="form-control form-control-sm mt-1"
+                                   required min="0" placeholder="Ej: 45000" />
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div>
+                            <label style="font-size:.72rem;text-transform:uppercase;
+                                          letter-spacing:.08em;color:#64748b;">
+                                Observaciones
+                            </label>
+                            <textarea name="observaciones" id="ac_obs" class="form-control form-control-sm mt-1"
+                                      rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid var(--borde-input)">
+                        <button type="submit"
+                                style="padding:8px 20px;background:#16a34a;color:#fff;
+                                       border:none;border-radius:5px;font-size:.82rem;cursor:pointer;">
+                            ✓ Aprobar y crear orden
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary"
+                                data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -588,24 +774,24 @@
         // Sonido al cargar si hay solicitudes
         @if (totalSolicitudes > 0)
         {
-                    <text>
-                    (function () {
-                        try {
-                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                            [523, 659, 784].forEach((freq, i) => {
-                                const o = ctx.createOscillator();
-                                const g = ctx.createGain();
-                                o.connect(g); g.connect(ctx.destination);
-                                o.frequency.value = freq;
-                                o.type = 'sine';
-                                g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12);
-                                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
-                                o.start(ctx.currentTime + i * 0.12);
-                                o.stop(ctx.currentTime + i * 0.12 + 0.3);
-                            });
-                        } catch (e) { /* sin audio */ }
-                    })();
-                    </text>
+                        <text>
+                        (function () {
+                            try {
+                                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                                [523, 659, 784].forEach((freq, i) => {
+                                    const o = ctx.createOscillator();
+                                    const g = ctx.createGain();
+                                    o.connect(g); g.connect(ctx.destination);
+                                    o.frequency.value = freq;
+                                    o.type = 'sine';
+                                    g.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.12);
+                                    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
+                                    o.start(ctx.currentTime + i * 0.12);
+                                    o.stop(ctx.currentTime + i * 0.12 + 0.3);
+                                });
+                            } catch (e) { /* sin audio */ }
+                        })();
+                        </text>
         }
 
         // Polling cada 30 seg para actualizar el badge sin recargar
@@ -660,6 +846,22 @@
         }
         actualizarTimers();
         setInterval(actualizarTimers, 30000);
+
+        // ── Modal Aprobar Cita ────────────────────────────────────
+        function abrirModalAprobar(idCita, idVehiculo, servicio, obs, cliente, placa) {
+            // Cerrar modal de citas primero, luego abrir el de aprobar
+            bootstrap.Modal.getInstance(document.getElementById('modalCitas'))?.hide();
+            document.getElementById('ac_idCita').value     = idCita;
+            document.getElementById('ac_idVehiculo').value = idVehiculo;
+            document.getElementById('ac_servicio').value   = servicio;
+            document.getElementById('ac_obs').value        = obs;
+            document.getElementById('ac_resumen').innerHTML =
+                `<strong>${cliente}</strong> · ${placa}<br>
+                 <span style="color:#2563eb">${servicio}</span>`;
+            setTimeout(() => {
+                new bootstrap.Modal(document.getElementById('modalAprobarCita')).show();
+            }, 300);
+        }
     </script>
 </body>
 </html>
