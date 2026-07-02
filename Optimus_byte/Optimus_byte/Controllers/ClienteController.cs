@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Optimus_byte.DATA;
 using Optimus_byte.Models;
@@ -84,18 +85,17 @@ namespace Optimus_byte.Controllers
         }
 
         // Agregar Vehículo GET
-        public IActionResult AgregarVehiculo(string? returnUrl)
+        public IActionResult AgregarVehiculo()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
-            if (!string.IsNullOrEmpty(returnUrl))
-                HttpContext.Session.SetString("VehiculoReturnUrl", returnUrl);
+            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
             return View("~/Views/Vehiculo/AgregarVehiculo.cshtml");
         }
 
         // Agregar Vehículo POST
         [HttpPost, ValidateAntiForgeryToken]
         public IActionResult AgregarVehiculo(string Placa, string Marca, string Modelo,
-            int Anio, string? Color, string? Vin, int KmActuales, string? returnUrl)
+            int Anio, string? Color, string? Vin, int KmActuales)
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
 
@@ -146,13 +146,84 @@ namespace Optimus_byte.Controllers
                 cmd.Parameters.AddWithValue("@color", (object?)Color ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@vin", (object?)Vin ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@km", KmActuales);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 cmd.ExecuteNonQuery();
             }
 
             RegistrarAuditoria($"Registró vehículo placa {Placa.ToUpper()}");
             TempData["Exito"] = $"Vehículo {Placa.ToUpper()} registrado correctamente.";
-            if (!string.IsNullOrEmpty(returnUrl))
-                return Redirect(returnUrl);
             return RedirectToAction("MisVehiculos");
         }
 
@@ -280,32 +351,9 @@ namespace Optimus_byte.Controllers
             if (!EsCliente()) return RedirectToAction("Index", "Login");
 
             var idUsuario = GetIdUsuario();
+            string placa = "";
 
-            using var conn = _db.GetConnection();
-
-            // Verifica primero si el vehículo tiene órdenes de trabajo asociadas.
-            // Si las tiene, no se puede eliminar (rompería la integridad referencial
-            // y se perdería el historial de órdenes/facturas de ese vehículo).
-            int ordenesAsociadas;
-            using (var cmdCheck = new SqlCommand(@"
-                SELECT COUNT(1)
-                FROM OrdenesTrabajo o
-                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
-                INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
-                WHERE v.id_vehiculo = @id AND c.id_usuario = @idUsuario", conn))
-            {
-                cmdCheck.Parameters.AddWithValue("@id", id);
-                cmdCheck.Parameters.AddWithValue("@idUsuario", idUsuario);
-                ordenesAsociadas = (int)cmdCheck.ExecuteScalar()!;
-            }
-
-            if (ordenesAsociadas > 0)
-            {
-                TempData["Error"] = "No es posible eliminar este vehículo porque tiene órdenes de trabajo asociadas. Si ya no lo usas, puedes desactivarlo en su lugar.";
-                return RedirectToAction("MisVehiculos");
-            }
-
-            string placa;
+            using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(@"
                 DELETE FROM Vehiculos
                 OUTPUT DELETED.placa
@@ -322,23 +370,37 @@ namespace Optimus_byte.Controllers
             return RedirectToAction("MisVehiculos");
         }
 
-        // Mis Órdenes
+        // ─── Mis Órdenes (con fecha_entrega_estimada) ─────────────────────────────
         public IActionResult MisOrdenes()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
+
             var idUsuario = GetIdUsuario();
             var ordenes = new List<dynamic>();
 
             using (var conn = _db.GetConnection())
             using (var cmd = new SqlCommand(@"
                 SELECT o.id_orden,
-                       v.placa, v.marca, v.modelo,
-                       o.tipo_servicio, o.descripcion_problema,
-                       o.diagnostico, o.observaciones, o.estado,
-                       o.fecha_apertura, o.fecha_cierre, o.fecha_entrega_estimada
+                v.placa,
+                v.marca,
+                v.modelo,
+                o.tipo_servicio,
+                o.descripcion_problema,
+                o.diagnostico,
+                o.observaciones,
+                 o.estado,
+                 o.fecha_apertura,
+                o.fecha_cierre,
+                 o.fecha_entrega_estimada,
+                f.id_factura,
+                f.total,
+                 f.estado_pago,
+                 f.fecha_emision
+    
                 FROM OrdenesTrabajo o
                 INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
-                INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+                LEFT JOIN Facturas f ON o.id_orden = f.id_orden
                 WHERE c.id_usuario = @idUsuario
                 ORDER BY o.fecha_apertura DESC", conn))
             {
@@ -373,223 +435,135 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/MisOrdenes.cshtml");
         }
 
-        // ── GET: Editar Perfil ─────────────────────────────────────────────────
-        public IActionResult EditarPerfil()
-        {
-            if (!EsCliente()) return RedirectToAction("Index", "Login");
-
-            var idUsuario = GetIdUsuario();
-            var vm = new PerfilViewModel { IdUsuario = idUsuario };
-
-            using var conn = _db.GetConnection();
-            using var cmd = new SqlCommand(@"
-                SELECT
-                    u.nombre_completo,
-                    u.correo,
-                    c.foto_url,
-                    c.id_cliente,
-                    c.telefono,
-                    c.direccion,
-                    c.tipo_documento,
-                    c.num_documento
-                FROM Usuarios u
-                INNER JOIN Clientes c ON c.id_usuario = u.id_usuario
-                WHERE u.id_usuario = @id", conn);
-
-            cmd.Parameters.AddWithValue("@id", idUsuario);
-            using var reader = cmd.ExecuteReader();
-
-            if (reader.Read())
-            {
-                vm.NombreCompleto = reader["nombre_completo"].ToString()!;
-                vm.Correo = reader["correo"].ToString()!;
-                vm.FotoUrl = reader["foto_url"]?.ToString();
-                vm.IdCliente = Convert.ToInt32(reader["id_cliente"]);
-                vm.Telefono = reader["telefono"]?.ToString() ?? "";
-                vm.Direccion = reader["direccion"]?.ToString() ?? "";
-                vm.TipoDocumento = reader["tipo_documento"]?.ToString() ?? "";
-                vm.NumeroDocumento = reader["num_documento"]?.ToString() ?? "";
-            }
-
-            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
-            return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
-        }
-
-        // ── POST: Guardar cambios de perfil ────────────────────────────────────
+        // ── Pagar Catálogo (compra de repuestos) con PayU ──────────────────────
+        // Recibe el carrito como JSON (lista de {idRepuesto, cantidad}).
+        // Recalcula los precios SIEMPRE desde la BD (nunca confía en el precio
+        // que mande el navegador) y registra la compra como 'Pendiente'.
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditarPerfil(PerfilViewModel vm)
+        public IActionResult PagarCatalogo(string itemsJson)
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
 
             var idUsuario = GetIdUsuario();
-            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
 
-            // La foto es opcional, quitar su validación
-            ModelState.Remove("FotoArchivo");
-
-            if (!ModelState.IsValid)
+            List<CarritoItemDto>? items;
+            try
             {
-                vm.Error = "Revisa los campos marcados en rojo.";
-                return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
+                items = System.Text.Json.JsonSerializer.Deserialize<List<CarritoItemDto>>(
+                    itemsJson ?? "[]",
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                items = null;
             }
 
-            // 1. Verificar contraseña antes de guardar
-            string hash = "";
+            if (items == null || items.Count == 0)
+            {
+                TempData["Error"] = "Tu cotización está vacía.";
+                return RedirectToAction("Index", "Inventario");
+            }
+
+            // 1. Obtener id_cliente
+            int idCliente = 0;
             using (var conn = _db.GetConnection())
-            using (var cmd = new SqlCommand(
-                "SELECT contrasena_hash FROM Usuarios WHERE id_usuario = @id", conn))
+            using (var cmd = new SqlCommand("SELECT id_cliente FROM Clientes WHERE id_usuario = @id", conn))
             {
                 cmd.Parameters.AddWithValue("@id", idUsuario);
-                hash = cmd.ExecuteScalar()?.ToString() ?? "";
+                var result = cmd.ExecuteScalar();
+                if (result != null) idCliente = Convert.ToInt32(result);
             }
 
-            if (string.IsNullOrEmpty(hash) || !BC.Verify(vm.ContrasenaActual, hash))
+            if (idCliente == 0)
             {
-                vm.Error = "La contraseña es incorrecta. Los cambios no fueron guardados.";
-
-                // Recargar datos de solo lectura
-                using var connR = _db.GetConnection();
-                using var cmdR = new SqlCommand(
-                    "SELECT tipo_documento, num_documento, foto_url FROM Clientes WHERE id_usuario = @id", connR);
-                cmdR.Parameters.AddWithValue("@id", idUsuario);
-                using var r = cmdR.ExecuteReader();
-                if (r.Read())
-                {
-                    vm.TipoDocumento = r["tipo_documento"]?.ToString() ?? "";
-                    vm.NumeroDocumento = r["num_documento"]?.ToString() ?? "";
-                    vm.FotoUrl = r["foto_url"]?.ToString();
-                }
-                return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
+                TempData["Error"] = "No se encontró tu perfil de cliente.";
+                return RedirectToAction("Index", "Inventario");
             }
 
-            // 2. Procesar foto si se subió una nueva
-            string? nuevaFotoUrl = null;
-            if (vm.FotoArchivo != null && vm.FotoArchivo.Length > 0)
-            {
-                var ext = Path.GetExtension(vm.FotoArchivo.FileName).ToLowerInvariant();
-                var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-                if (!extensionesPermitidas.Contains(ext))
-                {
-                    vm.Error = "Solo se permiten imágenes JPG, PNG o WEBP.";
-                    return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
-                }
-                if (vm.FotoArchivo.Length > 2 * 1024 * 1024)
-                {
-                    vm.Error = "La imagen no debe superar 2 MB.";
-                    return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
-                }
+            // 2. Releer cada repuesto desde la BD: precio real + valida stock
+            var detalle = new List<(int IdRepuesto, int Cantidad, decimal PrecioUnitario)>();
 
-                var carpeta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "img", "Perfiles");
-                Directory.CreateDirectory(carpeta);
-
-                var nombreArchivo = $"{Guid.NewGuid()}{ext}";
-                var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
-
-                using var stream = new FileStream(rutaCompleta, FileMode.Create);
-                await vm.FotoArchivo.CopyToAsync(stream);
-
-                nuevaFotoUrl = $"/img/Perfiles/{nombreArchivo}";
-            }
-
-            // 3. Actualizar BD
             using (var conn = _db.GetConnection())
             {
-                // Usuarios: solo nombre y correo
-                using var cmdU = new SqlCommand(
-                    "UPDATE Usuarios SET nombre_completo = @nombre, correo = @correo WHERE id_usuario = @id",
-                    conn);
-                cmdU.Parameters.AddWithValue("@nombre", vm.NombreCompleto.Trim());
-                cmdU.Parameters.AddWithValue("@correo", vm.Correo.Trim().ToLower());
-                cmdU.Parameters.AddWithValue("@id", idUsuario);
-                cmdU.ExecuteNonQuery();
-
-                // Clientes: teléfono, dirección y foto (si hay nueva)
-                var sqlCliente = nuevaFotoUrl != null
-                    ? "UPDATE Clientes SET telefono = @tel, direccion = @dir, foto_url = @foto WHERE id_usuario = @id"
-                    : "UPDATE Clientes SET telefono = @tel, direccion = @dir WHERE id_usuario = @id";
-
-                using var cmdC = new SqlCommand(sqlCliente, conn);
-                cmdC.Parameters.AddWithValue("@tel", vm.Telefono.Trim());
-                cmdC.Parameters.AddWithValue("@dir", vm.Direccion.Trim());
-                if (nuevaFotoUrl != null)
-                    cmdC.Parameters.AddWithValue("@foto", nuevaFotoUrl);
-                cmdC.Parameters.AddWithValue("@id", idUsuario);
-                cmdC.ExecuteNonQuery();
-            }
-
-            // 4. Actualizar nombre en sesión
-            HttpContext.Session.SetString("UsuarioNombre", vm.NombreCompleto.Trim());
-
-            RegistrarAuditoria("Actualizó su perfil");
-            TempData["Exito"] = "Perfil actualizado correctamente.";
-            return RedirectToAction("EditarPerfil");
-        }
-
-        // Mis Facturas
-        public IActionResult MisFacturas()
-        {
-            if (!EsCliente()) return RedirectToAction("Index", "Login");
-
-            var facturas = new List<dynamic>();
-            var idUsuario = GetIdUsuario();
-
-            using var conn = _db.GetConnection();
-            using var cmd = new SqlCommand(@"
-                SELECT f.id_factura, f.id_orden, f.total, f.estado_pago, f.fecha_emision
-                FROM Facturas f
-                INNER JOIN OrdenesTrabajo o ON f.id_orden = o.id_orden
-                INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
-                INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
-                WHERE c.id_usuario = @idUsuario
-                ORDER BY f.fecha_emision DESC", conn);
-
-            cmd.Parameters.AddWithValue("@idUsuario", idUsuario);
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                facturas.Add(new
+                foreach (var item in items)
                 {
-                    IdFactura = Convert.ToInt32(reader["id_factura"]),
-                    IdOrden = Convert.ToInt32(reader["id_orden"]),
-                    Total = Convert.ToDecimal(reader["total"]),
-                    EstadoPago = reader["estado_pago"].ToString(),
-                    FechaEmision = Convert.ToDateTime(reader["fecha_emision"])
-                });
-            }
+                    if (item.Cantidad <= 0) continue;
 
-            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre");
-            ViewBag.Facturas = facturas;
-            return View("~/Views/Cliente/MisFacturas.cshtml");
-        }
+                    using var cmd = new SqlCommand(@"
+                        SELECT precio_unitario, stock_actual
+                        FROM Repuestos
+                        WHERE id_repuesto = @id AND activo = 1", conn);
+                    cmd.Parameters.AddWithValue("@id", item.IdRepuesto);
+                    using var r = cmd.ExecuteReader();
+                    if (!r.Read()) continue;
 
-        // Pagar Factura con PayU
-        public IActionResult PagarFactura(int id)
-        {
-            if (!EsCliente()) return RedirectToAction("Index", "Login");
+                    var precio = Convert.ToDecimal(r["precio_unitario"]);
+                    var stock = Convert.ToInt32(r["stock_actual"]);
+                    var cantidad = Math.Min(item.Cantidad, stock);
+                    if (cantidad <= 0) continue;
 
-            using var conn = _db.GetConnection();
-            decimal total = 0, iva = 0;
-            string correo = HttpContext.Session.GetString("UsuarioCorreo") ?? "";
-
-            using (var cmd = new SqlCommand(@"
-                SELECT total, iva FROM Facturas
-                WHERE id_factura = @id AND estado_pago = 'Pendiente'", conn))
-            {
-                cmd.Parameters.AddWithValue("@id", id);
-                using var r = cmd.ExecuteReader();
-                if (!r.Read())
-                {
-                    TempData["Error"] = "Factura no encontrada o ya pagada.";
-                    return RedirectToAction("MisFacturas");
+                    detalle.Add((item.IdRepuesto, cantidad, precio));
                 }
-                total = Convert.ToDecimal(r["total"]);
-                iva = Convert.ToDecimal(r["iva"]);
+            }
+
+            if (detalle.Count == 0)
+            {
+                TempData["Error"] = "Los productos seleccionados ya no están disponibles.";
+                return RedirectToAction("Index", "Inventario");
+            }
+
+            decimal subtotal = detalle.Sum(d => d.Cantidad * d.PrecioUnitario);
+            decimal iva = Math.Round(subtotal * 0.19m, 2);
+            decimal total = subtotal + iva;
+            string reference = $"OB-CAT-{DateTime.Now:yyyyMMddHHmmss}";
+
+            // 3. Insertar cabecera + detalle como 'Pendiente'
+            int idCompra;
+            using (var conn = _db.GetConnection())
+            {
+                using (var cmdHead = new SqlCommand(@"
+                    INSERT INTO ComprasCatalogo
+                        (id_cliente, subtotal, iva, total, estado_pago, referencia_payu, fecha_compra)
+                    OUTPUT INSERTED.id_compra
+                    VALUES (@idCliente, @subtotal, @iva, @total, 'Pendiente', @ref, GETDATE())", conn))
+                {
+                    cmdHead.Parameters.AddWithValue("@idCliente", idCliente);
+                    cmdHead.Parameters.AddWithValue("@subtotal", subtotal);
+                    cmdHead.Parameters.AddWithValue("@iva", iva);
+                    cmdHead.Parameters.AddWithValue("@total", total);
+                    cmdHead.Parameters.AddWithValue("@ref", reference);
+                    idCompra = (int)cmdHead.ExecuteScalar()!;
+                }
+
+                foreach (var d in detalle)
+                {
+                    using var cmdDet = new SqlCommand(@"
+                        INSERT INTO DetalleCompraCatalogo
+                            (id_compra, id_repuesto, cantidad, precio_unitario, subtotal)
+                        VALUES (@idCompra, @idRepuesto, @cantidad, @precio, @sub)", conn);
+                    cmdDet.Parameters.AddWithValue("@idCompra", idCompra);
+                    cmdDet.Parameters.AddWithValue("@idRepuesto", d.IdRepuesto);
+                    cmdDet.Parameters.AddWithValue("@cantidad", d.Cantidad);
+                    cmdDet.Parameters.AddWithValue("@precio", d.PrecioUnitario);
+                    cmdDet.Parameters.AddWithValue("@sub", d.Cantidad * d.PrecioUnitario);
+                    cmdDet.ExecuteNonQuery();
+                }
+            }
+
+            RegistrarAuditoria($"Generó compra de catálogo #{idCompra} por {total:C0}");
+
+            // 4. Armar firma y datos para el checkout de PayU
+            string correo = "";
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand("SELECT correo FROM Usuarios WHERE id_usuario = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("@id", idUsuario);
+                correo = cmd.ExecuteScalar()?.ToString() ?? "cliente@optimusbyte.com";
             }
 
             string apiKey = _config["PayU:ApiKey"]!;
             string merchantId = _config["PayU:MerchantId"]!;
             string accountId = _config["PayU:AccountId"]!;
-            string reference = $"OB-{id}-{DateTime.Now:yyyyMMddHHmm}";
             string amount = total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
             string currency = "COP";
 
@@ -603,20 +577,20 @@ namespace Optimus_byte.Controllers
 
             var vm = new PayUCheckoutViewModel
             {
-                IdFactura = id,
+                IdCompra = idCompra,
                 Total = total,
                 Iva = iva,
-                Base = total - iva,
+                Base = subtotal,
                 MerchantId = merchantId,
                 AccountId = accountId,
-                Description = $"Servicio de taller - Factura #{id}",
+                Description = $"Compra de repuestos - Optimus Byte #{idCompra}",
                 ReferenceCode = reference,
                 Amount = amount,
                 Tax = iva.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                TaxReturnBase = (total - iva).ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                TaxReturnBase = subtotal.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
                 Currency = currency,
                 Signature = signature,
-                Test = _config["PayU:Test"]!,
+                Test = _config["PayU:Test"] ?? "1",
                 BuyerEmail = correo,
                 ResponseUrl = _config["PayU:ResponseUrl"]!,
                 ConfirmUrl = _config["PayU:ConfirmUrl"]!,
@@ -626,7 +600,157 @@ namespace Optimus_byte.Controllers
             return View("~/Views/Cliente/PagarConPayU.cshtml", vm);
         }
 
-        // ── Helper: Auditoría ──────────────────────────────────────────────────
+        // ── Confirmación de pago (PayU llama esta URL server-to-server) ────────
+        // PayU envía: reference_sale, state_pol, value, sign, transaction_id, etc.
+        // state_pol: 4 = aprobada, 6 = rechazada, 5 = expirada, 7 = pendiente
+        [HttpPost, AllowAnonymous]
+        public IActionResult ConfirmarPagoCatalogo(
+            [FromForm] string reference_sale,
+            [FromForm] string state_pol,
+            [FromForm] string value,
+            [FromForm] string sign,
+            [FromForm] string transaction_id)
+        {
+            // 1. Validar firma de confirmación de PayU para evitar fraude
+            string apiKey = _config["PayU:ApiKey"]!;
+            string merchantId = _config["PayU:MerchantId"]!;
+            decimal valorDecimal = decimal.TryParse(value,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0;
+            string amountStr = valorDecimal.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+
+            string raw = $"{apiKey}~{merchantId}~{reference_sale}~{amountStr}~COP~{state_pol}";
+            string signature;
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                var hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(raw));
+                signature = string.Concat(hash.Select(b => b.ToString("x2")));
+            }
+
+            if (!string.Equals(signature, sign, StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(); // firma inválida: se ignora silenciosamente, no se confirma el pago
+            }
+
+            string nuevoEstado = state_pol switch
+            {
+                "4" => "Pagado",
+                "6" => "Rechazado",
+                "5" => "Rechazado",
+                _ => "Pendiente"
+            };
+
+            using var conn = _db.GetConnection();
+
+            int idCompra = 0;
+            using (var cmdGet = new SqlCommand(
+                "SELECT id_compra FROM ComprasCatalogo WHERE referencia_payu = @ref", conn))
+            {
+                cmdGet.Parameters.AddWithValue("@ref", reference_sale);
+                var r = cmdGet.ExecuteScalar();
+                if (r != null) idCompra = Convert.ToInt32(r);
+            }
+
+            if (idCompra == 0) return Ok();
+
+            using (var cmdUpd = new SqlCommand(@"
+                UPDATE ComprasCatalogo
+                SET estado_pago = @estado,
+                    transaccion_payu = @trans,
+                    fecha_pago = CASE WHEN @estado = 'Pagado' THEN GETDATE() ELSE fecha_pago END
+                WHERE id_compra = @id AND estado_pago = 'Pendiente'", conn))
+            {
+                cmdUpd.Parameters.AddWithValue("@estado", nuevoEstado);
+                cmdUpd.Parameters.AddWithValue("@trans", (object?)transaction_id ?? DBNull.Value);
+                cmdUpd.Parameters.AddWithValue("@id", idCompra);
+                cmdUpd.ExecuteNonQuery();
+            }
+
+            // 2. Si quedó pagado, descontar stock y dejar trazabilidad en inventario
+            if (nuevoEstado == "Pagado")
+            {
+                using var cmdDet = new SqlCommand(
+                    "SELECT id_repuesto, cantidad FROM DetalleCompraCatalogo WHERE id_compra = @id", conn);
+                cmdDet.Parameters.AddWithValue("@id", idCompra);
+
+                var items = new List<(int IdRepuesto, int Cantidad)>();
+                using (var r = cmdDet.ExecuteReader())
+                {
+                    while (r.Read())
+                        items.Add((Convert.ToInt32(r["id_repuesto"]), Convert.ToInt32(r["cantidad"])));
+                }
+
+                foreach (var (idRepuesto, cantidad) in items)
+                {
+                    int stockAnterior = 0, stockNuevo = 0;
+                    using (var cmdStock = new SqlCommand(
+                        "SELECT stock_actual FROM Repuestos WHERE id_repuesto = @id", conn))
+                    {
+                        cmdStock.Parameters.AddWithValue("@id", idRepuesto);
+                        var sa = cmdStock.ExecuteScalar();
+                        stockAnterior = sa != null ? Convert.ToInt32(sa) : 0;
+                    }
+                    stockNuevo = Math.Max(0, stockAnterior - cantidad);
+
+                    using (var cmdUpdStock = new SqlCommand(
+                        "UPDATE Repuestos SET stock_actual = @nuevo WHERE id_repuesto = @id", conn))
+                    {
+                        cmdUpdStock.Parameters.AddWithValue("@nuevo", stockNuevo);
+                        cmdUpdStock.Parameters.AddWithValue("@id", idRepuesto);
+                        cmdUpdStock.ExecuteNonQuery();
+                    }
+
+                    using (var cmdMov = new SqlCommand(@"
+                        INSERT INTO MovimientosInventario
+                            (id_repuesto, id_usuario, tipo_movimiento, cantidad,
+                             stock_anterior, stock_nuevo, motivo, fecha_hora)
+                        VALUES (@idRepuesto, NULL, 'Salida', @cantidad,
+                                @anterior, @nuevo, @motivo, GETDATE())", conn))
+                    {
+                        cmdMov.Parameters.AddWithValue("@idRepuesto", idRepuesto);
+                        cmdMov.Parameters.AddWithValue("@cantidad", cantidad);
+                        cmdMov.Parameters.AddWithValue("@anterior", stockAnterior);
+                        cmdMov.Parameters.AddWithValue("@nuevo", stockNuevo);
+                        cmdMov.Parameters.AddWithValue("@motivo", $"Venta catálogo - compra #{idCompra}");
+                        cmdMov.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            return Ok();
+        }
+
+        // ── Página a la que PayU redirige al navegador tras el pago ────────────
+        public IActionResult RespuestaPagoCatalogo(string referenceCode)
+        {
+            if (!EsCliente()) return RedirectToAction("Index", "Login");
+
+            dynamic? compra = null;
+            using (var conn = _db.GetConnection())
+            using (var cmd = new SqlCommand(@"
+                SELECT id_compra, total, estado_pago, fecha_compra
+                FROM ComprasCatalogo WHERE referencia_payu = @ref", conn))
+            {
+                cmd.Parameters.AddWithValue("@ref", referenceCode);
+                using var r = cmd.ExecuteReader();
+                if (r.Read())
+                {
+                    compra = new
+                    {
+                        IdCompra = Convert.ToInt32(r["id_compra"]),
+                        Total = Convert.ToDecimal(r["total"]),
+                        EstadoPago = r["estado_pago"].ToString(),
+                        FechaCompra = Convert.ToDateTime(r["fecha_compra"])
+                    };
+                }
+            }
+
+            ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
+            ViewBag.Compra = compra;
+            return View("~/Views/Cliente/RespuestaPagoCatalogo.cshtml");
+        }
+
+        // Helper auditoría
         private void RegistrarAuditoria(string accion)
         {
             using var conn = _db.GetConnection();
@@ -635,11 +759,11 @@ namespace Optimus_byte.Controllers
                 VALUES (@id, @accion, @modulo)", conn);
             cmd.Parameters.AddWithValue("@id", GetIdUsuario());
             cmd.Parameters.AddWithValue("@accion", accion);
-            cmd.Parameters.AddWithValue("@modulo", "Perfil");
+            cmd.Parameters.AddWithValue("@modulo", "Vehículos");
             cmd.ExecuteNonQuery();
         }
 
-        // ── Verificar contraseña via AJAX ──────────────────────────────────────
+        // Verificar contraseña via AJAX
         [HttpPost]
         public IActionResult VerificarContrasena([FromBody] VerificarContrasenaRequest request)
         {
@@ -660,9 +784,9 @@ namespace Optimus_byte.Controllers
             return Json(new { ok });
         }
     }
+}
 
-    public class VerificarContrasenaRequest
-    {
-        public string Contrasena { get; set; } = "";
-    }
+public class VerificarContrasenaRequest
+{
+    public string Contrasena { get; set; } = "";
 }

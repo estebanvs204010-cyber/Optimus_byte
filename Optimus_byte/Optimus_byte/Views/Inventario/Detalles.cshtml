@@ -4,10 +4,10 @@
     ViewData["Title"] = Model.Nombre;
     Layout = null;
     var usuarioNombre = Context.Session.GetString("UsuarioNombre");
-    bool logueado     = !string.IsNullOrEmpty(Context.Session.GetString("UsuarioId"));
+    bool logueado = !string.IsNullOrEmpty(Context.Session.GetString("UsuarioId"));
 
-    var cals      = ViewBag.Calificaciones as List<CalificacionViewModel> ?? new();
-    double prom   = ViewBag.Promedio ?? 0.0;
+    var cals = ViewBag.Calificaciones as List<CalificacionViewModel> ?? new();
+    double prom = ViewBag.Promedio ?? 0.0;
     int totalCals = ViewBag.TotalCals ?? 0;
 
     // Imagen: propia o default por categoría
@@ -37,227 +37,485 @@
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <style>
         :root {
-            --azul:      #1e3a8a;
-            --azul-mid:  #2563eb;
-            --dorado:    #d97706;
-            --fondo:     #f4f6fb;
-            --borde:     rgba(30,58,138,.12);
-            --texto:     #1a2332;
-            --suave:     #64748b;
-            --radio:     10px;
+            --azul: #1e3a8a;
+            --azul-mid: #2563eb;
+            --dorado: #d97706;
+            --fondo: #f4f6fb;
+            --borde: rgba(30,58,138,.12);
+            --texto: #1a2332;
+            --suave: #64748b;
+            --radio: 10px;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--fondo); font-family: 'Barlow', sans-serif; color: var(--texto); }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--fondo);
+            font-family: 'Barlow', sans-serif;
+            color: var(--texto);
+        }
 
         /* ── NAVBAR ── */
         .det-nav {
-            position: fixed; top: 0; left: 0; width: 100%;
-            height: 68px; background: #fff;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 68px;
+            background: #fff;
             border-bottom: 1px solid var(--borde);
-            display: flex; align-items: center; gap: 16px;
-            padding: 0 28px; z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 0 28px;
+            z-index: 100;
             box-shadow: 0 1px 20px rgba(30,58,138,.07);
         }
-        .det-nav a.back-btn {
-            display: flex; align-items: center; gap: 6px;
-            color: var(--azul-mid); font-size: .78rem;
-            letter-spacing: .08em; text-transform: uppercase;
-            font-weight: 600; text-decoration: none;
-            border: 1px solid var(--azul-mid);
-            padding: 6px 14px; border-radius: 4px;
-            transition: .2s;
-        }
-        .det-nav a.back-btn:hover { background: var(--azul-mid); color: #fff; }
-        .det-nav .brand {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 1.2rem; font-weight: 700; color: var(--azul);
-            letter-spacing: .05em; text-transform: uppercase;
-        }
+
+            .det-nav a.back-btn {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                color: var(--azul-mid);
+                font-size: .78rem;
+                letter-spacing: .08em;
+                text-transform: uppercase;
+                font-weight: 600;
+                text-decoration: none;
+                border: 1px solid var(--azul-mid);
+                padding: 6px 14px;
+                border-radius: 4px;
+                transition: .2s;
+            }
+
+                .det-nav a.back-btn:hover {
+                    background: var(--azul-mid);
+                    color: #fff;
+                }
+
+            .det-nav .brand {
+                font-family: 'Barlow Condensed', sans-serif;
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: var(--azul);
+                letter-spacing: .05em;
+                text-transform: uppercase;
+            }
 
         /* ── CONTENIDO ── */
         .det-wrap {
-            max-width: 1000px; margin: 0 auto;
+            max-width: 1000px;
+            margin: 0 auto;
             padding: 90px 24px 60px;
         }
 
         /* ── TARJETA PRINCIPAL ── */
         .det-card {
-            background: #fff; border-radius: var(--radio);
+            background: #fff;
+            border-radius: var(--radio);
             border: 1px solid var(--borde);
             box-shadow: 0 4px 24px rgba(30,58,138,.07);
-            display: grid; grid-template-columns: 380px 1fr;
-            overflow: hidden; margin-bottom: 32px;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            overflow: hidden;
+            margin-bottom: 32px;
         }
+
         @@media (max-width: 700px) {
-            .det-card { grid-template-columns: 1fr; }
+            .det-card {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* Imagen */
         .det-img-zone {
             background: linear-gradient(135deg, #e8edf5, #dde4f0);
-            display: flex; align-items: center; justify-content: center;
-            min-height: 320px; position: relative; overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            position: relative;
+            overflow: hidden;
         }
-        .det-img-zone img {
-            max-width: 85%; max-height: 300px;
-            object-fit: contain;
-        }
+
+            .det-img-zone img {
+                max-width: 85%;
+                max-height: 300px;
+                object-fit: contain;
+            }
+
         .det-badge {
-            position: absolute; top: 12px; left: 12px;
-            background: var(--azul-mid); color: #fff;
-            font-size: .62rem; letter-spacing: .1em;
-            text-transform: uppercase; font-weight: 700;
-            padding: 4px 10px; border-radius: 3px;
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: var(--azul-mid);
+            color: #fff;
+            font-size: .62rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 3px;
         }
-        .det-badge.agotado { background: #dc2626; }
-        .det-badge.bajo    { background: #d97706; }
+
+            .det-badge.agotado {
+                background: #dc2626;
+            }
+
+            .det-badge.bajo {
+                background: #d97706;
+            }
 
         /* Info */
-        .det-info { padding: 32px 28px; display: flex; flex-direction: column; gap: 14px; }
-        .det-cat-chip {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(37,99,235,.07); border: 1px solid rgba(37,99,235,.18);
-            color: var(--azul-mid); font-size: .68rem; font-weight: 600;
-            letter-spacing: .1em; text-transform: uppercase;
-            padding: 3px 10px; border-radius: 20px; width: fit-content;
+        .det-info {
+            padding: 32px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
+
+        .det-cat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(37,99,235,.07);
+            border: 1px solid rgba(37,99,235,.18);
+            color: var(--azul-mid);
+            font-size: .68rem;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 20px;
+            width: fit-content;
+        }
+
         .det-nombre {
             font-family: 'Barlow Condensed', sans-serif;
-            font-size: 2rem; font-weight: 700; color: var(--azul);
-            line-height: 1.15; text-transform: uppercase;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--azul);
+            line-height: 1.15;
+            text-transform: uppercase;
         }
-        .det-referencia { font-size: .78rem; color: var(--suave); font-family: monospace; }
+
+        .det-referencia {
+            font-size: .78rem;
+            color: var(--suave);
+            font-family: monospace;
+        }
 
         /* Marca/Modelo chips */
-        .det-mm { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
-        .mm-chip {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 5px 12px; border-radius: 20px;
-            font-size: .75rem; font-weight: 600;
+        .det-mm {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 4px 0;
         }
-        .mm-chip.marca  { background: #eff6ff; border: 1px solid #bfdbfe; color: var(--azul); }
-        .mm-chip.modelo { background: #fefce8; border: 1px solid #fde68a; color: #92400e; }
+
+        .mm-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+
+            .mm-chip.marca {
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                color: var(--azul);
+            }
+
+            .mm-chip.modelo {
+                background: #fefce8;
+                border: 1px solid #fde68a;
+                color: #92400e;
+            }
 
         .det-precio {
             font-family: 'Barlow Condensed', sans-serif;
-            font-size: 2.4rem; font-weight: 700; color: var(--azul-mid);
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: var(--azul-mid);
         }
-        .det-precio span { font-size: .9rem; color: var(--suave); margin-left: 4px; }
 
-        .det-desc { font-size: .88rem; color: var(--suave); line-height: 1.6; }
+            .det-precio span {
+                font-size: .9rem;
+                color: var(--suave);
+                margin-left: 4px;
+            }
+
+        .det-desc {
+            font-size: .88rem;
+            color: var(--suave);
+            line-height: 1.6;
+        }
 
         .det-stock-row {
-            display: flex; align-items: center; gap: 8px;
-            font-size: .82rem; font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .82rem;
+            font-weight: 500;
         }
-        .dot-stock { width: 8px; height: 8px; border-radius: 50%; }
-        .dot-ok   { background: #16a34a; }
-        .dot-low  { background: #d97706; }
-        .dot-out  { background: #dc2626; }
+
+        .dot-stock {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot-ok {
+            background: #16a34a;
+        }
+
+        .dot-low {
+            background: #d97706;
+        }
+
+        .dot-out {
+            background: #dc2626;
+        }
 
         .det-btn-cotizar {
-            width: 100%; padding: 13px;
-            background: var(--azul); color: #fff;
-            border: none; border-radius: 6px;
+            width: 100%;
+            padding: 13px;
+            background: var(--azul);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
             font-family: 'Barlow Condensed', sans-serif;
-            font-size: .9rem; font-weight: 700;
-            letter-spacing: .1em; text-transform: uppercase;
-            cursor: pointer; transition: .2s; margin-top: 8px;
+            font-size: .9rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: .2s;
+            margin-top: 8px;
         }
-        .det-btn-cotizar:hover { background: #1e3a8a; }
-        .det-btn-cotizar:disabled { background: #94a3b8; cursor: not-allowed; }
+
+            .det-btn-cotizar:hover {
+                background: #1e3a8a;
+            }
+
+            .det-btn-cotizar:disabled {
+                background: #94a3b8;
+                cursor: not-allowed;
+            }
 
         /* ── SECCIÓN CALIFICACIONES ── */
         .det-reviews {
-            background: #fff; border-radius: var(--radio);
+            background: #fff;
+            border-radius: var(--radio);
             border: 1px solid var(--borde);
             box-shadow: 0 2px 12px rgba(30,58,138,.05);
             padding: 28px 28px 24px;
         }
+
         .rev-title {
             font-family: 'Barlow Condensed', sans-serif;
-            font-size: 1.25rem; font-weight: 700;
-            color: var(--azul); text-transform: uppercase;
-            letter-spacing: .06em; margin-bottom: 20px;
-            padding-bottom: 12px; border-bottom: 1px solid var(--borde);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--azul);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--borde);
         }
+
         .rev-summary {
-            display: flex; align-items: center; gap: 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
             margin-bottom: 24px;
         }
+
         .rev-big-num {
             font-family: 'Barlow Condensed', sans-serif;
-            font-size: 3.5rem; font-weight: 700; color: var(--dorado);
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--dorado);
             line-height: 1;
         }
-        .rev-stars { font-size: 1.5rem; color: var(--dorado); }
-        .rev-count { font-size: .8rem; color: var(--suave); margin-top: 4px; }
+
+        .rev-stars {
+            font-size: 1.5rem;
+            color: var(--dorado);
+        }
+
+        .rev-count {
+            font-size: .8rem;
+            color: var(--suave);
+            margin-top: 4px;
+        }
 
         /* Formulario */
-        .rev-form { margin-bottom: 28px; }
+        .rev-form {
+            margin-bottom: 28px;
+        }
+
         .rev-form-title {
-            font-size: .78rem; font-weight: 600; letter-spacing: .08em;
-            text-transform: uppercase; color: var(--suave); margin-bottom: 10px;
+            font-size: .78rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--suave);
+            margin-bottom: 10px;
         }
-        .star-picker { display: flex; gap: 4px; margin-bottom: 12px; }
-        .star-picker input[type=radio] { display: none; }
-        .star-picker label {
-            font-size: 1.8rem; cursor: pointer; color: #d1d5db;
-            transition: color .15s, transform .15s;
+
+        .star-picker {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
         }
-        .star-picker input:checked ~ label,
-        .star-picker label:hover,
-        .star-picker label:hover ~ label { color: var(--dorado); transform: scale(1.1); }
+
+            .star-picker input[type=radio] {
+                display: none;
+            }
+
+            .star-picker label {
+                font-size: 1.8rem;
+                cursor: pointer;
+                color: #d1d5db;
+                transition: color .15s, transform .15s;
+            }
+
+                .star-picker input:checked ~ label,
+                .star-picker label:hover,
+                .star-picker label:hover ~ label {
+                    color: var(--dorado);
+                    transform: scale(1.1);
+                }
         /* Técnica RTL para selección de estrellas */
-        .star-picker { flex-direction: row-reverse; justify-content: flex-end; }
-        .star-picker label:hover, .star-picker label:hover ~ label,
-        .star-picker input:checked ~ label { color: var(--dorado); }
+        .star-picker {
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+        }
+
+            .star-picker label:hover, .star-picker label:hover ~ label,
+            .star-picker input:checked ~ label {
+                color: var(--dorado);
+            }
 
         .rev-textarea {
-            width: 100%; padding: 10px 14px;
-            border: 1px solid rgba(30,58,138,.2); border-radius: 6px;
-            font-family: 'Barlow', sans-serif; font-size: .85rem;
-            resize: vertical; min-height: 80px; color: var(--texto);
-            outline: none; transition: border-color .2s;
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid rgba(30,58,138,.2);
+            border-radius: 6px;
+            font-family: 'Barlow', sans-serif;
+            font-size: .85rem;
+            resize: vertical;
+            min-height: 80px;
+            color: var(--texto);
+            outline: none;
+            transition: border-color .2s;
         }
-        .rev-textarea:focus { border-color: var(--azul-mid); }
+
+            .rev-textarea:focus {
+                border-color: var(--azul-mid);
+            }
+
         .rev-submit {
-            margin-top: 10px; padding: 9px 22px;
-            background: var(--azul-mid); color: #fff;
-            border: none; border-radius: 5px; cursor: pointer;
+            margin-top: 10px;
+            padding: 9px 22px;
+            background: var(--azul-mid);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
             font-family: 'Barlow Condensed', sans-serif;
-            font-size: .82rem; font-weight: 700;
-            letter-spacing: .08em; text-transform: uppercase;
+            font-size: .82rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
             transition: .2s;
         }
-        .rev-submit:hover { background: var(--azul); }
+
+            .rev-submit:hover {
+                background: var(--azul);
+            }
 
         /* Lista de reseñas */
-        .rev-list { display: flex; flex-direction: column; gap: 16px; }
-        .rev-item {
-            padding: 14px 16px; border-radius: 8px;
-            background: #f8fafc; border: 1px solid var(--borde);
+        .rev-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
+
+        .rev-item {
+            padding: 14px 16px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid var(--borde);
+        }
+
         .rev-item-header {
-            display: flex; align-items: center; gap: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 6px;
         }
+
         .rev-avatar {
-            width: 34px; height: 34px; border-radius: 50%;
-            background: var(--azul); color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-size: .85rem; font-weight: 700; flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--azul);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .85rem;
+            font-weight: 700;
+            flex-shrink: 0;
         }
-        .rev-user  { font-weight: 600; font-size: .85rem; }
-        .rev-date  { font-size: .72rem; color: var(--suave); margin-left: auto; }
-        .rev-stars-small { color: var(--dorado); font-size: .9rem; margin-bottom: 4px; }
-        .rev-comment { font-size: .82rem; color: var(--suave); line-height: 1.55; }
-        .rev-empty { text-align: center; padding: 24px; color: var(--suave); font-size: .85rem; }
+
+        .rev-user {
+            font-weight: 600;
+            font-size: .85rem;
+        }
+
+        .rev-date {
+            font-size: .72rem;
+            color: var(--suave);
+            margin-left: auto;
+        }
+
+        .rev-stars-small {
+            color: var(--dorado);
+            font-size: .9rem;
+            margin-bottom: 4px;
+        }
+
+        .rev-comment {
+            font-size: .82rem;
+            color: var(--suave);
+            line-height: 1.55;
+        }
+
+        .rev-empty {
+            text-align: center;
+            padding: 24px;
+            color: var(--suave);
+            font-size: .85rem;
+        }
 
         .alerta-ok {
-            padding: 10px 16px; background: #f0fdf4;
-            border: 1px solid #86efac; border-radius: 6px;
-            color: #166534; font-size: .82rem; margin-bottom: 16px;
+            padding: 10px 16px;
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 6px;
+            color: #166534;
+            font-size: .82rem;
+            margin-bottom: 16px;
         }
     </style>
 </head>
@@ -316,7 +574,7 @@
             <div class="det-img-zone">
                 @{
                     string badgeClass = Model.StockActual == 0 ? "agotado" : (Model.StockActual <= Model.StockMinimo ? "bajo" : "");
-                    string badgeTxt   = Model.StockActual == 0 ? "Agotado" : (Model.StockActual <= Model.StockMinimo ? "Stock bajo" : "Disponible");
+                    string badgeTxt = Model.StockActual == 0 ? "Agotado" : (Model.StockActual <= Model.StockMinimo ? "Stock bajo" : "Disponible");
                 }
                 <span class="det-badge @badgeClass">@badgeTxt</span>
                 <img src="@imgSrc" alt="@Model.Nombre"
@@ -358,16 +616,21 @@
                 <div class="det-stock-row">
                     <span class="dot-stock @(Model.StockActual == 0 ? "dot-out" : Model.StockActual <= Model.StockMinimo ? "dot-low" : "dot-ok")"></span>
                     @if (Model.StockActual == 0)
-                    { <span>Sin stock disponible</span> }
+                    {
+                        <span>Sin stock disponible</span>
+                    }
                     else
-                    { <span>@Model.StockActual unidades disponibles</span> }
+                    {
+
+                        <span>@Model.StockActual unidades disponibles</span>
+                    }
                 </div>
 
                 @* Calificación promedio inline *@
                 @if (totalCals > 0)
                 {
                     <div style="font-size:.82rem;color:var(--suave)">
-                        <span style="color:var(--dorado);font-size:1rem;">@("★".PadRight((int)Math.Round(prom), '★').PadRight(5,'☆'))</span>
+                        <span style="color:var(--dorado);font-size:1rem;">@("★".PadRight((int)Math.Round(prom), '★').PadRight(5, '☆'))</span>
                         @prom.ToString("F1") / 5 &nbsp;·&nbsp; @totalCals reseña@(totalCals != 1 ? "s" : "")
                     </div>
                 }
@@ -409,12 +672,12 @@
                             {
                                 <input type="radio" name="estrellas" id="s@(s)" value="@s"
                                        @(s == 5 ? "checked" : "") />
-                                <label for="s@(s)" title="@s estrella@(s!=1?"s":"")">★</label>
+                                <label for="s@(s)" title="@s estrella@(s != 1 ? "s" : "")">★</label>
                             }
                         </div>
 
                         <textarea class="rev-textarea" name="comentario" rows="3"
-                                  placeholder="Cuéntanos tu experiencia con este repuesto (opcional)..."></textarea>
+                              placeholder="Cuéntanos tu experiencia con este repuesto (opcional)..."></textarea>
                         <button type="submit" class="rev-submit">Publicar calificación</button>
                     </form>
                 </div>
@@ -479,6 +742,46 @@
                     document.removeEventListener('click', cerrar);
                 }
             });
+        }
+
+        // Función para agregar desde la vista Detalles (usa la misma key de localStorage que catalogo.js)
+        function agregarCotizacionDetalle(id, nombre, precio, imagen) {
+            try {
+                const key = 'ob_cart';
+                let cart = [];
+                try { cart = JSON.parse(localStorage.getItem(key) || '[]'); } catch { cart = []; }
+
+                const existing = cart.find(x => Number(x.id) === Number(id));
+                if (existing) existing.cantidad = (existing.cantidad || 1) + 1;
+                else cart.push({ id: Number(id), nombre: nombre || '', precio: Number(precio) || 0, cantidad: 1, imagen: imagen || '/img/defaults/repuesto.png' });
+
+                localStorage.setItem(key, JSON.stringify(cart));
+
+                // actualizar badges si existen
+                const badge = document.getElementById('badgeCount');
+                const sb = document.getElementById('sbCount');
+                const totalVal = document.getElementById('totalVal');
+                const totalItems = cart.reduce((s, it) => s + (it.cantidad || 0), 0);
+                if (badge) badge.textContent = totalItems;
+                if (sb) sb.textContent = totalItems;
+                if (totalVal) {
+                    const total = cart.reduce((s, it) => s + (it.precio || 0) * (it.cantidad || 0), 0);
+                    totalVal.textContent = total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+                }
+
+                // mensaje temporal (no alert)
+                const m = document.createElement('div');
+                m.textContent = `+ agregado a la cotización: ${nombre}`;
+                Object.assign(m.style, {
+                    position: 'fixed', right: '18px', bottom: '18px',
+                    background: '#1e3a8a', color: '#fff', padding: '10px 14px',
+                    borderRadius: '8px', zIndex: 9999, fontSize: '0.95rem'
+                });
+                document.body.appendChild(m);
+                setTimeout(() => m.remove(), 1400);
+            } catch (e) {
+                console.error('agregarCotizacionDetalle:', e);
+            }
         }
     </script>
 </body>

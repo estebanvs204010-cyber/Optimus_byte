@@ -1,0 +1,45 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Resultado del pago";
+    var compra = ViewBag.Compra;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Resultado del pago - Optimus Byte</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="card shadow-sm mx-auto" style="max-width:500px;">
+            <div class="card-body text-center p-4">
+                @if (compra == null)
+                {
+                    <h4 class="text-warning">No encontramos esa compra</h4>
+                    <p class="text-muted">Si ya pagaste, revisa "Mis compras" en tu portal.</p>
+                }
+                else if (compra.EstadoPago == "Pagado")
+                {
+                    <div class="display-4 text-success mb-3">✓</div>
+                    <h4 class="text-success">¡Pago confirmado!</h4>
+                    <p>Compra #@compra.IdCompra por <strong>$@compra.Total.ToString("N0")</strong></p>
+                }
+                else if (compra.EstadoPago == "Rechazado")
+                {
+                    <div class="display-4 text-danger mb-3">✕</div>
+                    <h4 class="text-danger">Pago rechazado</h4>
+                    <p>Tu compra #@compra.IdCompra no pudo procesarse. Intenta nuevamente.</p>
+                }
+                else
+                {
+                    <div class="display-4 text-warning mb-3">⏳</div>
+                    <h4 class="text-warning">Pago en proceso</h4>
+                    <p>Estamos confirmando tu pago de la compra #@compra.IdCompra. Esto puede tardar unos minutos.</p>
+                }
+                <a class="btn btn-primary mt-3" asp-controller="Inventario" asp-action="Index">Volver al catálogo</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

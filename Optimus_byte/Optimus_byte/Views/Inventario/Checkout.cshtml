@@ -1,0 +1,59 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Pago";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Pago - Optimus Byte</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body class="p-5">
+    <h1>Resumen de pago</h1>
+
+    <div id="resumenPago" class="mt-4"></div>
+
+    <h3 class="mt-4">
+        Total: <span id="totalPago">$0</span>
+    </h3>
+
+    <button class="btn btn-primary mt-4" onclick="confirmarPago()">
+        Confirmar pago
+    </button>
+
+    <a href="/Inventario" class="btn btn-outline-secondary mt-4">
+        Volver al catálogo
+    </a>
+
+    <script>
+        const carrito = JSON.parse(localStorage.getItem('carritoPagoOptimus') || '[]');
+
+        function fmtPrecio(valor) {
+            return '$' + Number(valor).toLocaleString('es-CO');
+        }
+
+        const contenedor = document.getElementById('resumenPago');
+        const totalSpan = document.getElementById('totalPago');
+
+        if (carrito.length === 0) {
+            contenedor.innerHTML = '<p>No hay productos para pagar.</p>';
+        } else {
+            contenedor.innerHTML = carrito.map(item => `
+                <div class="border-bottom py-2">
+                    <strong>${item.nombre}</strong><br>
+                    ${fmtPrecio(item.precio)}
+                </div>
+            `).join('');
+        }
+
+        const total = carrito.reduce((s, item) => s + Number(item.precio), 0);
+        totalSpan.textContent = fmtPrecio(total);
+
+        function confirmarPago() {
+            alert('Aquí conectamos Wompi o registramos el pago.');
+        }
+    </script>
+</body>
+</html>

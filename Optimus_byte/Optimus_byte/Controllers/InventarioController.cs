@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Optimus_byte.DATA;
-using Optimus_byte.Models;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace Optimus_byte.Controllers
 {
@@ -14,144 +16,151 @@ namespace Optimus_byte.Controllers
             _db = db;
         }
 
-        // GET /Inventario/Index — catálogo público
         public IActionResult Index() => View();
+        public IActionResult Checkout()
+        {
+            return View();
+        }
+        public IActionResult Detalles(int id)
+        {
+            ViewBag.Id = id;
+            return View();
+        }
 
-        // GET /Inventario/GetProductos — JSON para catalogo.js
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult IniciarPago(string itemsJson)
+        {
+            if (string.IsNullOrWhiteSpace(itemsJson))
+                return RedirectToAction("Index");
+
+            var items = JsonSerializer.Deserialize<List<ItemCarritoPago>>(itemsJson);
+            if (items == null || !items.Any())
+                return RedirectToAction("Index");
+
+            decimal total = 0;
+
+            using var conn = _db.GetConnection();
+
+            foreach (var item in items)
+            {
+                using var cmd = new SqlCommand(@"
+            SELECT precio_unitario
+            FROM Repuestos
+            WHERE id_repuesto = @id AND activo = 1", conn);
+
+                cmd.Parameters.AddWithValue("@id", item.id);
+
+                var precioDb = cmd.ExecuteScalar();
+
+                if (precioDb != null && precioDb != DBNull.Value)
+                    total += Convert.ToDecimal(precioDb);
+            }
+
+            if (total <= 0)
+                return RedirectToAction("Index");
+
+            string merchantId = HttpContext.RequestServices
+                .GetRequiredService<IConfiguration>()["PayU:MerchantId"]!;
+
+            string accountId = HttpContext.RequestServices
+                .GetRequiredService<IConfiguration>()["PayU:AccountId"]!;
+
+            string apiKey = HttpContext.RequestServices
+                .GetRequiredService<IConfiguration>()["PayU:ApiKey"]!;
+
+            string currency = HttpContext.RequestServices
+                .GetRequiredService<IConfiguration>()["PayU:Currency"]!;
+
+            string test = HttpContext.RequestServices
+                .GetRequiredService<IConfiguration>()["PayU:Test"]!;
+
+            string checkoutUrl = HttpContext.RequestServices
+                .GetRequiredService<IConfiguration>()["PayU:CheckoutUrl"]!;
+
+            string referenceCode = $"OPT-{DateTime.Now:yyyyMMddHHmmss}";
+            string amount = total.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+
+            string firmaTexto = $"{apiKey}~{merchantId}~{referenceCode}~{amount}~{currency}";
+            string signature = CrearFirmaMd5(firmaTexto);
+
+            ViewBag.CheckoutUrl = checkoutUrl;
+            ViewBag.MerchantId = merchantId;
+            ViewBag.AccountId = accountId;
+            ViewBag.Description = "Compra de repuestos Optimus Byte";
+            ViewBag.ReferenceCode = referenceCode;
+            ViewBag.Amount = amount;
+            ViewBag.Currency = currency;
+            ViewBag.Signature = signature;
+            ViewBag.Test = test;
+            ViewBag.BuyerEmail = "comprador@test.com";
+            ViewBag.ResponseUrl = $"{Request.Scheme}://{Request.Host}/Inventario/RespuestaPago";
+
+            return View("~/Views/Inventario/PayUForm.cshtml");
+        }
+
+        public IActionResult RespuestaPago()
+        {
+            return View("~/Views/Inventario/RespuestaPago.cshtml");
+        }
+
+        private static string CrearFirmaMd5(string texto)
+        {
+            using var md5 = MD5.Create();
+            byte[] inputBytes = Encoding.UTF8.GetBytes(texto);
+            byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+            var sb = new StringBuilder();
+            foreach (var b in hashBytes)
+                sb.Append(b.ToString("x2"));
+
+            return sb.ToString();
+        }
+
+        public class ItemCarritoPago
+        {
+            public int id { get; set; }
+        }
+
+        [HttpGet]
         public IActionResult GetProductos()
         {
-            var lista = new List<object>();
+            var productos = new List<object>();
+
             using var conn = _db.GetConnection();
             using var cmd = new SqlCommand(@"
-                SELECT id_repuesto, nombre, referencia, descripcion,
-                       categoria, precio_unitario, stock_actual,
-                       imagen_url, marca, modelo
-                       categoria, precio_unitario, stock_actual, stock_minimo,
-                       activo, fecha_registro, marca, modelo
+                SELECT
+                    id_repuesto,
+                    nombre,
+                    referencia,
+                    descripcion,
+                    categoria,
+                    precio_unitario,
+                    stock_actual
                 FROM Repuestos
                 WHERE activo = 1
                 ORDER BY nombre ASC", conn);
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
+
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
             {
-                lista.Add(new
+                productos.Add(new
                 {
-                    id = Convert.ToInt32(r["id_repuesto"]),
-                    nombre = r["nombre"].ToString(),
-                    referencia = r["referencia"].ToString(),
-                    desc = r["descripcion"]?.ToString() ?? "",
-                    categoria = r["categoria"].ToString(),
-                    precio = Convert.ToDecimal(r["precio_unitario"]),
-                    stock = Convert.ToInt32(r["stock_actual"]),
-                    imagenUrl = r["imagen_url"]?.ToString() ?? "",
-                    marca = r["marca"]?.ToString() ?? "",
-                    modelo = r["modelo"]?.ToString() ?? ""
+                    id = Convert.ToInt32(reader["id_repuesto"]),
+                    nombre = reader["nombre"]?.ToString() ?? "",
+                    referencia = reader["referencia"]?.ToString() ?? "",
+                    desc = reader["descripcion"]?.ToString() ?? "",
+                    categoria = reader["categoria"]?.ToString() ?? "",
+                    marca = "",
+                    modelo = "",
+                    precio = Convert.ToDecimal(reader["precio_unitario"]),
+                    stock = Convert.ToInt32(reader["stock_actual"]),
+                    imagenUrl = ""
                 });
             }
-            return Json(lista);
-        }
 
-        // GET /Inventario/Detalles/5
-        public IActionResult Detalles(int id)
-        {
-            using var conn = _db.GetConnection();
-
-            Repuesto? rep = null;
-            using (var cmd = new SqlCommand(@"
-                SELECT id_repuesto, nombre, referencia, descripcion,
-                       categoria, precio_unitario, stock_actual, stock_minimo,
-                       fecha_registro, imagen_url, marca, modelo
-                FROM Repuestos
-                WHERE id_repuesto = @id AND activo = 1", conn))
-            {
-                cmd.Parameters.AddWithValue("@id", id);
-                using var r = cmd.ExecuteReader();
-                if (r.Read())
-                    rep = new Repuesto
-                    {
-                        IdRepuesto = Convert.ToInt32(r["id_repuesto"]),
-                        Nombre = r["nombre"].ToString()!,
-                        Referencia = r["referencia"].ToString()!,
-                        Descripcion = r["descripcion"]?.ToString(),
-                        Categoria = r["categoria"].ToString()!,
-                        PrecioUnitario = Convert.ToDecimal(r["precio_unitario"]),
-                        StockActual = Convert.ToInt32(r["stock_actual"]),
-                        StockMinimo = Convert.ToInt32(r["stock_minimo"]),
-                        FechaRegistro = Convert.ToDateTime(r["fecha_registro"]),
-                        ImagenUrl = r["imagen_url"]?.ToString(),
-                        Marca = r["marca"]?.ToString(),
-                        Modelo = r["modelo"]?.ToString(),
-                        Activo = true
-                    };
-            }
-
-            if (rep == null) return NotFound();
-
-            // Calificaciones
-            var cals = new List<CalificacionViewModel>();
-            double prom = 0;
-            try
-            {
-                using var cmd2 = new SqlCommand(@"
-                    SELECT c.estrellas, c.comentario, c.fecha,
-                           u.nombre_completo
-                    FROM CalificacionesRepuesto c
-                    INNER JOIN Usuarios u ON c.id_usuario = u.id_usuario
-                    WHERE c.id_repuesto = @id
-                    ORDER BY c.fecha DESC", conn);
-                cmd2.Parameters.AddWithValue("@id", id);
-                using var r2 = cmd2.ExecuteReader();
-                while (r2.Read())
-                    cals.Add(new CalificacionViewModel
-                    {
-                        Estrellas = Convert.ToInt32(r2["estrellas"]),
-                        Comentario = r2["comentario"]?.ToString() ?? "",
-                        Fecha = Convert.ToDateTime(r2["fecha"]),
-                        NombreUsuario = r2["nombre_completo"].ToString()!
-                    });
-                prom = cals.Count > 0 ? cals.Average(c => c.Estrellas) : 0;
-            }
-            catch { /* tabla opcional aún */ }
-
-            ViewBag.Calificaciones = cals;
-            ViewBag.Promedio = prom;
-            ViewBag.TotalCals = cals.Count;
-            return View(rep);
-        }
-
-        // POST /Inventario/Calificar
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Calificar(int idRepuesto, int estrellas, string? comentario)
-        {
-            var idStr = HttpContext.Session.GetString("UsuarioId");
-            if (string.IsNullOrEmpty(idStr))
-                return RedirectToAction("Index", "Login");
-            int idUsuario = int.Parse(idStr);
-
-            using var conn = _db.GetConnection();
-            try
-            {
-                using var cmd = new SqlCommand(@"
-                    IF EXISTS (SELECT 1 FROM CalificacionesRepuesto
-                               WHERE id_repuesto = @rep AND id_usuario = @usr)
-                        UPDATE CalificacionesRepuesto
-                        SET estrellas = @est, comentario = @com, fecha = GETDATE()
-                        WHERE id_repuesto = @rep AND id_usuario = @usr
-                    ELSE
-                        INSERT INTO CalificacionesRepuesto
-                            (id_repuesto, id_usuario, estrellas, comentario)
-                        VALUES (@rep, @usr, @est, @com)", conn);
-                cmd.Parameters.AddWithValue("@rep", idRepuesto);
-                cmd.Parameters.AddWithValue("@usr", idUsuario);
-                cmd.Parameters.AddWithValue("@est", Math.Clamp(estrellas, 1, 5));
-                cmd.Parameters.AddWithValue("@com", (object?)comentario ?? DBNull.Value);
-                cmd.ExecuteNonQuery();
-            }
-            catch { }
-
-            TempData["CalOk"] = "¡Gracias por tu calificación!";
-            return RedirectToAction("Detalles", new { id = idRepuesto });
+            return Json(productos);
         }
     }
-}
+}           

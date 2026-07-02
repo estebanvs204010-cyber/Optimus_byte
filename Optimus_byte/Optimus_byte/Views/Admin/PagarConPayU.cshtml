@@ -1,1 +1,229 @@
-﻿
+﻿@model Optimus_byte.Models.ViewModels.PayUCheckoutViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Pago — OPTIMUS-BYTE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="~/css/usuarios.css" rel="stylesheet" />
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--carbon);
+        }
+
+        .pw {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .brand {
+            font-family: var(--fuente-titulo);
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dorado);
+            letter-spacing: .04em;
+        }
+
+        .btn-back {
+            font-size: .75rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .btn-back:hover {
+                color: var(--dorado);
+            }
+
+        .card-pay {
+            background: #fff;
+            border: 1px solid var(--borde-input);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 6px 32px rgba(0,0,0,.2);
+        }
+
+        .pay-header {
+            background: linear-gradient(135deg,#0f2549,#1a3a6e);
+            padding: 28px 32px;
+            color: #fff;
+        }
+
+            .pay-header .lbl {
+                font-size: .62rem;
+                letter-spacing: .14em;
+                text-transform: uppercase;
+                color: rgba(255,255,255,.45);
+                margin-bottom: 4px;
+            }
+
+            .pay-header .empresa {
+                font-size: 1.2rem;
+                font-weight: 500;
+                margin-bottom: 18px;
+            }
+
+            .pay-header .monto {
+                font-size: 2.2rem;
+                font-weight: 700;
+            }
+
+                .pay-header .monto .cur {
+                    font-size: .95rem;
+                    font-weight: 400;
+                    color: rgba(255,255,255,.55);
+                    margin-right: 4px;
+                }
+
+            .pay-header .ref {
+                font-size: .68rem;
+                color: rgba(255,255,255,.38);
+                margin-top: 6px;
+                letter-spacing: .06em;
+            }
+
+        .desglose {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,.1);
+        }
+
+            .desglose .di .dl {
+                font-size: .58rem;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+                color: rgba(255,255,255,.38);
+            }
+
+            .desglose .di .dv {
+                font-size: .92rem;
+                font-weight: 600;
+                color: rgba(255,255,255,.82);
+            }
+
+        .pay-body {
+            padding: 28px 32px;
+        }
+
+            .pay-body .mlbl {
+                font-size: .67rem;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+                color: var(--texto-suave);
+                margin-bottom: 18px;
+                font-weight: 500;
+            }
+
+        .btn-pay {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #eb5c26;
+            color: #fff;
+            border: none;
+            padding: 13px 28px;
+            border-radius: 6px;
+            font-size: .92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+            .btn-pay:hover {
+                background: #d4511f;
+            }
+
+        .pay-footer {
+            padding: 13px 32px;
+            background: #f8f9ff;
+            border-top: 1px solid var(--borde-input);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .seg {
+            font-size: .68rem;
+            color: var(--texto-suave);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+            .seg i {
+                color: #16a34a;
+            }
+    </style>
+</head>
+<body>
+    <div class="pw">
+        <div class="topbar">
+            <a href="/Admin/Facturas" class="btn-back"><i class="bi bi-arrow-left"></i> Volver</a>
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+        </div>
+        <div class="card-pay">
+            <div class="pay-header">
+                <div class="lbl">Pago a</div>
+                <div class="empresa">Optimus Byte S.A.S</div>
+                <div class="monto"><span class="cur">COP</span>@Model.Total.ToString("N0")</div>
+                <div class="ref">Factura #@Model.IdFactura · Ref: @Model.ReferenceCode</div>
+                <div class="desglose">
+                    <div class="di"><div class="dl">Subtotal</div><div class="dv">$@Model.Base.ToString("N0")</div></div>
+                    <div class="di"><div class="dl">IVA 19%</div><div class="dv">$@Model.Iva.ToString("N0")</div></div>
+                    <div class="di"><div class="dl">Total</div><div class="dv">$@Model.Total.ToString("N0")</div></div>
+                </div>
+            </div>
+            <div class="pay-body">
+                <div class="mlbl">Completa tu pago de forma segura</div>
+                <form id="fPayU" method="post" action="@Model.CheckoutUrl">
+                    <input type="hidden" name="merchantId" value="@Model.MerchantId" />
+                    <input type="hidden" name="accountId" value="@Model.AccountId" />
+                    <input type="hidden" name="description" value="@Model.Description" />
+                    <input type="hidden" name="referenceCode" value="@Model.ReferenceCode" />
+                    <input type="hidden" name="amount" value="@Model.Amount" />
+                    <input type="hidden" name="tax" value="@Model.Tax" />
+                    <input type="hidden" name="taxReturnBase" value="@Model.TaxReturnBase" />
+                    <input type="hidden" name="currency" value="@Model.Currency" />
+                    <input type="hidden" name="signature" value="@Model.Signature" />
+                    <input type="hidden" name="test" value="@Model.Test" />
+                    <input type="hidden" name="buyerEmail" value="@Model.BuyerEmail" />
+                    <input type="hidden" name="responseUrl" value="@Model.ResponseUrl" />
+                    <input type="hidden" name="confirmationUrl" value="@Model.ConfirmUrl" />
+                    <input type="hidden" name="lng" value="es" />
+                    <button type="submit" class="btn-pay">
+                        <i class="bi bi-shield-lock-fill"></i> Pagar con PayU
+                    </button>
+                </form>
+            </div>
+            <div class="pay-footer">
+                <span class="seg"><i class="bi bi-shield-check-fill"></i> Transacción segura</span>
+                <span style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--texto-suave)">Powered by PayU</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
