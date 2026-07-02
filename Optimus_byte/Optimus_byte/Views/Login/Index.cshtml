@@ -42,7 +42,7 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
 
-                        <h4 class="mb-4 text-light">Iniciar sesión</h4>
+                        <h4 style="color:black">Iniciar sesión</h4>
 
                         <!-- CORREO -->
                         <div class="mb-3">
@@ -68,7 +68,7 @@
                             <span asp-validation-for="Contrasena" class="text-danger small"></span>
                         </div>
 
-                        <button type="submit" class="">
+                        <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-box-arrow-in-right me-2"></i> Ingresar
                         </button>
                         <a href="/Recuperar" type="button" class="btn btn-link w-100 mt-2">
