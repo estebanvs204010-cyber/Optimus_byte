@@ -21,34 +21,57 @@
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/catalogo.css" asp-append-version="true" />
     <link href="~/css/Servicios.css" rel="stylesheet" />
-    
+
 </head>
 
 <body>
-<nav class="ob-navbar">
+    <nav class="ob-navbar">
+        <button class="ob-hamburger" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
 
-    <div class="brand">
-        <i class="bi bi-gear-fill"></i>
-        <span>OPTIMUS-BYTE</span>
-    </div>
+        <a class="ob-nav-logo" asp-controller="Home" asp-action="Index">
+            <img src="~/img/putin.png" alt="Optimus-Byte" />
+        </a>
 
-    <div class="ob-nav-acciones">
-        @if (!logueado)
-        {
+
+        <div class="ob-nav-acciones">
+            @if (!logueado)
+            {
                 <a class="ob-btn-ingresar"
                    href="/Login/Index?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
                     Ingresar
                 </a>
-            <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrarse</a>
-        }
-        else
-        {
-            @await Html.PartialAsync("_MenuUsuarioPartial")
-        }
-    </div>
-</nav>
+                <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrarse</a>
+            }
+            else
+            {
+                @await Html.PartialAsync("_MenuUsuarioPartial")
+            }
+        </div>
+    </nav>
 
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="ob-sidebar" id="obSidebar">
+        <div class="ob-sidebar-title">Optimus-Byte</div>
+        <a asp-controller="Home" asp-action="Index">
+            <i class="fas fa-house"></i> Inicio
+        </a>
+        <a asp-controller="Inventario" asp-action="Index">
+            <i class="fas fa-boxes-stacked"></i> Inventario
+        </a>
+        <a asp-controller="Servicios" asp-action="Index">
+            <i class="fas fa-screwdriver-wrench"></i> Servicios
+        </a>
+        <a asp-controller="Citas" asp-action="Index">
+            <i class="fas fa-calendar-check"></i> Citas
+        </a>
+        <a asp-controller="Home" asp-action="AcercaDe">
+            <i class="fas fa-circle-info"></i> Acerca de
+        </a>
+    </aside>
 
+    <div class="ob-overlay" id="obOverlay" onclick="closeSidebar()"></div>
 
 
     <div class="hero-card">
@@ -58,7 +81,7 @@
             <p class="hero-subtitle">Este es tu portal de consulta. Aquí puedes ver el estado de tu vehículo y tus servicios.</p>
         </div>
     </div>
-  
+
 
     <div class="grid-cards">
         <div class="mini-card">
@@ -73,13 +96,13 @@
                  margin: -24px -24px 18px -24px;
                  display: block;
              ">
-                 <h3 class="section-title">Mantenimiento Básico</h3>
-    <p class="section-desc">Servicios esenciales para el cuidado preventivo de tu vehículo</p>
+                <h3 class="section-title">Mantenimiento Básico</h3>
+                <p class="section-desc">Servicios esenciales para el cuidado preventivo de tu vehículo</p>
             </div>
             <a class="mini-link" href="@Url.Action("Index", "Citas")">AGENDAR CITA →</a>
-              
+
         </div>
-     
+
 
         <div class="mini-card">
             <div>
@@ -124,7 +147,7 @@
                      style="
                  width: 300px;
                  height: 100px;
-                 object-fit: cover; 
+                 object-fit: cover;
                  border-radius: 15px 15px 0 0;
                  margin: -24px -24px 18px -24px;
                  display: block;
@@ -190,7 +213,7 @@
         <div class="mini-card">
             <div>
                 <img src="~/img/Suspe.jpg"
-                     alt="Mis Facturas"c
+                     alt="Mis Facturas" c
                      style="
                  width: 300px;
                  height: 100px;
@@ -205,18 +228,39 @@
             <a class="mini-link" href="@Url.Action("Index", "Citas")">AGENDAR CITA →</a>
         </div>
 
-</div>
-        <script>
-            function toggleMenu(btn) {
-                const menu = document.getElementById('menuUsuario');
-                menu.classList.toggle('abierto');
-                document.addEventListener('click', function cerrar(e) {
-                    if (!btn.contains(e.target) && !menu.contains(e.target)) {
-                        menu.classList.remove('abierto');
-                        document.removeEventListener('click', cerrar);
-                    }
-                });
+    </div>
+    <script>
+        function toggleMenu(btn) {
+            const menu = document.getElementById('menuUsuario');
+            menu.classList.toggle('abierto');
+            document.addEventListener('click', function cerrar(e) {
+                if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                    menu.classList.remove('abierto');
+                    document.removeEventListener('click', cerrar);
+                }
+            });
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('obSidebar');
+            const overlay = document.getElementById('obOverlay');
+            const isOpen = sidebar.classList.contains('activa');
+            if (isOpen) {
+                closeSidebar();
+            } else {
+                sidebar.classList.add('activa');
+                overlay.classList.add('activa');
             }
-        </script>
+        }
+
+        function closeSidebar() {
+            document.getElementById('obSidebar').classList.remove('activa');
+            document.getElementById('obOverlay').classList.remove('activa');
+        }
+
+        document.querySelectorAll('.ob-sidebar a').forEach(function(link) {
+            link.addEventListener('click', closeSidebar);
+        });
+    </script>
 </body>
 </html>

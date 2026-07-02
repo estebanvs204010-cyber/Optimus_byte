@@ -29,7 +29,8 @@
             <img src="~/img/putin.png" alt="Optimus-Byte" />
         </a>
 
-       
+
+
         <div class="ob-nav-acciones">
             @if (!logueado)
             {
@@ -37,9 +38,7 @@
                    href="/Login/Index?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
                     Ingresar
                 </a>
-                <a class="ob-btn-registro"
-                   asp-controller="Registro"
-                   asp-action="Index">
+                <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">
                     Registrarse
                 </a>
             }
@@ -127,26 +126,26 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Sidebar del home
         function toggleSidebar() {
-            const sidebar = document.getElementById('obSidebar');
-            const overlay = document.getElementById('obOverlay');
-            const isOpen = sidebar.classList.contains('activa');
-            if (isOpen) {
-                closeSidebar();
-            } else {
-                sidebar.classList.add('activa');
-                overlay.classList.add('activa');
-            }
+            document.getElementById('obSidebar').classList.toggle('activa');
+            document.getElementById('obOverlay').classList.toggle('activa');
         }
-
         function closeSidebar() {
             document.getElementById('obSidebar').classList.remove('activa');
             document.getElementById('obOverlay').classList.remove('activa');
         }
-
-        document.querySelectorAll('.ob-sidebar a').forEach(function(link) {
-            link.addEventListener('click', closeSidebar);
-        });
+        // Dropdown usuario
+                       function toggleMenu(btn) {
+            const menu = document.getElementById('menuUsuario');
+            menu.classList.toggle('abierto');
+            document.addEventListener('click', function cerrar(e) {
+                if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                    menu.classList.remove('abierto');
+                    document.removeEventListener('click', cerrar);
+                }
+            });
+        }
     </script>
 </body>
 </html>
