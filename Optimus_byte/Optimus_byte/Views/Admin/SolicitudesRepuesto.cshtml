@@ -5,6 +5,11 @@
     int total = Model?.Count ?? 0;
     int pendientes = Model?.Count(s => !s.Atendida) ?? 0;
     int atendidas = Model?.Count(s => s.Atendida) ?? 0;
+    var solicitudes = ViewBag.SolicitudesPendientes as List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>
+                      ?? new List<Optimus_byte.Models.ViewModels.SolicitudRepuestoViewModel>();
+    var stockBajo = ViewBag.RepuestosBajoStockList as List<Optimus_byte.Models.ViewModels.RepuestoViewModel>
+                  ?? new List<Optimus_byte.Models.ViewModels.RepuestoViewModel>();
+    int totalNotif = solicitudes.Count + stockBajo.Count;
 }
 
 <!DOCTYPE html>
@@ -19,8 +24,6 @@
     <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
-</head>
-<body>
 @section Styles {
     <style>
         .tabs {
@@ -144,6 +147,31 @@
         }
     </style>
 }
+</head>
+<body>
+    <!-- ── TOPBAR ── -->
+    <div class="admin-topbar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="brand">⚙ OPTIMUS-BYTE</span>
+            <span class="badge-admin">Admin</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+
+            @* ── CAMPANITA ── *@
+            <button class="bell-btn" id="btnCampana" title="Notificaciones" onclick="toggleNotif()">
+                <i class="bi bi-bell-fill"></i>
+                @if (totalNotif > 0)
+                {
+                    <span class="bell-badge" id="bellBadge">@totalNotif</span>
+                }
+            </button>
+
+            <a href="/Home/Index" class="ob-btn-home">Home</a>
+            <a href="/Login/Logout" class="ob-btn-salir">
+                <i></i>Salir
+            </a>
+        </div>
+    </div>
 
 <div class="section-header">
     <div>

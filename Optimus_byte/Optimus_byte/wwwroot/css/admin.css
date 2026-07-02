@@ -8,25 +8,29 @@
    ════════════════════════════════════════ */
 .admin-topbar {
     position: fixed;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: var(--topbar-h);
     background: #ffffff;
     border-bottom: 2px solid rgba(37, 99, 235, 0.15);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 28px 0 calc(var(--sidebar-w) + 28px);
+    padding: 0 28px 0 0px;
     z-index: 100;
     box-shadow: 0 2px 20px rgba(37, 99, 235, 0.10);
 }
 
-.admin-topbar .brand {
-    font-family: var(--fuente-titulo);
-    font-size: 1.45rem;
-    font-weight: 600;
-    color: var(--acento);
-    letter-spacing: 0.04em;
-}
+    .admin-topbar .brand {
+        font-family: var(--fuente-titulo);
+        font-size: 1.45rem;
+        font-weight: 600;
+        color: var(--acento);
+        letter-spacing: 0.04em;
+        position: absolute;
+        left: 15px;
+    }
 
 .badge-admin, .badge-rol {
     font-size: 0.65rem;
@@ -46,28 +50,108 @@
     font-weight: 500;
 }
 
-.btn-salir {
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--texto-suave);
+
+.ob-btn-home {
+    color: var(--acento);
     text-decoration: none;
-    border: 1.5px solid var(--borde);
-    padding: 7px 16px;
+    font-family: var(--fuente-display);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 9px 22px;
+    border: 1.5px solid var(--acento);
     border-radius: var(--radio);
-    transition: var(--transicion);
-    font-weight: 600;
+    transition: all 0.2s ease;
 }
 
-.btn-salir:hover {
-    color: var(--peligro);
-    border-color: rgba(220, 38, 38, 0.3);
-    background: rgba(220, 38, 38, 0.04);
+    .ob-btn-home:hover {
+        background: var(--acento);
+        color: var(--blanco);
+        box-shadow: var(--sombra-s);
+    }
+
+.ob-btn-salir {
+    color: var(--blanco);
+    text-decoration: none;
+    font-family: var(--fuente-display);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 9px 22px;
+    background: var(--acento);
+    border: 1.5px solid var(--acento);
+    border-radius: var(--radio);
+    transition: all 0.2s ease;
 }
+
+    .ob-btn-salir:hover {
+        background: var(--fondo-oscuro);
+        border-color: var(--fondo-oscuro);
+        color: var(--blanco);
+        box-shadow: var(--sombra-m);
+    }
 
 /* ════════════════════════════════════════
    SIDEBAR
    ════════════════════════════════════════ */
+
+/* Contenedor principal alineado verticalmente */
+.admin-sidebar-profile-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 14px;
+    background: transparent;
+}
+
+/* Círculo del Avatar Grande (Estilo image_a2d405) */
+.admin-avatar-circle-lg {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #2563eb; /* Azul rey intenso corporativo */
+    color: #ffffff; /* Inicial en blanco puro */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem; /* Letra imponente acorde al tamaño */
+    font-weight: 700;
+    margin-bottom: 10px; /* Separación con el nombre */
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Nombre del Admin debajo del círculo */
+.admin-avatar-name-vertical {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--texto-suave); /* Blanco limpio para fondo oscuro */
+    line-height: 1.3;
+    margin-bottom: 6px; /* Separación con la pastilla del rol */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* La pastilla/píldora del Rol (Estilo exacto a la imagen) */
+.admin-role-pill {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    /* Colores limpios adaptados al modo oscuro de tu barra */
+    color: #38bdf8; /* Azul cielo brillante para destacar el rol */
+    background: rgba(56, 189, 248, 0.12); /* Fondo semitransparente muy suave del mismo tono */
+
+    padding: 4px 12px;
+    border-radius: 100px; /* Hace que tenga forma de píldora perfecta */
+    display: inline-block;
+}
 .admin-sidebar {
     position: fixed;
     top: var(--topbar-h);

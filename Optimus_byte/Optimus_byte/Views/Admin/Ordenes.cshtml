@@ -8,6 +8,9 @@
     int totalSolicitudes = solicitudes.Count;
     var citas = ViewBag.CitasLista as List<Optimus_byte.Models.ViewModels.CitaClienteViewModel>
              ?? new List<Optimus_byte.Models.ViewModels.CitaClienteViewModel>();
+    var stockBajo = ViewBag.RepuestosBajoStockList as List<Optimus_byte.Models.ViewModels.RepuestoViewModel>
+                      ?? new List<Optimus_byte.Models.ViewModels.RepuestoViewModel>();
+    int totalNotif = solicitudes.Count + stockBajo.Count;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -250,19 +253,18 @@
         <div class="d-flex align-items-center gap-3">
 
             @* ── CAMPANITA ── *@
-            <button class="bell-btn" id="btnCampana" title="Solicitudes de repuesto pendientes"
-                    onclick="toggleNotif()">
+            <button class="bell-btn" id="btnCampana" title="Notificaciones" onclick="toggleNotif()">
                 <i class="bi bi-bell-fill"></i>
-                @if (totalSolicitudes > 0)
+                @if (totalNotif > 0)
                 {
-                    <span class="bell-badge" id="bellBadge">@totalSolicitudes</span>
+                    <span class="bell-badge" id="bellBadge">@totalNotif</span>
                 }
             </button>
 
-            <span class="admin-name">
-                <i class="bi bi-person-circle me-1"></i>@Context.Session.GetString("UsuarioNombre")
-            </span>
-            <a href="/Login/Logout" class="btn-salir"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+            <a href="/Home/Index" class="ob-btn-home">Home</a>
+            <a href="/Login/Logout" class="ob-btn-salir">
+                <i></i>Salir
+            </a>
         </div>
     </div>
 
