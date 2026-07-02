@@ -28,7 +28,45 @@ namespace Optimus_byte.Controllers
         public IActionResult Portal()
         {
             if (!EsCliente()) return RedirectToAction("Index", "Login");
+
+            var idUsuario = GetIdUsuario();
+            int totalOrdenes = 0, ordenesActivas = 0, totalVehiculos = 0;
+
+            using (var conn = _db.GetConnection())
+            {
+                // Stats de órdenes
+                using var cmdO = new SqlCommand(@"
+                    SELECT
+                        COUNT(*)                                                              AS Total,
+                        SUM(CASE WHEN o.estado NOT IN ('Entregado','Cancelado') THEN 1 ELSE 0 END) AS Activas
+                    FROM OrdenesTrabajo o
+                    INNER JOIN Vehiculos v ON o.id_vehiculo = v.id_vehiculo
+                    INNER JOIN Clientes  c ON v.id_cliente  = c.id_cliente
+                    WHERE c.id_usuario = @id", conn);
+                cmdO.Parameters.AddWithValue("@id", idUsuario);
+                using var rO = cmdO.ExecuteReader();
+                if (rO.Read())
+                {
+                    totalOrdenes = rO["Total"] == DBNull.Value ? 0 : Convert.ToInt32(rO["Total"]);
+                    ordenesActivas = rO["Activas"] == DBNull.Value ? 0 : Convert.ToInt32(rO["Activas"]);
+                }
+            }
+
+            using (var conn = _db.GetConnection())
+            {
+                // Stats de vehículos
+                using var cmdV = new SqlCommand(@"
+                    SELECT COUNT(*) FROM Vehiculos v
+                    INNER JOIN Clientes c ON v.id_cliente = c.id_cliente
+                    WHERE c.id_usuario = @id AND v.activo = 1", conn);
+                cmdV.Parameters.AddWithValue("@id", idUsuario);
+                totalVehiculos = Convert.ToInt32(cmdV.ExecuteScalar() ?? 0);
+            }
+
             ViewBag.Nombre = HttpContext.Session.GetString("UsuarioNombre") ?? "Cliente";
+            ViewBag.TotalOrdenes = totalOrdenes;
+            ViewBag.OrdenesActivas = ordenesActivas;
+            ViewBag.TotalVehiculos = totalVehiculos;
             return View("~/Views/Cliente/Portal.cshtml");
         }
 
@@ -517,7 +555,32 @@ namespace Optimus_byte.Controllers
                 cmdC.ExecuteNonQuery();
             }
 
-            // 4. Actualizar nombre en sesión
+            // 4. Cambiar contraseña si se solicitó
+            if (!string.IsNullOrWhiteSpace(vm.NuevaContrasena))
+            {
+                if (vm.NuevaContrasena.Length < 6)
+                {
+                    vm.Error = "La nueva contraseña debe tener al menos 6 caracteres.";
+                    return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
+                }
+                if (vm.NuevaContrasena != vm.ConfirmarNuevaContrasena)
+                {
+                    vm.Error = "La nueva contraseña y su confirmación no coinciden.";
+                    return View("~/Views/Cliente/perfil_cliente.cshtml", vm);
+                }
+
+                var nuevoHash = BC.HashPassword(vm.NuevaContrasena);
+                using var connP = _db.GetConnection();
+                using var cmdP = new SqlCommand(
+                    "UPDATE Usuarios SET contrasena_hash = @hash WHERE id_usuario = @id", connP);
+                cmdP.Parameters.AddWithValue("@hash", nuevoHash);
+                cmdP.Parameters.AddWithValue("@id", idUsuario);
+                cmdP.ExecuteNonQuery();
+
+                RegistrarAuditoria("Cambió su contraseña");
+            }
+
+            // 5. Actualizar nombre en sesión
             HttpContext.Session.SetString("UsuarioNombre", vm.NombreCompleto.Trim());
 
             RegistrarAuditoria("Actualizó su perfil");

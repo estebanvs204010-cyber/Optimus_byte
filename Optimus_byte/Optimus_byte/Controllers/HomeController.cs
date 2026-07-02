@@ -139,5 +139,12 @@ namespace Optimus_byte.Controllers
                 RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
             });
         }
+
+        public IActionResult AcercaDe()
+        {
+            ViewBag.UsuarioNombre = HttpContext.Session.GetString("UsuarioNombre");
+            ViewBag.UsuarioRol = HttpContext.Session.GetString("UsuarioRol");
+            return View();
+        }
     }
 }
