@@ -1,0 +1,35 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Redirigiendo a PayU...</title>
+</head>
+<body>
+    <p style="font-family:Arial;text-align:center;margin-top:80px;">
+        Redirigiendo a PayU, por favor espera...
+    </p>
+
+    <form id="payuForm" method="post" action="@ViewBag.CheckoutUrl">
+        <input type="hidden" name="merchantId" value="@ViewBag.MerchantId" />
+        <input type="hidden" name="accountId" value="@ViewBag.AccountId" />
+        <input type="hidden" name="description" value="@ViewBag.Description" />
+        <input type="hidden" name="referenceCode" value="@ViewBag.ReferenceCode" />
+        <input type="hidden" name="amount" value="@ViewBag.Amount" />
+        <input type="hidden" name="tax" value="0" />
+        <input type="hidden" name="taxReturnBase" value="0" />
+        <input type="hidden" name="currency" value="@ViewBag.Currency" />
+        <input type="hidden" name="signature" value="@ViewBag.Signature" />
+        <input type="hidden" name="test" value="@ViewBag.Test" />
+        <input type="hidden" name="buyerEmail" value="@ViewBag.BuyerEmail" />
+        <input type="hidden" name="responseUrl" value="@ViewBag.ResponseUrl" />
+    </form>
+
+    <script>
+        document.getElementById('payuForm').submit();
+    </script>
+</body>
+</html>

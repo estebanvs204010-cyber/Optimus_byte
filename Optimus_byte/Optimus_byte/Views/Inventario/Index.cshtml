@@ -1,158 +1,104 @@
 @{
     Layout = null;
     ViewData["Title"] = "Catálogo de Repuestos";
-    var nombre   = Context.Session.GetString("UsuarioNombre");
-    var rol      = Context.Session.GetString("UsuarioRol");
-    bool logueado = !string.IsNullOrEmpty(nombre);
 }
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Optimus-Byte</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="~/css/variables.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/catalogo.css" asp-append-version="true" />
-    <style>
-        /* Ajuste del contenido para no quedar bajo el navbar del home */
-        .cat-layout { padding-top: 72px !important; }
-        /* Botón cotización en navbar */
-        .nb-cotizacion {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid var(--dorado, #d97706);
-            color: var(--dorado, #d97706);
-            padding: 7px 16px;
-            border-radius: 4px;
-            font-size: .75rem;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-            cursor: pointer;
-            background: transparent;
-            transition: .2s;
-        }
-        .nb-cotizacion:hover { background: var(--dorado, #d97706); color: #fff; }
-        .carrito-badge {
-            background: var(--dorado, #d97706);
-            color: #fff;
-            border-radius: 50%;
-            width: 18px; height: 18px;
-            font-size: .62rem; font-weight: 600;
-            display: flex; align-items: center; justify-content: center;
-        }
-    </style>
 </head>
+
 <body>
+    <form style="display:none">
+        @Html.AntiForgeryToken()
+    </form>
 
-    <!-- ══ NAVBAR (igual al Home) ══ -->
-    <nav class="ob-navbar">
-        <button class="ob-hamburger" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
-        </button>
+    <header class="barra-superior">
+        <button class="boton-menu" onclick="mostrarMenu()">☰</button>
 
-        <a class="ob-nav-logo" asp-controller="Home" asp-action="Index">
-            <img src="~/img/putin.png" alt="Optimus-Byte" />
+        <a class="logo-proyecto" asp-controller="Home" asp-action="Index">
+            <img src="~/img/putin.png" alt="Optimus-Byte" class="logo-img" />
         </a>
 
-        <button class="nb-cotizacion" id="toggleCarrito">
-            🛒 Mi cotización
+        <button class="nb-cotizacion" id="toggleCarrito" type="button">
+            🛒 Mi carrito
             <span class="carrito-badge" id="badgeCount">0</span>
         </button>
+    </header>
 
-        <div class="ob-nav-acciones">
-            @if (!logueado)
-            {
-                <a class="ob-btn-ingresar"
-                   href="/Login/Index?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
-                    Ingresar
-                </a>
-                <a class="ob-btn-registro" asp-controller="Registro" asp-action="Index">Registrarse</a>
-            }
-            else
-            {
-                @await Html.PartialAsync("_MenuUsuarioPartial")
-            }
-        </div>
-    </nav>
-
-    <!-- ══ SIDEBAR (igual al Home) ══ -->
-    <aside class="ob-sidebar" id="obSidebar">
-        <div class="ob-sidebar-title">Optimus-Byte</div>
-        <a asp-controller="Home" asp-action="Index">
-            <i class="fas fa-house"></i> Inicio
-        </a>
-        <a asp-controller="Inventario" asp-action="Index" class="activo-sidebar">
-            <i class="fas fa-boxes-stacked"></i> Catálogo
-        </a>
-        <a asp-controller="Servicios" asp-action="Index">
-            <i class="fas fa-screwdriver-wrench"></i> Servicios
-        </a>
-        <a asp-controller="Citas" asp-action="Index">
-            <i class="fas fa-calendar-check"></i> Citas
-        </a>
-        <a asp-controller="Home" asp-action="Sobre">
-            <i class="fas fa-circle-info"></i> Acerca de
-        </a>
+    <aside class="barra-lateral" id="barraLateral">
+        <h2>Optimus-Byte</h2>
+        <a asp-controller="Home" asp-action="Index">Inicio</a>
+        <a asp-controller="Inventario" asp-action="Index" class="activo-sidebar">Catálogo</a>
+        <a asp-controller="Servicios" asp-action="Index">Servicios</a>
+        <a asp-controller="Citas" asp-action="Index">Citas</a>
+        <a asp-controller="Home" asp-action="Sobre">Acerca de</a>
     </aside>
-    <div class="ob-overlay" id="obOverlay" onclick="closeSidebar()"></div>
 
-    <!-- ══ LAYOUT: SIDEBAR CATEGORÍAS + MAIN ══ -->
     <div class="cat-layout" id="contenidoPrincipal">
-
         <aside class="cat-sb">
             <div class="cat-sb-header">
-                <div class="cat-sb-header-txt">Cotizador de Repuestos</div>
-                <button class="cat-sb-carrito-btn" onclick="toggleCarrito()">
+                <div class="cat-sb-header-txt">Carrito de Repuestos</div>
+                <button class="cat-sb-carrito-btn" type="button" onclick="toggleCarrito()">
                     🛒 Productos agregados
-                    <span id="sbCount" style="background:rgba(0,0,0,0.25);border-radius:10px;padding:1px 7px;font-size:.65rem;">0</span>
+                    <span id="sbCount"
+                          style="background:rgba(0,0,0,0.25);border-radius:10px;padding:1px 7px;font-size:.65rem;">
+                        0
+                    </span>
                 </button>
             </div>
+
             <div class="cat-sb-cat-title">Categorías</div>
+
             <div id="listaCategorias">
-                <div class="cat-sb-cat on" onclick="filtrar('todos', this)">Todos los productos <span class="arr">→</span></div>
+                <div class="cat-sb-cat on" onclick="filtrar('todos', this)">
+                    Todos los productos <span class="arr">→</span>
+                </div>
             </div>
         </aside>
 
         <main class="cat-main">
             <div class="cat-main-top">
                 <div class="cat-main-title">Todos los <em>productos</em></div>
+
                 <div class="cat-search-row">
-                    <input class="cat-search-inp" placeholder="Buscar repuesto..." id="searchInp" oninput="buscar()" />
-                    <button class="cat-search-btn">🔍</button>
+                    <input class="cat-search-inp"
+                           placeholder="Buscar repuesto..."
+                           id="searchInp"
+                           oninput="buscar()" />
+
+                    <button class="cat-search-btn" type="button">🔍</button>
+
                     <select class="cat-sort-sel" onchange="ordenar(this.value)">
-                        <option value="nombre">Nombre A–Z</option>
+                        <option value="nombre">Nombre A-Z</option>
                         <option value="precio-asc">Precio ↑</option>
                         <option value="precio-desc">Precio ↓</option>
-                    </select>
-                    <select class="cat-sort-sel" id="filtroMarca" onchange="filtrarMarca()">
-                        <option value="todas">Todas las marcas</option>
-                    </select>
-                    <select class="cat-sort-sel" id="filtroModelo" onchange="filtrarModelo()">
-                        <option value="todos">Todos los modelos</option>
                     </select>
                 </div>
             </div>
 
             <div class="cat-carrito-panel" id="carritoPanel" style="display:none;">
                 <div class="cat-carrito-panel-hdr">
-                    <span>Mi cotización</span>
+                    <span>Mi carrito</span>
                     <span style="cursor:pointer;" onclick="toggleCarrito()">✕ cerrar</span>
                 </div>
+
                 <div id="carritoItems"></div>
+
                 <div class="cat-carrito-total">
                     <span class="cat-carrito-total-lbl">Total estimado</span>
                     <span class="cat-carrito-total-val" id="totalVal">$0</span>
                 </div>
-                <button class="cat-btn-cotizar">Enviar cotización →</button>
+
+                <button class="cat-btn-cotizar" id="btnPagarCarrito" type="button">
+                    Pagar →
+                </button>
             </div>
 
             <div class="cat-grid" id="productosGrid"></div>
@@ -161,25 +107,8 @@
 
     <script src="~/js/catalogo.js" asp-append-version="true"></script>
     <script>
-        // Sidebar del home
-        function toggleSidebar() {
-            document.getElementById('obSidebar').classList.toggle('activa');
-            document.getElementById('obOverlay').classList.toggle('activa');
-        }
-        function closeSidebar() {
-            document.getElementById('obSidebar').classList.remove('activa');
-            document.getElementById('obOverlay').classList.remove('activa');
-        }
-        // Dropdown usuario
-                       function toggleMenu(btn) {
-            const menu = document.getElementById('menuUsuario');
-            menu.classList.toggle('abierto');
-            document.addEventListener('click', function cerrar(e) {
-                if (!btn.contains(e.target) && !menu.contains(e.target)) {
-                    menu.classList.remove('abierto');
-                    document.removeEventListener('click', cerrar);
-                }
-            });
+        function mostrarMenu() {
+            document.getElementById('barraLateral').classList.toggle('activa');
         }
     </script>
 </body>
